@@ -12,7 +12,7 @@ Dromed user. You will need to have at least the following installed:
 2. the supporting libraries
 3. the twscript code.
 
-what follows is a walktrhough of how to get the above set up, and how to get
+what follows is a walkthrough of how to get the above set up, and how to get
 to the point where you can actually compile scripts.
 
 1. Setting up the compiler
@@ -105,11 +105,11 @@ github, but that's up to you).
 2. Change into the directory you created in step 0, using unix-like syntax, eg:
    `cd /d/thiefscripts`
 3. Enter the following commands to clone Telliamed's script support libraries:
-      git clone https://github.com/whoopdedo/lg.git
-      git clone https://github.com/whoopdedo/dh2.git
-      git clone https://github.com/whoopdedo/scriptlib.git
+       git clone https://github.com/whoopdedo/lg.git
+       git clone https://github.com/whoopdedo/dh2.git
+       git clone https://github.com/whoopdedo/scriptlib.git
 4. And this one to clone this project (if you have forked it, clone your fork instead!):
-      git clone https://github.com/TheWatcher/twscript.git
+       git clone https://github.com/TheWatcher/twscript.git
 
 You should now have four directories inside the one you created in step 0 above: lg,
 dh2, scriptlib, and twscript. Now to compile them...
@@ -127,9 +127,9 @@ First you need to fix up a few issues with the standard libraries as cloned:
 
 0. Optional step: open `D:\thiefscripts\lg\lg\config.h` in your text editor, go to line 24
    and enter `#undef __thiscall`, eg:
-      #else // !_MSC_VER
-      #undef __thiscall
-      #define __thiscall
+       #else // !_MSC_VER
+       #undef __thiscall
+       #define __thiscall
    and save the changes. If you don't do this, you'll get a redefinition warning all over
    the place.
 1. Open `D:\thiefscripts\lg\lg\types.h` in your text editor, go to line 195 and change
@@ -145,11 +145,27 @@ First you need to fix up a few issues with the standard libraries as cloned:
 
 Now you can start compiling:
 
-1. Start a MinGW Shell window
-2. Change into the lg directory, eg: `cd /d/thiefscripts/lg`
-3. Run `make`
-4. Change into the dh2 directory, eg: `cd ../dh2`
-5. Run `make`
-6. Change into the scriptlib directory, eg: `cd ../scriptlib`
-7. Run `make`
+0. Start a MinGW Shell window
+1. Change into the lg directory, eg: `cd /d/thiefscripts/lg`
+2. Run `make`
+3. Change into the dh2 directory, eg: `cd ../dh2`
+4. Run `make`
+5. Change into the scriptlib directory, eg: `cd ../scriptlib`
+6. Run `make`
+
+
+6. Test compiling TWScript
+--------------------------
+
+At this point, all the libraries required to compile scripts should be in place and compiled,
+so it is time to actually give it a go. Before you start working on any scripts of your own,
+you should make sure your environment is sane by compiling the TWScript package:
+
+0. If a MinGW Shell window isn't current open, start one.
+1. Change into the twscript directory: `cd /d/thiefscripts/twscript`
+2. Run `make`
+3. Once make has finished, copy twscript.osm into your Thief 2 installation.
+4. Start Dromed, add an object, set it up to use TWTweqSmooth, go into game mode, and see if
+   it works. If it does, you have successfully compiled the osm!
+
 
