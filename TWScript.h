@@ -15,7 +15,6 @@
  * Script: TWTweqSmooth
  *
  */
-#if !SCR_GENSCRIPTS
 class cScr_TWTweqSmooth : public cBaseScript
 {
 public:
