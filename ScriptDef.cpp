@@ -67,7 +67,7 @@
 #undef T1SCRIPTS_H
 #undef T2SCRIPTS_H
 #undef SS2SCRIPTS_H
-#undef TWSCRIPTS_H
+#undef TWSCRIPT_H
 
 #if defined(SCR_GENSCRIPTFACTORY)
 
