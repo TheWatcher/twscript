@@ -1,3 +1,13 @@
+## @file
+# Makefile for TWScript, modified from the Makefile included with Tellliamed's
+# Publis Scripts package.
+#
+# @author Chris Page <chris@starforge.co.uk>
+# @author Tom N Harris <telliamed@whoopdedo.org>
+#
+
+# Original header comment follows:
+#
 ###############################################################################
 ##  Makefile-gcc
 ##
@@ -19,16 +29,19 @@
 ##
 ###############################################################################
 
-
 .SUFFIXES:
 .SUFFIXES: .o .cpp .rc
 .PRECIOUS: %.o
 
-GAME = 2
+# Update these with the name of your script file, and the output .osm
+MYSCRIPT = TWScript
+MYOSM    = twscript.osm
 
 srcdir = .
 bindir = ./obj
 
+GAME = 2
+PUBDIR = ./pubscript
 LGDIR = ../lg
 SCRLIBDIR = ../ScriptLib
 DH2DIR = ../DH2
@@ -58,26 +71,33 @@ LGLIB = -llg
 SCR2LIB = -lScript2
 endif
 
-ARFLAGS = rc
-LDFLAGS = -mwindows -mdll -Wl,--enable-auto-image-base
-LIBDIRS = -L. -L$(LGDIR) -L$(SCRLIBDIR) -L$(DH2DIR)
-LIBS = $(DH2LIB) $(LGLIB) -luuid
-INCLUDES = -I. -I$(srcdir) -I$(LGDIR) -I$(SCRLIBDIR) -I$(DH2DIR)
-# If you care for this... # -Wno-unused-variable
-# A lot of the callbacks have unused parameters, so I turn that off.
+ARFLAGS  = rc
+LDFLAGS  = -mwindows -mdll -Wl,--enable-auto-image-base
+LIBDIRS  = -L. -L$(LGDIR) -L$(SCRLIBDIR) -L$(DH2DIR)
+LIBS     = $(DH2LIB) $(LGLIB) -luuid
+INCLUDES = -I. -I$(srcdir) -I$(LGDIR) -I$(SCRLIBDIR) -I$(DH2DIR) -I$(PUBDIR)
 CXXFLAGS = -W -Wall -masm=intel -std=gnu++0x
 DLLFLAGS = --add-underscore
 
-OSM_OBJS = $(bindir)/ScriptModule.o $(bindir)/Script.o $(bindir)/Allocator.o $(bindir)/exports.o
-BASE_OBJS = $(bindir)/MsgHandlerArray.o $(bindir)/BaseTrap.o $(bindir)/BaseScript.o
-SCR_OBJS = $(bindir)/TWScripts.o
-MISC_OBJS = $(bindir)/ScriptDef.o $(bindir)/utils.o
-RES_OBJS = $(bindir)/twscript_res.o
+# Public scripts objects
+OSM_OBJS  = $(PUBDIR)/ScriptModule.o $(PUBDIR)/Script.o $(PUBDIR)/Allocator.o $(PUBDIR)/exports.o
+BASE_OBJS = $(PUBDIR)/MsgHandlerArray.o $(PUBDIR)/BaseTrap.o $(PUBDIR)/BaseScript.o
+MISC_OBJS = $(bindir)/ScriptDef.o $(PUBDIR)/utils.o
+
+# Custom script objects
+SCR_OBJS  = $(bindir)/$(MYSCRIPT).o
+RES_OBJS  = $(bindir)/$(MYSCRIPT)_res.o
 
 $(bindir)/%.o: $(srcdir)/%.cpp
 	$(CXX) $(CXXFLAGS) $(CXXDEBUG) $(DEFINES) $(GAME2) $(INCLUDES) -o $@ -c $<
 
 $(bindir)/%_res.o: $(srcdir)/%.rc
+	$(RC) $(DEFINES) $(GAME2) -o $@ -i $<
+
+$(PUBDIR)/%.o: $(PUBDIR)/%.cpp
+	$(CXX) $(CXXFLAGS) $(CXXDEBUG) $(DEFINES) $(GAME2) $(INCLUDES) -o $@ -c $<
+
+$(PUBDIR)/%_res.o: $(PUBDIR)/%.rc
 	$(RC) $(DEFINES) $(GAME2) -o $@ -i $<
 
 %.o: %.cpp
@@ -89,29 +109,26 @@ $(bindir)/%_res.o: $(srcdir)/%.rc
 %.osm: %.o $(OSM_OBJS)
 	$(LD) $(LDFLAGS) $(LDDEBUG) $(LIBDIRS) -o $@ script.def $< $(OSM_OBJS) $(SCR2LIB) $(LIBS)
 
-
-all: $(bindir) twscript.osm
+all: $(bindir) $(MYOSM)
 
 clean:
-	$(RM) $(bindir)/* twscript.osm
+	$(RM) $(bindir)/* $(PUBDIR)/*.o $(MYOSM)
 
 $(bindir):
 	mkdir -p $@
 
-#.INTERMEDIATE: exports.o
-
-$(bindir)/exports.o: $(bindir)/ScriptModule.o
+$(PUBDIR)/exports.o: $(PUBDIR)/ScriptModule.o
 	$(DLLTOOL) $(DLLFLAGS) --dllname script.osm --output-exp $@ $^
 
-$(bindir)/ScriptModule.o: ScriptModule.cpp ScriptModule.h Allocator.h
-$(bindir)/Script.o: Script.cpp Script.h
-$(bindir)/Allocator.o: Allocator.cpp Allocator.h
+$(PUBDIR)/ScriptModule.o: $(PUBDIR)/ScriptModule.cpp $(PUBDIR)/ScriptModule.h $(PUBDIR)/Allocator.h
+$(PUBDIR)/Script.o: $(PUBDIR)/Script.cpp $(PUBDIR)/Script.h
+$(PUBDIR)/Allocator.o: $(PUBDIR)/Allocator.cpp $(PUBDIR)/Allocator.h
 
-$(bindir)/BaseScript.o: BaseScript.cpp BaseScript.h Script.h ScriptModule.h MsgHandlerArray.h
-$(bindir)/BaseTrap.o: BaseTrap.cpp BaseTrap.h BaseScript.h Script.h
-$(bindir)/TWScripts.o: TWScripts.cpp TWScripts.h BaseTrap.h BaseScript.h Script.h
-$(bindir)/ScriptDef.o: ScriptDef.cpp TWScripts.h BaseTrap.h BaseScript.h ScriptModule.h genscripts.h
-$(bindir)/twscript_res.o: twscript.rc version.rc
+$(PUBDIR)/BaseScript.o: $(PUBDIR)/BaseScript.cpp $(PUBDIR)/BaseScript.h $(PUBDIR)/Script.h $(PUBDIR)/ScriptModule.h $(PUBDIR)/MsgHandlerArray.h
+$(PUBDIR)/BaseTrap.o: $(PUBDIR)/BaseTrap.cpp $(PUBDIR)/BaseTrap.h $(PUBDIR)/BaseScript.h $(PUBDIR)/Script.h
+$(bindir)/ScriptDef.o: ScriptDef.cpp $(MYSCRIPT).h $(PUBDIR)/BaseTrap.h $(PUBDIR)/BaseScript.h $(PUBDIR)/ScriptModule.h $(PUBDIR)/genscripts.h
+$(bindir)/$(MYSCRIPT)s.o: $(MYSCRIPT).cpp $(MYSCRIPT).h $(PUBDIR)/BaseTrap.h $(PUBDIR)/BaseScript.h $(PUBDIR)/Script.h
+$(bindir)/$(MYSCRIPT)_res.o: $(MYSCRIPT).rc $(PUBDIR)/version.rc
 
-twscript.osm: $(SCR_OBJS) $(BASE_OBJS) $(OSM_OBJS) $(MISC_OBJS) $(RES_OBJS)
-	$(LD) $(LDFLAGS) -Wl,--image-base=0x11200000 $(LDDEBUG) $(LIBDIRS) -o $@ script.def $^ $(SCR2LIB) $(LIBS)
+$(MYOSM): $(SCR_OBJS) $(BASE_OBJS) $(OSM_OBJS) $(MISC_OBJS) $(RES_OBJS)
+	$(LD) $(LDFLAGS) -Wl,--image-base=0x11200000 $(LDDEBUG) $(LIBDIRS) -o $@ $(PUBDIR)/script.def $^ $(SCR2LIB) $(LIBS)
