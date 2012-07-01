@@ -131,9 +131,9 @@ First you need to fix up a few issues with the standard libraries as cloned:
 0. Optional step: open `D:\thiefscripts\lg\lg\config.h` in your text editor, go to line 24
    and enter `#undef __thiscall`, eg:
 
-       #else // !_MSC_VER
-       #undef __thiscall
-       #define __thiscall
+        #else // !_MSC_VER
+        #undef __thiscall
+        #define __thiscall
 
    and save the changes. If you don't do this, you'll get a redefinition warning all over
    the place.
@@ -173,4 +173,10 @@ you should make sure your environment is sane by compiling the TWScript package:
 4. Start Dromed, add an object, set it up to use TWTweqSmooth, go into game mode, and see if
    it works. If it does, you have successfully compiled the osm!
 
+7. Writing your own scripts
+---------------------------
 
+If you get here without problems, you are ready to start making your own scripts (and your
+problems are literally just beginning...). The package is roughly divided into two bits:
+
+- pubscript and docs contain files you're not likely to edit.
