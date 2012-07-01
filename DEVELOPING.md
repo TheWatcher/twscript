@@ -105,11 +105,14 @@ github, but that's up to you).
 2. Change into the directory you created in step 0, using unix-like syntax, eg:
    `cd /d/thiefscripts`
 3. Enter the following commands to clone Telliamed's script support libraries:
-       git clone https://github.com/whoopdedo/lg.git
-       git clone https://github.com/whoopdedo/dh2.git
-       git clone https://github.com/whoopdedo/scriptlib.git
+
+        git clone https://github.com/whoopdedo/lg.git
+        git clone https://github.com/whoopdedo/dh2.git
+        git clone https://github.com/whoopdedo/scriptlib.git
+
 4. And this one to clone this project (if you have forked it, clone your fork instead!):
-       git clone https://github.com/TheWatcher/twscript.git
+
+        git clone https://github.com/TheWatcher/twscript.git
 
 You should now have four directories inside the one you created in step 0 above: lg,
 dh2, scriptlib, and twscript. Now to compile them...
@@ -127,9 +130,11 @@ First you need to fix up a few issues with the standard libraries as cloned:
 
 0. Optional step: open `D:\thiefscripts\lg\lg\config.h` in your text editor, go to line 24
    and enter `#undef __thiscall`, eg:
+
        #else // !_MSC_VER
        #undef __thiscall
        #define __thiscall
+
    and save the changes. If you don't do this, you'll get a redefinition warning all over
    the place.
 1. Open `D:\thiefscripts\lg\lg\types.h` in your text editor, go to line 195 and change
