@@ -59,18 +59,7 @@
  */
 #include "BaseScript.h"
 #include "BaseTrap.h"
-#if (_DARKGAME == 1)
-#include "T1Scripts.h"
-#endif
-#if (_DARKGAME == 2)
-#include "TWScripts.h"
-#endif
-#if (_DARKGAME == 3)
-#include "SS2Scripts.h"
-#endif
-#if (_DARKGAME == 4)
-
-#endif
+#include "TWScript.h"
 
 #undef BASESCRIPT_H
 #undef BASETRAP_H
