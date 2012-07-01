@@ -37,10 +37,12 @@
 MYSCRIPT = TWScript
 MYOSM    = twscript.osm
 
+# Change this to `1` for Thief 1, 3 for SS2.
+GAME     = 2
+
 srcdir = .
 bindir = ./obj
 
-GAME = 2
 PUBDIR = ./pubscript
 LGDIR = ../lg
 SCRLIBDIR = ../ScriptLib
@@ -55,20 +57,20 @@ DLLTOOL = dlltool
 RC = windres
 
 DEFINES = -DWINVER=0x0400 -D_WIN32_WINNT=0x0400 -DWIN32_LEAN_AND_MEAN
-GAME2 = -D_DARKGAME=2
+GAMEDEF = -D_DARKGAME=$(GAME)
 
 ifdef DEBUG
 DEFINES := $(DEFINES) -DDEBUG
 CXXDEBUG = -g -O0
 LDDEBUG = -g
 LGLIB = -llg-d
-SCR2LIB = -lScript2-d
+SCRIPTLIB = -lScript$(GAME)-d
 else
 DEFINES := $(DEFINES) -DNDEBUG
 CXXDEBUG = -O2
 LDDEBUG =
 LGLIB = -llg
-SCR2LIB = -lScript2
+SCRIPTLIB = -lScript$(GAME)
 endif
 
 ARFLAGS  = rc
@@ -89,25 +91,25 @@ SCR_OBJS  = $(bindir)/$(MYSCRIPT).o
 RES_OBJS  = $(bindir)/$(MYSCRIPT)_res.o
 
 $(bindir)/%.o: $(srcdir)/%.cpp
-	$(CXX) $(CXXFLAGS) $(CXXDEBUG) $(DEFINES) $(GAME2) $(INCLUDES) -o $@ -c $<
+	$(CXX) $(CXXFLAGS) $(CXXDEBUG) $(DEFINES) $(GAMEDEF) $(INCLUDES) -o $@ -c $<
 
 $(bindir)/%_res.o: $(srcdir)/%.rc
-	$(RC) $(DEFINES) $(GAME2) -o $@ -i $<
+	$(RC) $(DEFINES) $(GAMEDEF) -o $@ -i $<
 
 $(PUBDIR)/%.o: $(PUBDIR)/%.cpp
-	$(CXX) $(CXXFLAGS) $(CXXDEBUG) $(DEFINES) $(GAME2) $(INCLUDES) -o $@ -c $<
+	$(CXX) $(CXXFLAGS) $(CXXDEBUG) $(DEFINES) $(GAMEDEF) $(INCLUDES) -o $@ -c $<
 
 $(PUBDIR)/%_res.o: $(PUBDIR)/%.rc
-	$(RC) $(DEFINES) $(GAME2) -o $@ -i $<
+	$(RC) $(DEFINES) $(GAMEDEF) -o $@ -i $<
 
 %.o: %.cpp
-	$(CXX) $(CXXFLAGS) $(CXXDEBUG) $(DEFINES) $(GAME2) $(INCLUDES) -o $@ -c $<
+	$(CXX) $(CXXFLAGS) $(CXXDEBUG) $(DEFINES) $(GAMEDEF) $(INCLUDES) -o $@ -c $<
 
 %_res.o: %.rc
-	$(RC) $(DEFINES) $(GAME2) -o $@ -i $<
+	$(RC) $(DEFINES) $(GAMEDEF) -o $@ -i $<
 
 %.osm: %.o $(OSM_OBJS)
-	$(LD) $(LDFLAGS) $(LDDEBUG) $(LIBDIRS) -o $@ script.def $< $(OSM_OBJS) $(SCR2LIB) $(LIBS)
+	$(LD) $(LDFLAGS) $(LDDEBUG) $(LIBDIRS) -o $@ script.def $< $(OSM_OBJS) $(SCRIPTLIB) $(LIBS)
 
 all: $(bindir) $(MYOSM)
 
@@ -131,4 +133,4 @@ $(bindir)/$(MYSCRIPT)s.o: $(MYSCRIPT).cpp $(MYSCRIPT).h $(PUBDIR)/BaseTrap.h $(P
 $(bindir)/$(MYSCRIPT)_res.o: $(MYSCRIPT).rc $(PUBDIR)/version.rc
 
 $(MYOSM): $(SCR_OBJS) $(BASE_OBJS) $(OSM_OBJS) $(MISC_OBJS) $(RES_OBJS)
-	$(LD) $(LDFLAGS) -Wl,--image-base=0x11200000 $(LDDEBUG) $(LIBDIRS) -o $@ $(PUBDIR)/script.def $^ $(SCR2LIB) $(LIBS)
+	$(LD) $(LDFLAGS) -Wl,--image-base=0x11200000 $(LDDEBUG) $(LIBDIRS) -o $@ $(PUBDIR)/script.def $^ $(SCRIPTLIB) $(LIBS)
