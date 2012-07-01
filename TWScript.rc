@@ -28,4 +28,4 @@
 #define PACKAGE_NAME		"TW Scripts"
 #define PACKAGE_VERSTRING	SCRIPT_VERSTRING
 
-#include "version.rc"
+#include "pubscript/version.rc"
