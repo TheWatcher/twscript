@@ -1,5 +1,4 @@
 
-
 Using this as the base for your scripts
 =======================================
 
@@ -158,7 +157,6 @@ Now you can start compiling:
 5. Change into the scriptlib directory, eg: `cd ../scriptlib`
 6. Run `make`
 
-
 6. Test compiling TWScript
 --------------------------
 
@@ -191,13 +189,29 @@ the process is:
 0. Create a .cpp file containing the implementation of your script(s). The twscript package
    calls this` TWScript.cpp`, but for now imagine that you call your script file `Wibble.cpp`
    This file will contain nothing out of the ordinary for someone accustomed to c++ coding.
-
-1. Create a .h file containing the script class definition. I won't go into detail about
-   this here, other than to say that
+1. Create a .h file containing the script class definition and GEN_FACTORY() macro. 
        - the .h file must have the same base name as the .cpp file, including case. So if you
-         call your .cpp file `Wibble.cpp` you must create `Wibble.h`.
-       - Your .h file **must** contain a header guard, and two preprocessor paths: when
-         SCR_GENSCRIPTS is set to true the class definition should be visible,
-         and when it is false one or more GEN_FACTORY(), one for each script, should be
-         visible. See 
-         
+         call your .cpp file `Wibble.cpp` you must create `Wibble.h`. If you use a different
+	 name, the makefile will not work properly.
+       - Your .h file must contain a header guard, and *two preprocessor paths*: when
+         SCR_GENSCRIPTS is set to false the class definition should be visible,
+         and when it is true one or more GEN_FACTORY(), one for each script, should be
+         visible. 
+   See the ScriptNotes.md file for more information.
+6. Make a copy of `TWScript.rc`, giving it the same base name as your .cpp and .h files
+   (eg: `Wibble.rc`). Edit the contents of the new .rc file to reflect the information
+   about your scripts.
+3. Modify the `MYSCRIPT` variable in the `Makefile` to contain the base name you gave your 
+   script .cpp and .h files. So if you have `Wibble.cpp` and `Wibble.h`, you should set 
+   `MYSCRIPT = Wibble`
+4. Modify the `MYOSM` variable in the `Makefile` to contain the name you want to give your
+   .osm (be sure to include the `.osm` extension in the name!). This does not have to be
+   the same as the `MYSCRIPT` value, but it should be something that easily identifies the
+   .osm as being made by you.
+5. Modify `ScriptDef.cpp` to replace `#include "TWScript.h"`with an include for your 
+   script header (`#include "Wibble.h"` for example) and be sure to `#undef` your header
+   guard with the other `#undef`s (eg: replace `#undef TWSCRIPT_H` with `#undef WIBBLE_H`)
+
+This should be sufficient to get you a bare-bones script development environment. Please
+see the ScriptNotes.md file for some more information about what you should put in your
+script files, and some pointers for where to look for documntation.
