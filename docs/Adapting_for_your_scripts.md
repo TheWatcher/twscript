@@ -1,6 +1,15 @@
+Important Notice
+================
 
-Using this as the base for your scripts
-=======================================
+This document will only be of interest to people who want to recompile twscript,
+or use this package as the base from which they can develop their own scripts.
+
+If all you want to do is *use* twscript, please see the TWScript.md document,
+you can safely ignore this one!
+
+
+Using this package as the base for your scripts
+===============================================
 
 If you are interested in using this package as the base from which you can
 develop your own scripts, you will need to do rather more work than a normal
