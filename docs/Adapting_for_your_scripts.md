@@ -28,12 +28,12 @@ to the point where you can actually compile scripts.
 --------------------------
 
 Before you can do any compiling, you need a compiler. This is actually not as
-straightfoward as you might think: as even if you already have a compiler
+straightforward as you might think: as even if you already have a compiler
 available, there's a good chance it may not actually work with this code, or it
 may produce an .osm that Thief can't actually load (or it may work fine, in
 which case, great! But don't blame me if you end up up to your armpits in
-soul-devouring, betentacled horrors from beyond time and space while trying it).
-ence, you are strongly advised to follow these steps, even if you already
+soul-devouring, be-tentacled horrors from beyond time and space when trying it).
+Hence, you are strongly advised to follow these steps, even if you already
 have a working compiler setup, unless you're feeling adventurous:
 
 0. Download the TDM-GCC compiler suite for Windows from the [project site](http://tdm-gcc.tdragon.net/).
@@ -65,7 +65,7 @@ limited, I generally suggest installing MSYS as well:
    `C:\MinGW-TDM`)
 3. On the Select Components step **YOU MUST UNTICK "C Compiler"**. *Do not*
    attempt to install the standard MinGW compiler here, or you will encounter
-   all sorts of problems (remember those betentacled horrors? Yes, those sorts
+   all sorts of problems (remember those be-tentacled horrors? Yes, those sorts
    of problems). Scroll down the list of components, find "MSYS Basic System"
    and tick it. You must ensure that "MSYS Basic System" **is the only enabled
    component**, then click "Next".
@@ -83,7 +83,7 @@ installed.
 
 I'm not going to tell you to use one editor or another here - editor choice has
 been the subject of Holy Wars for decades, and almost everyone has their
-favourite. If you don't have a decent programmer's editor installed, you can
+favorite. If you don't have a decent programmer's editor installed, you can
 go far worse than to start off with [Notepad++](http://notepad-plus-plus.org/):
 it's fast, light, does syntax highlighting and block folding. Apparently
 TDM-GCC plays nice with [Code::Blocks](http://www.codeblocks.org/),
@@ -123,9 +123,9 @@ with git (you may wish to fork the twscript project before doing so, if you
 want to push your changes back to github, but that's up to you).
 
 0. Create a directory somewhere on your system, something like `D:\thiefscripts`
-   It doesn't matter whatyou call it, provided that you can remember it, and it
+   It doesn't matter what you call it, provided that you can remember it, and it
    **does not** contain spaces. Spaces in filenames are another way to summon
-   those sould-devouring, betentacled horrors, so avoid them.
+   those soul-devouring, be-tentacled horrors, so avoid them.
 1. From the start menu, select Git -> Git Bash
 2. Change into the directory you created in step 0, using unix-like syntax, eg:
    `cd /d/thiefscripts`
