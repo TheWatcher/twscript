@@ -22,8 +22,8 @@ straightfoward as you might think: as even if you already have a compiler
 available, there's a good chance it may not actually work with this code, or it
  may produce an .osm that Thief can't actually load (it may work fine, in which
 case all the better. But don't blame me if you end up up to your armpits in
-betentacled horrors from beyond time and space while trying it). Hence, you are 
-strongly advised to follow these steps, even if you already have a working 
+betentacled horrors from beyond time and space while trying it). Hence, you are
+strongly advised to follow these steps, even if you already have a working
 compiler setup, if possible.
 
 0. Download the TDM-GCC compiler suite for Windows from the [project site](http://tdm-gcc.tdragon.net/).
@@ -177,38 +177,39 @@ you should make sure your environment is sane by compiling the TWScript package:
 If you get here without problems, you are ready to start making your own scripts (and your
 problems are literally just beginning...). The package is roughly divided into two bits:
 
-- pubscript and docs contain files you're not likely to edit: the former contains the 
+- pubscript and docs contain files you're not likely to edit: the former contains the
   Public Scripts base classes and supporting code, while the latter contains documentation
-  (including this file). 
-- the main directory contains the files you're going to need to edit: and the least you 
+  (including this file).
+- the main directory contains the files you're going to need to edit: at the least you
   will need to edit the Makefile and ScriptDef.cpp files.
 
 Assuming that you are developing scripts for T2 (or require no game-specific features),
 the process is:
 
 0. Create a .cpp file containing the implementation of your script(s). The twscript package
-   calls this` TWScript.cpp`, but for now imagine that you call your script file `Wibble.cpp`
-   This file will contain nothing out of the ordinary for someone accustomed to c++ coding.
-1. Create a .h file containing the script class definition and GEN_FACTORY() macro. 
+   calls this `TWScript.cpp`, but for now imagine that you call your script file `Wibble.cpp`
+   This file will contain nothing out of the ordinary for someone accustomed to c++ coding,
+   just the implementation of member functions.
+1. Create a .h file containing the script class definition and GEN_FACTORY() macro. See the
+   ScriptNotes.md file for more information about this, but briefly:
        - the .h file must have the same base name as the .cpp file, including case. So if you
          call your .cpp file `Wibble.cpp` you must create `Wibble.h`. If you use a different
-	 name, the makefile will not work properly.
+         name, the makefile will not work properly.
        - Your .h file must contain a header guard, and *two preprocessor paths*: when
          SCR_GENSCRIPTS is set to false the class definition should be visible,
          and when it is true one or more GEN_FACTORY(), one for each script, should be
-         visible. 
-   See the ScriptNotes.md file for more information.
+         visible.
 6. Make a copy of `TWScript.rc`, giving it the same base name as your .cpp and .h files
    (eg: `Wibble.rc`). Edit the contents of the new .rc file to reflect the information
    about your scripts.
-3. Modify the `MYSCRIPT` variable in the `Makefile` to contain the base name you gave your 
-   script .cpp and .h files. So if you have `Wibble.cpp` and `Wibble.h`, you should set 
+3. Modify the `MYSCRIPT` variable in the `Makefile` to contain the base name you gave your
+   script .cpp and .h files. So if you have `Wibble.cpp` and `Wibble.h`, you should set
    `MYSCRIPT = Wibble`
 4. Modify the `MYOSM` variable in the `Makefile` to contain the name you want to give your
    .osm (be sure to include the `.osm` extension in the name!). This does not have to be
    the same as the `MYSCRIPT` value, but it should be something that easily identifies the
    .osm as being made by you.
-5. Modify `ScriptDef.cpp` to replace `#include "TWScript.h"`with an include for your 
+5. Modify `ScriptDef.cpp` to replace `#include "TWScript.h"`with an include for your
    script header (`#include "Wibble.h"` for example) and be sure to `#undef` your header
    guard with the other `#undef`s (eg: replace `#undef TWSCRIPT_H` with `#undef WIBBLE_H`)
 
