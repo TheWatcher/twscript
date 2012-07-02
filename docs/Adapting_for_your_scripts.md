@@ -123,7 +123,7 @@ with git (you may wish to fork the twscript project before doing so, if you
 want to push your changes back to github, but that's up to you).
 
 0. Create a directory somewhere on your system, something like `D:\thiefscripts`
-   - it doesn't matter what, provided that you can remember it, and it
+   It doesn't matter whatyou call it, provided that you can remember it, and it
    **does not** contain spaces. Spaces in filenames are another way to summon
    those sould-devouring, betentacled horrors, so avoid them.
 1. From the start menu, select Git -> Git Bash
