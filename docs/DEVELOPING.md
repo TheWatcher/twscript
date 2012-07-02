@@ -179,4 +179,25 @@ you should make sure your environment is sane by compiling the TWScript package:
 If you get here without problems, you are ready to start making your own scripts (and your
 problems are literally just beginning...). The package is roughly divided into two bits:
 
-- pubscript and docs contain files you're not likely to edit.
+- pubscript and docs contain files you're not likely to edit: the former contains the 
+  Public Scripts base classes and supporting code, while the latter contains documentation
+  (including this file). 
+- the main directory contains the files you're going to need to edit: and the least you 
+  will need to edit the Makefile and ScriptDef.cpp files.
+
+Assuming that you are developing scripts for T2 (or require no game-specific features),
+the process is:
+
+0. Create a .cpp file containing the implementation of your script(s). The twscript package
+   calls this` TWScript.cpp`, but for now imagine that you call your script file `Wibble.cpp`
+   This file will contain nothing out of the ordinary for someone accustomed to c++ coding.
+
+1. Create a .h file containing the script class definition. I won't go into detail about
+   this here, other than to say that
+       - the .h file must have the same base name as the .cpp file, including case. So if you
+         call your .cpp file `Wibble.cpp` you must create `Wibble.h`.
+       - Your .h file **must** contain a header guard, and two preprocessor paths: when
+         SCR_GENSCRIPTS is set to true the class definition should be visible,
+         and when it is false one or more GEN_FACTORY(), one for each script, should be
+         visible. See 
+         
