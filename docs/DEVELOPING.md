@@ -19,12 +19,12 @@ to the point where you can actually compile scripts.
 
 Before you can do any compiling, you need a compiler. This is actually not as
 straightfoward as you might think: as even if you already have a compiler
-available, there's a good chance it may not actually either work with this code,
-or produce an .osm that Thief will actually load (it may work fine, in which
-case all the better, but don't blame me if you end up surrounded by betentacled
-horrors from beyond time and space while testing it). Hence, you are strongly
-advised to follow these steps, even if you already have a working compiler
-setup.
+available, there's a good chance it may not actually work with this code, or it
+ may produce an .osm that Thief can't actually load (it may work fine, in which
+case all the better. But don't blame me if you end up up to your armpits in
+betentacled horrors from beyond time and space while trying it). Hence, you are 
+strongly advised to follow these steps, even if you already have a working 
+compiler setup, if possible.
 
 0. Download the TDM-GCC compiler suite for Windows from the [project site](http://tdm-gcc.tdragon.net/).
    You want to get the `tdm-gcc-x.x.x` bundle installer (MinGW/sjlj), currently
