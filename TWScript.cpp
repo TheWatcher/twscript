@@ -24,39 +24,105 @@
 #include <stdexcept>
 #include <memory>
 
+const unsigned int cScr_TWTweqSmooth::CFGBUFFER_SIZE = 22;
+
 using namespace std;
 
-
-void cScr_TWTweqSmooth::StartTimer()
+void cScr_TWTweqSmooth::start_timer()
 {
     timer = SetTimedMessage("TWRateUpdate", timer_rate, kSTM_OneShot, "TWScripts");
 }
 
 
-void cScr_TWTweqSmooth::ClearTimer()
+void cScr_TWTweqSmooth::clear_timer()
 {
     if(timer) {
         KillTimedMessage(timer);
         timer = NULL;
     }
+
 }
 
-
-void cScr_TWTweqSmooth::Init()
+float cScr_TWTweqSmooth::get_rate(const char *design_note, const char *cfgname, float default_value, float minimum)
 {
-    ClearTimer();
+    float value = GetParamFloat(design_note, cfgname, default_value);
 
-    char* design_note = GetObjectParams(ObjId());
+    if(value < minimum) value = minimum;
 
-    min_rate   = GetParamFloat(design_note, "TWTweqSmoothMinRate", 0.1f);
-    max_rate   = GetParamFloat(design_note, "TWTweqSmoothMaxRate", 10.0f);
-    timer_rate = GetParamInt  (design_note, "TWTweqSmoothTimerRate", 250);
-
-    StartTimer();
+    return value;
 }
 
 
-void cScr_TWTweqSmooth::SetAxisRate(const char* propname, ePhysAxes axis)
+void cScr_TWTweqSmooth::init_rotate(const char *design_note)
+{
+    SService<IPropertySrv> pPS(g_pScriptManager);
+
+    // Does the object have a rotate tweq, configuration, and the matching rotate state?
+    // This also allows the user to suppress smoothing on an object's rotate if needed.
+    do_tweq_rotate = (pPS -> Possessed(ObjId(), "CfgTweqRotate") &&
+                      pPS -> Possessed(ObjId(), "StTweqRotate") &&
+                      GetParamBool(design_note, "TWTweqSmoothRotate", true));
+    if(do_tweq_rotate) {
+        // Obtain maximum and minimum rates for each axis. They may not be needed, but
+        // parsing them is not a significant overhead.
+        rotate_rates[RotXAxis][MinRate] = get_rate(design_note, "TWTweqSmoothRotateXMin", min_rate);
+        rotate_rates[RotXAxis][MaxRate] = get_rate(design_note, "TWTweqSmoothRotateXMax", max_rate, rotate_rates[RotXAxis][MinRate]);
+        rotate_rates[RotYAxis][MinRate] = get_rate(design_note, "TWTweqSmoothRotateYMin", min_rate);
+        rotate_rates[RotYAxis][MaxRate] = get_rate(design_note, "TWTweqSmoothRotateYMax", max_rate, rotate_rates[RotYAxis][MinRate]);
+        rotate_rates[RotZAxis][MinRate] = get_rate(design_note, "TWTweqSmoothRotateZMin", min_rate);
+        rotate_rates[RotZAxis][MaxRate] = get_rate(design_note, "TWTweqSmoothRotateZMax", max_rate, rotate_rates[RotZAxis][MinRate]);
+    }
+}
+
+
+void cScr_TWTweqSmooth::init_joints(const char *design_note)
+{
+    SService<IPropertySrv> pPS(g_pScriptManager);
+
+    do_tweq_joints = (pPS -> Possessed(ObjId(), "CfgTweqJoints") &&
+                      pPS -> Possessed(ObjId(), "StTweqJoints") &&
+                      GetParamBool(design_note, "TWTweqSmoothJoints", true));
+    if(do_tweq_joints) {
+        char cfg_buffer[CFGBUFFER_SIZE];
+
+
+
+        for(int joint = 0; joint < JointCount; ++joint) {
+            snprintf(cfg_buffer, CFGBUFFER_SIZE, "TWTweqSmoothJoint%1dMin", joint);
+            joint_rates[joint][MinRate] = get_rate(design_note, cfg_buffer, min_rate);
+
+            snprintf(cfg_buffer, CFGBUFFER_SIZE, "TWTweqSmoothJoint%1dMax", joint);
+            joint_rates[joint][MaxRate] = get_rate(design_note, cfg_buffer, max_rate, joint_rates[joint][MinRate]);
+        }
+    }
+}
+
+
+void cScr_TWTweqSmooth::init()
+{
+    // Ensure that the timer can't fire while re-initialising
+    clear_timer();
+
+    // Fetch the contents of the object's design note
+    const char *design_note = GetObjectParams(ObjId());
+
+    // How frequently should the timer update the tweq rate?
+    timer_rate = GetParamInt(design_note, "TWTweqSmoothTimerRate", 250);
+
+    // Has the editor specified defaults for the min and max rates?
+    min_rate = get_rate(design_note, "TWTweqSmoothMinRate", 0.1f);
+    max_rate = get_rate(design_note, "TWTweqSmoothMaxRate", 10.0f, min_rate); // note: force max >= min.
+
+    // Now we need to determine whether the object has a rotate tweq, and joint
+    // tweq, or both, and set up the smoothing facility accordingly.
+    init_rotate(design_note);
+    init_joints(design_note);
+
+    start_timer();
+}
+
+
+void cScr_TWTweqSmooth::set_axis_rate(const char* propname, ePhysAxes axis)
 {
     cMultiParm prop;
     float rate, low, high;
@@ -80,10 +146,10 @@ void cScr_TWTweqSmooth::SetAxisRate(const char* propname, ePhysAxes axis)
 
             float current;
             switch(axis) {
-                case XAxis: current = facing.x; break;
-                case YAxis: current = facing.y; break;
-                case ZAxis: current = facing.z; break;
-                default: current = low;
+            case XAxis: current = facing.x; break;
+            case YAxis: current = facing.y; break;
+            case ZAxis: current = facing.z; break;
+            default: current = low;
             }
 
             // Rate is a function of the current angle within the range
@@ -112,7 +178,7 @@ void cScr_TWTweqSmooth::SetAxisRate(const char* propname, ePhysAxes axis)
 
 long cScr_TWTweqSmooth::OnSim(sSimMsg* pSimMsg, cMultiParm& mpReply)
 {
-    if(pSimMsg -> fStarting) Init();
+    if(pSimMsg -> fStarting) init();
 
     return cBaseScript::OnSim(pSimMsg, mpReply);
 }
@@ -137,13 +203,13 @@ long cScr_TWTweqSmooth::OnTimer(sScrTimerMsg* pTimerMsg, cMultiParm& mpReply)
 
             // Only do anything if the rotate is actually on
             if(AnimS & kTweqFlagOn) {
-                SetAxisRate("x rate-low-high", XAxis);
-                SetAxisRate("y rate-low-high", YAxis);
-                SetAxisRate("z rate-low-high", ZAxis);
+                set_axis_rate("x rate-low-high", XAxis);
+                set_axis_rate("y rate-low-high", YAxis);
+                set_axis_rate("z rate-low-high", ZAxis);
             }
         }
-        ClearTimer();
-        StartTimer();
+        clear_timer();
+        start_timer();
     }
     return cBaseScript::OnTimer(pTimerMsg, mpReply);
 
