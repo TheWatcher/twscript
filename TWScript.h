@@ -11,19 +11,6 @@
 #include <lg/scrservices.h>
 #include <lg/links.h>
 
-enum RotAxes {
-    RotXAxis,
-    RotYAxis,
-    RotZAxis,
-    RotAxisMax
-};
-
-enum RateMode {
-    MinRate,
-    MaxRate,
-    RateModeMax
-};
-
 /**
  * Script: TWTweqSmooth
  *
@@ -31,6 +18,19 @@ enum RateMode {
 class cScr_TWTweqSmooth : public cBaseScript
 {
 public:
+    enum RotAxes {
+        RotXAxis,
+        RotYAxis,
+        RotZAxis,
+        RotAxisMax
+    };
+
+    enum RateMode {
+        MinRate,
+        MaxRate,
+        RateModeMax
+    };
+
 	cScr_TWTweqSmooth(const char* pszName, int iHostObjId)
 		: cBaseScript(pszName, iHostObjId)
     { }
@@ -42,13 +42,15 @@ protected:
 private:
     float get_rate(const char *design_note, const char *cfgname, float default_value, float minimum = 0.0f);
     void init();
-    void init_rotate(const char *design_note);
-    void init_joints(const char *design_note);
+    int  init_rotate_onoffctrl(char *axes);
+    void init_rotate(char *design_note);
+    int  init_joints_onoffctrl(char *joints);
+    void init_joints(char *design_note);
 
     void start_timer();
     void clear_timer();
 
-    void set_axis_rate(const char *propname, ePhysAxes axis);
+    void set_axis_rate(const char *propname, RotAxes axis);
 
     // Timer-related variables.
     tScrTimer timer;      //!< The currently active timer for this object, or NULL.
@@ -60,6 +62,7 @@ private:
 
     // TweqRotate settings
     bool      do_tweq_rotate;                        //!< Should the rotate tweq be smoothed?
+    bool      axis_smooth[RotAxisMax];               //!< Which axes should be smoothed?
     float     rotate_rates[RotAxisMax][RateModeMax]; //!< Store the per-axis rate min/max values
 
     // TweqJoints settings
@@ -75,6 +78,8 @@ private:
 
     //! How big is the buffer used to store joint configuration names?
     static const unsigned int CFGBUFFER_SIZE;
+
+    static const char *axis_names[RotAxisMax];
 };
 
 #else // SCR_GENSCRIPTS
