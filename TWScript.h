@@ -10,6 +10,7 @@
 
 #include <lg/scrservices.h>
 #include <lg/links.h>
+#include <vector>
 
 /** AnimC bit field flags. No idea why this isn't in lg/defs.h, but hey...
  */
@@ -22,6 +23,41 @@ enum eAnimCFlags {
     kSimLarge  = 0x20, // update if within a large radius
     kOffScreen = 0x40  // only run if I'm offscreen
 };
+
+typedef struct
+{
+   float speed;
+   int   pause;
+   bool  path_limit;
+
+   int   cur_paused;
+} sTerrainPath;
+
+
+/** Obtain a string containing the specified object's name (or archetype name),
+ *  and its ID number. This has been lifted pretty much verbatim from Telliamed's
+ *  Spy script - it is used to generate the object name and ID when writing
+ *  debug messages.
+ *
+ * @param obj_id The ID of the object to obtain the name and number of.
+ * @return A string containing the object name
+ */
+extern cAnsiStr get_object_namestr(object obj_id);
+
+
+/** Given a destination string, generate a list of object ids the destination
+ *  corresponds to. If dest is '[me]', the current object is returned, if dest
+ *  is '[source]' the source object is returned, if the dest is an object
+ *  id or name, the id of that object is returned. If dest starts with * then
+ *  the remainder of the string is used as an archetype name and all direct
+ *  concrete descendents of that archetype are returned. If dest starts with
+ *  @ then all concrete descendants (direct and indirect) are returned.
+ *
+ * @param pMsg A pointer to a script message containing the to and from objects.
+ * @param dest The destination string
+ * @return A vector of object ids the destination matches.
+ */
+extern std::vector<object>* get_target_objects(sScrMsg *pMsg, const char *dest);
 
 /**
  * TWTweqSmooth allows the oscillating rotation of objects or joints to be
@@ -103,6 +139,7 @@ enum eAnimCFlags {
 class cScr_TWTweqSmooth : public cBaseScript
 {
 public:
+
     enum RotAxis {
         RotXAxis,
         RotYAxis,
@@ -136,16 +173,6 @@ private:
     inline bool compatible_animc(const int animc) {
         return !( animc & kNoLimit || animc & kWrap);
     };
-
-    /** Obtain a string containing the specified object's name (or archetype name),
-     *  and its ID number. This has been lifted pretty much verbatim from Telliamed's
-     *  Spy script - it is used to generate the object name and ID when writing
-     *  debug messages.
-     *
-     * @param obj_id The ID of the object to obtain the name and number of.
-     * @return A string containing the object name
-     */
-    cAnsiStr get_object_namestr(object obj_id);
 
     /** Fetch the rate set for a given axis on an object with Tweq -> Rotate set.
      *
@@ -208,8 +235,59 @@ private:
     static const char *joint_names[JointCount];
 };
 
+
+/** TWTrapSetSpeed: Allow for run-time modification of TPath speed settings.
+ *  This script lets you control how fast a vator moves between TerrPts on the
+ *  fly - add it to an object, set the TWTrapSetSpeed and TWTrapSetSpeedDest params
+ *  documented below, and then send a TurnOn message to the object when you
+ *  want it to apply the speed to the destination.
+ *
+ * Configuration
+ * -------------
+ * Parameters are specified using the Editor -> Design Note, please see the
+ * main documentation for more about this.  Parameters supported by TWTweqSmooth
+ * are listed below. If a parameter is not specified, the default value shown is
+ * used instead. Note that all the parameters are optional, and if you do not
+ * specify a parameter, the script will attempt to use a 'sane' default.
+ *
+ * Parameter: TWTrapSetSpeed
+ *      Type: float
+ *   Default: 0.0
+ * The speed to set the target object's TPath speed value to when triggered. All
+ * TPath links on the target object are updated to reflect the speed given here.
+ *
+ * Parameter: TWTrapSetSpeedDest
+ *      Type: string
+ *   Default: [me]
+ * Specify the target object(s) to update when triggered. This can either be
+ * an object name, [me] to update the object the script is on, [source] to update
+ * the object that triggered the change (if you need that, for some odd reason),
+ * or you may specify an archetype name preceeded by * or @ to update all objects
+ * that inherit from the specified archetype. If you use *Archetype then only
+ * concrete objects that directly inherit from that archetype are updated, if you
+ * use @Archetype then all concrete objects that inherit from the archetype
+ * directly or indirectly are updated.
+ */
+class cScr_TWTrapSetSpeed : public cBaseTrap
+{
+public:
+    cScr_TWTrapSetSpeed(const char* pszName, int iHostObjId)
+		: cBaseTrap(pszName, iHostObjId)
+    { }
+
+protected:
+	virtual long OnTurnOn (sScrMsg* pMsg, cMultiParm& mpReply);
+
+private:
+    void set_speed(object obj_id, float speed);
+    static int link_iter(ILinkSrv* linksrv, ILinkQuery* query, IScript* script, void *data);
+};
+
 #else // SCR_GENSCRIPTS
-GEN_FACTORY("TWTweqSmooth", "BaseScript", cScr_TWTweqSmooth)
+
+GEN_FACTORY("TWTweqSmooth"  , "BaseScript", cScr_TWTweqSmooth)
+GEN_FACTORY("TWTrapSetSpeed", "BaseTrap"  , cScr_TWTrapSetSpeed)
+
 #endif // SCR_GENSCRIPTS
 
 #endif // TWSCRIPT_H

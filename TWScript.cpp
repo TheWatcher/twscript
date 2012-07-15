@@ -24,6 +24,10 @@
 #include <stdexcept>
 #include <memory>
 
+/* =============================================================================
+ *  TWTweqSmooth Impmementation
+ */
+
 const char *cScr_TWTweqSmooth::axis_names[] = {
     "x rate-low-high",
     "y rate-low-high",
@@ -43,7 +47,7 @@ const char *cScr_TWTweqSmooth::joint_names[] = {
  *  Utility functions
  */
 
-cAnsiStr cScr_TWTweqSmooth::get_object_namestr(object obj_id)
+cAnsiStr get_object_namestr(object obj_id)
 {
     cAnsiStr str = "0";
     if(obj_id) {
@@ -65,6 +69,51 @@ cAnsiStr cScr_TWTweqSmooth::get_object_namestr(object obj_id)
         }
     }
     return str;
+}
+
+
+std::vector<object>* get_target_objects(sScrMsg *pMsg, const char *dest)
+{
+    std::vector<object>* matches = new std::vector<object>;
+    SInterface<IObjectSystem> pOS(g_pScriptManager);
+    SInterface<ITraitManager> pTM(g_pScriptManager);
+
+    // Simple dest/source selection.
+    if(!_stricmp(dest, "[me]")) {
+        matches -> push_back(pMsg -> to);
+    } else if(!_stricmp(dest, "[source]")) {
+        matches -> push_back(pMsg -> from);
+
+    // Archetype search
+    } else if(*dest == '*' || *dest == '@') {
+
+        // Find the archetype named if possible
+        object arch = pOS -> GetObjectNamed(&dest[1]);
+        if(int(arch) <= 0) {
+
+            // Build the query flags - '*' just searches direct descendats, '@' does all
+            ulong flags = kTraitQueryChildren;
+            if(*dest == '@') flags |= kTraitQueryFull;
+
+            // Ask for the list of matching objects
+            SInterface<IObjectQuery> query = pTM -> Query(arch, flags);
+            if(query) {
+
+                // Process each object, adding it to the match list if it's concrete.
+                for(; !query -> Done(); query -> Next()) {
+                    object obj = query -> Object();
+                    if(int(obj) > 0) matches -> push_back(obj);
+                }
+            }
+        }
+
+    // Named destination object
+    } else {
+        object obj = pOS -> GetObjectNamed(dest);
+        if(obj) matches -> push_back(obj);
+    }
+
+    return matches;
 }
 
 
@@ -187,11 +236,16 @@ int cScr_TWTweqSmooth::init_rotate_onoffctrl(char *axes)
 void cScr_TWTweqSmooth::init_rotate(char *design_note)
 {
     SService<IPropertySrv> pPS(g_pScriptManager);
+    int      set_count  = 0;
+    bool     can_smooth = false;
+    cAnsiStr obj_name   = get_object_namestr(ObjId());
 
     // Find out whether any axes have been selected for smoothing
-    int set_count   = init_rotate_onoffctrl(GetParamString(design_note, "TWTweqSmoothRotate", "all"));
-    bool can_smooth = false;
-    cAnsiStr obj_name = get_object_namestr(ObjId());
+    char *axis = GetParamString(design_note, "TWTweqSmoothRotate", "all");
+    if(axis) {
+        set_count = init_rotate_onoffctrl(axis);
+        g_pMalloc -> Free(axis);
+    }
 
     // If the object has a TweqRotate configuration, check that the AnimC flags are okay
     if(pPS -> Possessed(ObjId(), "CfgTweqRotate")) {
@@ -334,9 +388,14 @@ int cScr_TWTweqSmooth::init_joints_onoffctrl(char *joints)
 void cScr_TWTweqSmooth::init_joints(char *design_note)
 {
     SService<IPropertySrv> pPS(g_pScriptManager);
+    int set_count = 0;
 
     // Find out how many joints have been selected for smoothing, and pass checks on their AnimC
-    int set_count = init_joints_onoffctrl(GetParamString(design_note, "TWTweqSmoothJoints", "all"));
+    char *joints = GetParamString(design_note, "TWTweqSmoothJoints", "all");
+    if(joints) {
+        set_count = init_joints_onoffctrl(joints);
+        g_pMalloc -> Free(joints);
+    }
 
     // As near as I can tell, NoLimit and Wrap on the CfgTweqJoints main config (as opposed to on
     // individual joints) does bugger all, and can be ignored here unlike in init_rotate().
@@ -378,29 +437,34 @@ void cScr_TWTweqSmooth::init()
     // Fetch the contents of the object's design note
     char *design_note = GetObjectParams(ObjId());
 
-    // Should warnings be displayed in the monolog?
-    warnings = GetParamBool(design_note, "TWTweqSmoothWarn", true);
+    if(design_note) {
+        // Should warnings be displayed in the monolog?
+        warnings = GetParamBool(design_note, "TWTweqSmoothWarn", true);
 
-    // How frequently should the timer update the tweq rate?
-    timer_rate = GetParamInt(design_note, "TWTweqSmoothTimerRate", 250);
+        // How frequently should the timer update the tweq rate?
+        timer_rate = GetParamInt(design_note, "TWTweqSmoothTimerRate", 250);
 
-    // Has the editor specified defaults for the min and max rates?
-    min_rate = get_rate_param(design_note, "TWTweqSmoothMinRate", 0.1f);
-    max_rate = get_rate_param(design_note, "TWTweqSmoothMaxRate", 10.0f, min_rate); // note: force max >= min.
+        // Has the editor specified defaults for the min and max rates?
+        min_rate = get_rate_param(design_note, "TWTweqSmoothMinRate", 0.1f);
+        max_rate = get_rate_param(design_note, "TWTweqSmoothMaxRate", 10.0f, min_rate); // note: force max >= min.
 
-    // Now we need to determine whether the object has a rotate tweq, and joint
-    // tweq, or both, and set up the smoothing facility accordingly.
-    init_rotate(design_note);
-    init_joints(design_note);
+        // Now we need to determine whether the object has a rotate tweq, and joint
+        // tweq, or both, and set up the smoothing facility accordingly.
+        init_rotate(design_note);
+        init_joints(design_note);
 
-    // If either rotate or joints are going to be smoothed, start the timer to do it.
-    if(do_tweq_rotate || do_tweq_joints) {
-        start_timer();
+        // If either rotate or joints are going to be smoothed, start the timer to do it.
+        if(do_tweq_rotate || do_tweq_joints) {
+            start_timer();
 
-    // Otherwise potentially bitch at the user.
-    } else if(warnings) {
-        cAnsiStr obj_name = get_object_namestr(ObjId());
-        DebugPrintf("WARNING[TWTweqSmooth]: %s has TweqRotate and TweqJoints smoothing disabled. Why am I on this object?", static_cast<const char *>(obj_name));
+            // Otherwise potentially bitch at the user.
+        } else if(warnings) {
+            cAnsiStr obj_name = get_object_namestr(ObjId());
+            DebugPrintf("WARNING[TWTweqSmooth]: %s has TweqRotate and TweqJoints smoothing disabled. Why am I on this object?", static_cast<const char *>(obj_name));
+        }
+
+        // No longer need the design note
+        g_pMalloc->Free(design_note);
     }
 }
 
@@ -493,4 +557,63 @@ long cScr_TWTweqSmooth::OnTimer(sScrTimerMsg* pTimerMsg, cMultiParm& mpReply)
 
     return cBaseScript::OnTimer(pTimerMsg, mpReply);
 
+}
+
+
+/* =============================================================================
+ *  TWTrapSetSpeed Impmementation
+ */
+
+void cScr_TWTrapSetSpeed::set_speed(object obj_id, float speed)
+{
+    SService<ILinkSrv> pLS(g_pScriptManager);
+    SService<ILinkToolsSrv> pLTS(g_pScriptManager);
+
+    // Convert to a multiparm here for ease
+    cMultiParm setspeed = speed;
+
+    // Fetch all TPath links from the specified object to any other
+    linkset lsLinks;
+    pLS -> GetAll(lsLinks, pLTS -> LinkKindNamed("TPath"), obj_id, 0);
+
+    // Set the speed for each link to the set speed.
+    for(; lsLinks.AnyLinksLeft(); lsLinks.NextLink()) {
+        pLTS -> LinkSetData(lsLinks.Link(), "Speed", setspeed);
+    }
+}
+
+
+long cScr_TWTrapSetSpeed::OnTurnOn(sScrMsg* pMsg, cMultiParm& mpReply)
+{
+    SInterface<IObjectSystem> pOS(g_pScriptManager);
+
+    // Fetch the contents of the object's design note
+    char *design_note = GetObjectParams(ObjId());
+
+    if(design_note) {
+        // Get the speed the user has set for this object (which could be a QVar)
+        float speed = GetParamFloat(design_note, "TWTrapSetSpeed", 0.0f);
+
+        // Who should be updated?
+        char *target = GetParamString(design_note, "TWTrapSetSpeedDest", "[me]");
+
+        // If a target has been parsed, fetch all the objects that match it
+        if(target) {
+            std::vector<object>* targets = get_target_objects(pMsg, target);
+
+            // Process the target list, setting the speeds accordingly
+            std::vector<object>::iterator it;
+            for(it = targets -> begin() ; it < targets -> end(); it++) {
+                set_speed(*it, speed);
+            }
+
+            // And clean up
+            delete targets;
+            g_pMalloc -> Free(target);
+        }
+
+        g_pMalloc -> Free(design_note);
+    }
+
+	return cBaseTrap::OnTurnOn(pMsg, mpReply);
 }
