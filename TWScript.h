@@ -242,6 +242,14 @@ private:
  *  documented below, and then send a TurnOn message to the object when you
  *  want it to apply the speed to the destination.
  *
+ * IMPORTANT NOTE: This script currently only allows for modification of speeds
+ * set on TerrPts, not directly controlling the speed of the MovingTerrain object
+ * moving between them. What this means is that the speed of the MovingTerrain
+ * will not change /until it reaches another TerrPt/, at which point it will pick
+ * up the new speed value. You should keep this in mind when distributing your
+ * TerrPts, and possibly add in 'redundant' points to help reflect speed changes
+ * more rapidly.
+ *
  * Configuration
  * -------------
  * Parameters are specified using the Editor -> Design Note, please see the
