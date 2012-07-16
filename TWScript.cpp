@@ -44,10 +44,10 @@ const char *cScr_TWTweqSmooth::joint_names[] = {
 };
 
 /* -----------------------------------------------------------------------------
- *  Utility functions
+ *  TWScript functions
  */
 
-cAnsiStr get_object_namestr(object obj_id)
+cAnsiStr TWScript::get_object_namestr(object obj_id)
 {
     cAnsiStr str = "0";
     if(obj_id) {
@@ -72,43 +72,120 @@ cAnsiStr get_object_namestr(object obj_id)
 }
 
 
-std::vector<object>* get_target_objects(sScrMsg *pMsg, const char *dest)
+bool TWScript::radius_search(char *dest, float *radius, bool *lessthan, char **archetype)
+{
+    char  mode   = 0;
+    char *search = dest;
+
+    // Search the string for a < or >, if found, record it and the start of the archetype
+    while(*search) {
+        if(*search == '<' || *search == '>') {
+            mode = *search;
+            *lessthan = (mode == '<');
+            *archetype = search + 1;
+            break;
+        }
+        ++search;
+    }
+
+    // If the mode hasn't been found, or there's no archetype set, it's not a radius search
+    if(!mode || !*archetype) return false;
+
+    // It's a radius search, so try to parse the radius
+    char *end;
+    *radius = strtof(dest, &end);
+
+    // If the value didn't parse, or parsing stopped before the < or >, give up (the latter
+    // is actually probably 'safe', but meh)
+    if(end == dest || *end != mode) return false;
+
+    // Okay, this should be a radius search!
+    return true;
+}
+
+
+void TWScript::archetype_search(std::vector<object> *matches, char *archetype, bool do_full, bool do_radius, object from_obj, float radius, bool lessthan)
+{
+    SInterface<IObjectSystem> pOS(g_pScriptManager);
+	SService<IObjectSrv> pOSrv(g_pScriptManager);
+    SInterface<ITraitManager> pTM(g_pScriptManager);
+
+    // These are only needed when doing radius searches
+    cScrVec from_pos, to_pos;
+    float   distance;
+    if(do_radius) pOSrv -> Position(from_pos, from_obj);
+
+    // Find the archetype named if possible
+    object arch = pOS -> GetObjectNamed(archetype);
+    if(int(arch) <= 0) {
+
+        // Build the query flags
+        ulong flags = kTraitQueryChildren;
+        if(do_full) flags |= kTraitQueryFull; // If dofull is on, query direct and indirect descendants
+
+        // Ask for the list of matching objects
+        SInterface<IObjectQuery> query = pTM -> Query(arch, flags);
+        if(query) {
+
+            // Process each object, adding it to the match list if it's concrete.
+            for(; !query -> Done(); query -> Next()) {
+                object obj = query -> Object();
+                if(int(obj) > 0) {
+
+                    // Object is concrete, do we need to check it for distance?
+                    if(do_radius) {
+                        // Get the provisionally matched object's position, and work out how far it
+                        // is from the 'from' object.
+                        pOSrv -> Position(to_pos, obj);
+                        distance = (float)from_pos.Distance(to_pos);
+
+                        // If the distance check passes, store the object.
+                        if((lessthan && (distance < radius)) || (!lessthan && (distance > radius))) {
+                            matches -> push_back(obj);
+                        }
+
+                    // No radius check needed, add straight to the list
+                    } else {
+                        matches -> push_back(obj);
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+std::vector<object>* TWScript::get_target_objects(char *dest, sScrMsg *pMsg)
 {
     std::vector<object>* matches = new std::vector<object>;
-    SInterface<IObjectSystem> pOS(g_pScriptManager);
-    SInterface<ITraitManager> pTM(g_pScriptManager);
+
+    float radius;
+    bool  lessthan;
+    char *archname;
 
     // Simple dest/source selection.
     if(!_stricmp(dest, "[me]")) {
         matches -> push_back(pMsg -> to);
+
     } else if(!_stricmp(dest, "[source]")) {
         matches -> push_back(pMsg -> from);
 
-    // Archetype search
+    // Archetype search, direct concrete and indirect concrete
     } else if(*dest == '*' || *dest == '@') {
+        archetype_search(matches, &dest[1], *dest == '@');
 
-        // Find the archetype named if possible
-        object arch = pOS -> GetObjectNamed(&dest[1]);
-        if(int(arch) <= 0) {
+    // Radius archetype search
+    } else if(radius_search(dest, &radius, &lessthan, &archname)) {
+        char *realname = archname;
+        // Jump filter controls if needed...
+        if(*archname == '*' || *archname == '@') ++realname;
 
-            // Build the query flags - '*' just searches direct descendats, '@' does all
-            ulong flags = kTraitQueryChildren;
-            if(*dest == '@') flags |= kTraitQueryFull;
-
-            // Ask for the list of matching objects
-            SInterface<IObjectQuery> query = pTM -> Query(arch, flags);
-            if(query) {
-
-                // Process each object, adding it to the match list if it's concrete.
-                for(; !query -> Done(); query -> Next()) {
-                    object obj = query -> Object();
-                    if(int(obj) > 0) matches -> push_back(obj);
-                }
-            }
-        }
+        archetype_search(matches, realname, *archname == '@', true, pMsg -> to, radius, lessthan);
 
     // Named destination object
     } else {
+        SInterface<IObjectSystem> pOS(g_pScriptManager);
+
         object obj = pOS -> GetObjectNamed(dest);
         if(obj) matches -> push_back(obj);
     }
@@ -594,12 +671,22 @@ long cScr_TWTrapSetSpeed::OnTurnOn(sScrMsg* pMsg, cMultiParm& mpReply)
         // Get the speed the user has set for this object (which could be a QVar)
         float speed = GetParamFloat(design_note, "TWTrapSetSpeed", 0.0f);
 
+        // If the user has specified a QVar to use instead, read that
+        char *qvar = GetParamString(design_note, "TWTrapSetSpeedQVar");
+        if(qvar) {
+            SService<IQuestSrv> pQS(g_pScriptManager);
+            if(pQS -> Exists(qvar))
+                speed = (float)pQS -> Get(qvar);
+
+            g_pMalloc -> Free(qvar);
+        }
+
         // Who should be updated?
         char *target = GetParamString(design_note, "TWTrapSetSpeedDest", "[me]");
 
         // If a target has been parsed, fetch all the objects that match it
         if(target) {
-            std::vector<object>* targets = get_target_objects(pMsg, target);
+            std::vector<object>* targets = get_target_objects(target, pMsg);
 
             // Process the target list, setting the speeds accordingly
             std::vector<object>::iterator it;

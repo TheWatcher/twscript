@@ -34,32 +34,81 @@ typedef struct
 } sTerrainPath;
 
 
-/** Obtain a string containing the specified object's name (or archetype name),
- *  and its ID number. This has been lifted pretty much verbatim from Telliamed's
- *  Spy script - it is used to generate the object name and ID when writing
- *  debug messages.
+class TWScript
+{
+protected:
+    /** Obtain a string containing the specified object's name (or archetype name),
+     *  and its ID number. This has been lifted pretty much verbatim from Telliamed's
+     *  Spy script - it is used to generate the object name and ID when writing
+     *  debug messages.
+     *
+     * @param obj_id The ID of the object to obtain the name and number of.
+     * @return A string containing the object name
+     */
+    cAnsiStr get_object_namestr(object obj_id);
+
+
+    /** Given a destination string, generate a list of object ids the destination
+     *  corresponds to. If dest is '[me]', the current object is returned, if dest
+     *  is '[source]' the source object is returned, if the dest is an object
+     *  id or name, the id of that object is returned. If dest starts with * then
+     *  the remainder of the string is used as an archetype name and all direct
+     *  concrete descendents of that archetype are returned. If dest starts with
+     *  @ then all concrete descendants (direct and indirect) are returned.
+     *
+     * @param pMsg A pointer to a script message containing the to and from objects.
+     * @param dest The destination string
+     * @return A vector of object ids the destination matches.
+     */
+    std::vector<object>* get_target_objects(char *dest, sScrMsg *pMsg = NULL);
+
+private:
+    /** Determine whether the specified dest string is a radius search, and if so
+     *  pull out its components. This will take a string like 5.00<Chest and set
+     *  the radius to 5.0 and set the archetype string pointer to the start of the
+     *  archetype name.
+     *
+     * @param dest      The dest string to check
+     * @param radius    A pointer to a float to store the radius value in.
+     * @param lessthan  A pointer to a bool. If the radius search is a < search
+     *                  this is set to true, otherwise it is set to false.
+     * @param archetype A pointer to a char pointer to set to the start of the
+     *                  archetype name.
+     * @return true if the dest string is a radius search, false otherwise.
+     */
+    bool radius_search(char *dest, float *radius, bool *lessthan, char **archetype);
+
+
+    /** Search for concrete objects that are descendants of the specified archetype,
+     *  either direct only (if do_full is false), or directly and indirectly. This
+     *  can also filter the results based on the distance the concrete objects are
+     *  from the specified object.
+     *
+     * @param matches   A pointer to the vector to store object ids in.
+     * @param archetype The name of the archetype to search for. *Must not* include
+     *                  and filtering (* or @) directives.
+     * @param do_full   If false, only concrete objects that are direct descendants of
+     *                  the archetype are matched. If true, all concrete objects that
+     *                  are descendants of the archetype, or any descendant of that
+     *                  archetype, are matched.
+     * @param do_radius If false, concrete objects are matched regardless of distance
+     *                  from the `from_obj`. If true, objects must be either inside
+     *                  the specified radius from the `from_obj`, or outside out depending
+     *                  on the `lessthan` flag.
+     * @param from_obj  When filtering objects based on their distance, this is the
+     *                  object that distance is measured from.
+     * @param radius    The radius of the sphere that matched objects must fall inside
+     *                  or outside.
+     * @param lessthan  If true, objects must fall within the sphere around from_obj,
+     *                  if false they must be outside it.
+     */
+    void archetype_search(std::vector<object> *matches, char *archetype, bool do_full, bool do_radius = false, object from_obj = 0, float radius = 0.0f, bool lessthan = false);
+
+};
+
+
+/** @class cScr_TWTweqSmooth
  *
- * @param obj_id The ID of the object to obtain the name and number of.
- * @return A string containing the object name
- */
-extern cAnsiStr get_object_namestr(object obj_id);
-
-
-/** Given a destination string, generate a list of object ids the destination
- *  corresponds to. If dest is '[me]', the current object is returned, if dest
- *  is '[source]' the source object is returned, if the dest is an object
- *  id or name, the id of that object is returned. If dest starts with * then
- *  the remainder of the string is used as an archetype name and all direct
- *  concrete descendents of that archetype are returned. If dest starts with
- *  @ then all concrete descendants (direct and indirect) are returned.
- *
- * @param pMsg A pointer to a script message containing the to and from objects.
- * @param dest The destination string
- * @return A vector of object ids the destination matches.
- */
-extern std::vector<object>* get_target_objects(sScrMsg *pMsg, const char *dest);
-
-/**
  * TWTweqSmooth allows the oscillating rotation of objects or joints to be
  * 'smoothed' over time, removing the hard, obvious direction changes otherwise
  * encountered. This can be used to create a number of different effects, but
@@ -136,7 +185,7 @@ extern std::vector<object>* get_target_objects(sScrMsg *pMsg, const char *dest);
  * Allows for control over the smoothing of individual joint movement on objects that
  * have Tweq -> Joints set. If not set, all joints
  */
-class cScr_TWTweqSmooth : public cBaseScript
+class cScr_TWTweqSmooth : public cBaseScript, public TWScript
 {
 public:
 
@@ -236,19 +285,21 @@ private:
 };
 
 
-/** TWTrapSetSpeed: Allow for run-time modification of TPath speed settings.
- *  This script lets you control how fast a vator moves between TerrPts on the
- *  fly - add it to an object, set the TWTrapSetSpeed and TWTrapSetSpeedDest params
- *  documented below, and then send a TurnOn message to the object when you
- *  want it to apply the speed to the destination.
+/** @class cScr_TWTrapSetSpeed
  *
- * IMPORTANT NOTE: This script currently only allows for modification of speeds
- * set on TerrPts, not directly controlling the speed of the MovingTerrain object
+ * TWTrapSetSpeed allows the run-time modification of TPath speed settings.
+ * This script lets you control how fast a vator moves between TerrPts on the
+ * fly - add it to an object, set the TWTrapSetSpeed and TWTrapSetSpeedDest params
+ * documented below, and then send a TurnOn message to the object when you
+ * want it to apply the speed to the destination.
+ *
+ * @note This script currently only allows for modification of speeds set on
+ * TerrPts, *not* directly controlling the speed of the MovingTerrain object
  * moving between them. What this means is that the speed of the MovingTerrain
- * will not change /until it reaches another TerrPt/, at which point it will pick
+ * will not change *until it reaches another TerrPt*, at which point it will pick
  * up the new speed value. You should keep this in mind when distributing your
  * TerrPts, and possibly add in 'redundant' points to help reflect speed changes
- * more rapidly.
+ * more rapidly if needed.
  *
  * Configuration
  * -------------
@@ -264,6 +315,19 @@ private:
  * The speed to set the target object's TPath speed value to when triggered. All
  * TPath links on the target object are updated to reflect the speed given here.
  *
+ * Parameter: TWTrapSetSpeedQVar
+ *      Type: string
+ *   Default: none
+ * The downside to using the TWTrapSetSpeed parameter is that the value you set is
+ * fixed per object. While different objects can have different TWTrapSetSpeed
+ * values, if you have a wide variety of speeds needed, you may need a lot of
+ * objects and methods to trigger the right one. By using this parameter, you can
+ * specify a QVar to read the speed from - each time you send a TurnOn to an
+ * object with this script on it, and TWTrapSetSpeedQVar set, it will read the
+ * value out of the QVar and then copy it to the destination object(s). The downside
+ * to this parameter is that QVars may only store integer values, so you can not
+ * use this if you need fractional speed control.
+ *
  * Parameter: TWTrapSetSpeedDest
  *      Type: string
  *   Default: [me]
@@ -276,7 +340,7 @@ private:
  * use @Archetype then all concrete objects that inherit from the archetype
  * directly or indirectly are updated.
  */
-class cScr_TWTrapSetSpeed : public cBaseTrap
+class cScr_TWTrapSetSpeed : public cBaseTrap, public TWScript
 {
 public:
     cScr_TWTrapSetSpeed(const char* pszName, int iHostObjId)
