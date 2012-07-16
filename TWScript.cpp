@@ -180,7 +180,8 @@ std::vector<object>* TWScript::get_target_objects(char *dest, sScrMsg *pMsg)
         // Jump filter controls if needed...
         if(*archname == '*' || *archname == '@') ++realname;
 
-        archetype_search(matches, realname, *archname == '@', true, pMsg -> to, radius, lessthan);
+        // Default behaviour for radius search is to get all decendants unless * is specified.
+        archetype_search(matches, realname, *archname != '*', true, pMsg -> to, radius, lessthan);
 
     // Named destination object
     } else {
