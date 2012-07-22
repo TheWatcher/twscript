@@ -24,16 +24,12 @@ enum eAnimCFlags {
     kOffScreen = 0x40  // only run if I'm offscreen
 };
 
-typedef struct
-{
-   float speed;
-   int   pause;
-   bool  path_limit;
 
-   int   cur_paused;
-} sTerrainPath;
-
-
+/** @class TWScript
+ *
+ * A class containing useful functions that various TW* scripts can use.
+ *
+ */
 class TWScript
 {
 protected:
@@ -46,6 +42,30 @@ protected:
      * @return A string containing the object name
      */
     cAnsiStr get_object_namestr(object obj_id);
+
+
+    /** Fetch the value in the specified QVar if it exists, return the default if it
+     *  does not.
+     *
+     * @param qvar    The name of the QVar to return the value of.
+     * @param def_val The default value to return if the qvar does not exist.
+     * @return The QVar value, or the default specified.
+     */
+    long get_qvar_value(const char *qvar, long def_val);
+
+
+    /** A somewhat more powerful version of get_qvar_value() that allows the
+     *  inclusion of simple calculations to be applied to the value set in the
+     *  QVar by including *value or /value in the string. For example, if the
+     *  qvar variable contains 'foo/100' this will take the value in foo and
+     *  divide it by 100. If the quest variable does not exist, this returns
+     *  the default value specified *without applying any calculations to it*.
+     *
+     * @param qvar    The name of the QVar to return the value of, possibly including simple maths.
+     * @param def_val The default value to return if the qvar does not exist.
+     * @return The QVar value, or the default specified.
+     */
+    float get_qvar_value(const char *qvar, float def_val);
 
 
     /** Given a destination string, generate a list of object ids the destination
@@ -348,17 +368,27 @@ public:
     { }
 
 protected:
-	virtual long OnTurnOn (sScrMsg* pMsg, cMultiParm& mpReply);
+
+	virtual long OnTurnOn(sScrMsg* pMsg, cMultiParm& mpReply);
+    virtual long OnSim(sScrMsg* pMsg, cMultiParm& mpReply);
 
 private:
-    void set_speed(object obj_id, float speed);
-    static int link_iter(ILinkSrv* linksrv, ILinkQuery* query, IScript* script, void *data);
+    void init();
+    void set_tpath_speed(object obj_id);
+
+    static int set_mterr_speed(ILinkSrv*, ILinkQuery* pLQ, IScript*, void* pData);
+
+    float    speed;      //!< User-defined speed to set on targets and linked vators.
+    bool     debug;      //!< If true, additional debugging output is shown.
+    bool     immediate;  //!< If true, vator speed changes are instant.
+    cAnsiStr qvar_name;  //!< The name of the QVar to read speed from
+    cAnsiStr set_target; //!< The target string set by the user.
 };
 
 #else // SCR_GENSCRIPTS
 
-GEN_FACTORY("TWTweqSmooth"  , "BaseScript", cScr_TWTweqSmooth)
-GEN_FACTORY("TWTrapSetSpeed", "BaseTrap"  , cScr_TWTrapSetSpeed)
+GEN_FACTORY("TWTweqSmooth"     , "BaseScript"             , cScr_TWTweqSmooth)
+GEN_FACTORY("TWTrapSetSpeed"   , "BaseTrap"               , cScr_TWTrapSetSpeed)
 
 #endif // SCR_GENSCRIPTS
 

@@ -72,6 +72,28 @@ cAnsiStr TWScript::get_object_namestr(object obj_id)
 }
 
 
+long TWScript::get_qvar_value(const char *qvar, long def_val)
+{
+    SService<IQuestSrv> pQS(g_pScriptManager);
+    if(pQS -> Exists(qvar))
+       return pQS -> Get(qvar);
+
+    return def_val;
+}
+
+
+float TWScript::get_qvar_value(const char *qvar, float def_val)
+{
+    // Blegh, copy. But we may need to tinker with it.
+    char *tmpvar = (char *)g_pMalloc -> Alloc(strlen(qvar) + 1);
+    if(!tmpvar) return def_val;
+    strcpy(tmpvar, qvar);
+
+    // Check whether the user has included
+
+}
+
+
 bool TWScript::radius_search(char *dest, float *radius, bool *lessthan, char **archetype)
 {
     char  mode   = 0;
@@ -642,7 +664,76 @@ long cScr_TWTweqSmooth::OnTimer(sScrTimerMsg* pTimerMsg, cMultiParm& mpReply)
  *  TWTrapSetSpeed Impmementation
  */
 
-void cScr_TWTrapSetSpeed::set_speed(object obj_id, float speed)
+/** A convenience structure used to pass speed and control
+ *  data from the cScr_TWTrapSetSpeed::OnTurnOn() function
+ *  to the link iterator callback.
+ */
+struct TWSetSpeedData
+{
+    float speed;     //!< The speed set by the user.
+    bool  immediate; //!< Whether the speed change should be immediate.
+};
+
+
+int cScr_TWTrapSetSpeed::set_mterr_speed(ILinkSrv*, ILinkQuery* pLQ, IScript*, void* pData)
+{
+    TWSetSpeedData *data = static_cast<TWSetSpeedData *>(pData);
+
+    // Get the scriptparams link - dest should be a moving terrain object
+    sLink current_link;
+    pLQ -> Link(&current_link);
+    object mterr_obj = current_link.dest; // For readability
+
+    // Find out where the moving terrain is headed to
+	SInterface<ILinkManager> pLM(g_pScriptManager);
+    SInterface<IRelation> path_next_rel = pLM -> GetRelationNamed("TPathNext");
+
+    // Try to get the link to the next waypoint
+    long id = path_next_rel -> GetSingleLink(mterr_obj, 0);
+    if(id != 0) {
+
+        // dest in this link should be where the moving terrain is going
+        sLink target_link;
+        path_next_rel -> Get(id, &target_link);
+        object terrpt_obj = target_link.dest;   // For readability
+
+        if(terrpt_obj) {
+            SService<IObjectSrv> pOS(g_pScriptManager);
+            SService<IPhysSrv> pPS(g_pScriptManager);
+
+            // Get the location of the terrpt
+            cScrVec target_pos;
+            cScrVec terrain_pos;
+            pOS -> Position(target_pos, terrpt_obj);
+            pOS -> Position(terrain_pos, mterr_obj);
+
+            // Now work out what the velocity vector should be, based on the
+            // direction to the target and the speed.
+            cScrVec direction = target_pos - terrain_pos;
+            if(direction.MagSquared() > 0.0001) {
+                // The moving terrain is not on top of the terrpt
+                direction.Normalize();
+                direction *= data -> speed;
+            } else {
+                // On top of it, the game should pick this up and move the mterr to a
+                // new path.
+                direction = cScrVec::Zero;
+            }
+
+            // Set the speed. Note that UpdateMovingTerrainVelocity does something with
+            // 'ClearTransLimits()' and 'AddTransLimit()' here - that seems to be something
+            // to do with setting the waypoint trigger, so we should be okay to just update the
+            // speed here as we're not changing the target waypoint.
+            pPS -> ControlVelocity(mterr_obj, direction);
+            if(data -> immediate) pPS -> SetVelocity(mterr_obj, direction);
+        }
+    }
+
+    return 1;
+}
+
+
+void cScr_TWTrapSetSpeed::set_tpath_speed(object obj_id)
 {
     SService<ILinkSrv> pLS(g_pScriptManager);
     SService<ILinkToolsSrv> pLTS(g_pScriptManager);
@@ -661,47 +752,112 @@ void cScr_TWTrapSetSpeed::set_speed(object obj_id, float speed)
 }
 
 
-long cScr_TWTrapSetSpeed::OnTurnOn(sScrMsg* pMsg, cMultiParm& mpReply)
+void cScr_TWTrapSetSpeed::init()
 {
-    SInterface<IObjectSystem> pOS(g_pScriptManager);
+    cAnsiStr my_name = get_object_namestr(ObjId());
 
     // Fetch the contents of the object's design note
     char *design_note = GetObjectParams(ObjId());
 
-    if(design_note) {
-        // Get the speed the user has set for this object (which could be a QVar)
-        float speed = GetParamFloat(design_note, "TWTrapSetSpeed", 0.0f);
+    if(!design_note)
+        DebugPrintf("WARNING[TWTrapSetSpeed]: %s has no Editor -> Design Note. Falling back on defaults.", static_cast<const char *>(my_name));
 
-        // If the user has specified a QVar to use instead, read that
-        char *qvar = GetParamString(design_note, "TWTrapSetSpeedQVar");
-        if(qvar) {
-            SService<IQuestSrv> pQS(g_pScriptManager);
-            if(pQS -> Exists(qvar))
-                speed = (float)pQS -> Get(qvar);
+    // Get the speed the user has set for this object (which could be a QVar, so this may be 0)
+    speed = GetParamFloat(design_note, "TWTrapSetSpeed", 0.0f);
 
-            g_pMalloc -> Free(qvar);
-        }
+    // Is immediate mode enabled?
+    immediate = GetParamBool(design_note, "TWTrapSetSpeedImmediate", false);
 
-        // Who should be updated?
-        char *target = GetParamString(design_note, "TWTrapSetSpeedDest", "[me]");
+    // Is debugging mode enabled?
+    debug = GetParamBool(design_note, "TWTrapSetSpeedDebug", false);
 
-        // If a target has been parsed, fetch all the objects that match it
-        if(target) {
-            std::vector<object>* targets = get_target_objects(target, pMsg);
-
-            // Process the target list, setting the speeds accordingly
-            std::vector<object>::iterator it;
-            for(it = targets -> begin() ; it < targets -> end(); it++) {
-                set_speed(*it, speed);
-            }
-
-            // And clean up
-            delete targets;
-            g_pMalloc -> Free(target);
-        }
-
-        g_pMalloc -> Free(design_note);
+    // If the user has specified a QVar to use, copy the name
+    char *qvar = GetParamString(design_note, "TWTrapSetSpeedQVar");
+    if(qvar) {
+        qvar_name = qvar;
+        g_pMalloc -> Free(qvar);
     }
 
+    // Sort out the target string too.
+    // IMPORTANT NOTE: While it is tempting to build the full target object list at this point,
+    // doing so may possibly miss dynamically created terrpts.
+    char *target = GetParamString(design_note, "TWTrapSetSpeedDest", "[me]");
+    if(target) {
+        set_target = target;
+        g_pMalloc -> Free(qvar);
+    }
+    if(!set_target) DebugPrintf("WARNING[TWTrapSetSpeed]: %s target set failed!", static_cast<const char *>(my_name));
+
+    // If a design note was obtained, free it now
+    if(design_note) g_pMalloc -> Free(design_note);
+
+    // If debugging is enabled, print some Helpful Information
+    if(debug) {
+        DebugPrintf("DEBUG[TWTrapSetSpeed(OnSim)]: %s has initialised. Settings:\nSpeed: %.3f", static_cast<const char *>(my_name), speed);
+        DebugPrintf("Immediate speed change: %s\n", immediate ? "enabled" : "disabled");
+        if(qvar_name)  DebugPrintf("Speed will be read from QVar: %s\n", static_cast<const char *>(qvar_name));
+        if(set_target) DebugPrintf("Targetting: %s\n", static_cast<const char *>(set_target));
+    }
+}
+
+
+long cScr_TWTrapSetSpeed::OnTurnOn(sScrMsg* pMsg, cMultiParm& mpReply)
+{
+    SInterface<IObjectSystem> pOS(g_pScriptManager);
+    cAnsiStr my_name = get_object_namestr(ObjId());
+
+    if(debug)
+        DebugPrintf("DEBUG[TWTrapSetSpeed]: %s has received a TurnOn.", static_cast<const char *>(my_name));
+
+    // If the user has specified a QVar to use, read that
+    if(qvar_name) {
+    }
+
+    if(debug)
+        DebugPrintf("DEBUG[TWTrapSetSpeed]: %s using speed %.3f.", static_cast<const char *>(my_name), data.speed);
+
+    // If a target has been parsed, fetch all the objects that match it
+    if(set_target) {
+        if(debug)
+            DebugPrintf("DEBUG[TWTrapSetSpeed]: %s looking up targets matched by %s.", static_cast<const char *>(my_name), static_cast<const char *>(set_target));
+
+        std::vector<object>* targets = get_target_objects(target, pMsg);
+
+        if(!targets -> empty()) {
+            // Process the target list, setting the speeds accordingly
+            std::vector<object>::iterator it;
+            cAnsiStr targ_name;
+            for(it = targets -> begin() ; it < targets -> end(); it++) {
+                set_tpath_speed(*it);
+
+                if(debug) {
+                    targ_name = get_object_namestr(*it);
+                    DebugPrintf("DEBUG[TWTrapSetSpeed]: %s setting speed %.3f on %s.", static_cast<const char *>(my_name), speed, static_cast<const char *>(targ_name));
+                }
+            }
+        } else {
+            DebugPrintf("WARNING[TWTrapSetSpeed]: %s TWTrapSetSpeedDest '%s' did not match any objects.", static_cast<const char *>(my_name), target);
+        }
+
+        // And clean up
+        delete targets;
+    }
+
+    // Copy the speed and immediate setting so it can be made available to the iterator
+    TWSetSpeedData data;
+    data.speed = speed;
+    data.immediate = immediate;
+
+    // And now update any moving terrain objects linked to this one via ScriptParams
+    IterateLinks("ScriptParams", ObjId(), 0, set_mterr_speed, this, static_cast<void*>(&data));
+
 	return cBaseTrap::OnTurnOn(pMsg, mpReply);
+}
+
+
+long cScr_TWTrapSetSpeed::OnSim(sSimMsg* pSimMsg, cMultiParm& mpReply)
+{
+    if(pSimMsg -> fStarting) init();
+
+    return cBaseTrap::OnSim(pSimMsg, mpReply);
 }
