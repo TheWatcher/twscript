@@ -84,13 +84,57 @@ long TWScript::get_qvar_value(const char *qvar, long def_val)
 
 float TWScript::get_qvar_value(const char *qvar, float def_val)
 {
+    float qvarval = def_val;
+
     // Blegh, copy. But we may need to tinker with it.
     char *tmpvar = (char *)g_pMalloc -> Alloc(strlen(qvar) + 1);
     if(!tmpvar) return def_val;
     strcpy(tmpvar, qvar);
 
-    // Check whether the user has included
+    // Check whether the user has included a multiply or divide operator
+    char op = '';
+    char *valstr = tmpvar;
+    while(*valstr) {
+        if(*valstr == '/' || *valstr == '*') {
+            op = *valstr;
+            *valstr = '\0'; // null terminate the qvar name so tmpvar van be used 'as is'
+            ++valstr;
+            break;
+        }
+        ++valstr;
+    }
 
+    // Check the QVar exists before trying to use it...
+    SService<IQuestSrv> pQS(g_pScriptManager);
+    if(pQS -> Exists(tmpvar)) {
+        qvarval = (float)pQS -> Get(tmpvar);
+
+        // If an operator has been specified, try to parse the value
+        if(op) {
+            char *endstr == NULL;
+            float adjval;
+
+            // Is the value another QVar? If so, pull its value
+            if(*valstr == '$') {
+                adjval = (float)get_qvar_value(&valstr[1], 1); // note the default!
+            } else {
+                adjval = strtof(valstr, &endstr);
+            }
+
+            // Has a value been parsed, and is not zero? If so, apply the operator
+            if(endstr != valstr && adjval) {
+                switch(op) {
+                case '/': qvarval /= adjval; break;
+                case '*': qvarval *= adjval; break;
+                }
+            }
+        }
+    }
+
+    // Done with the copy now
+    g_pMalloc -> Free(tmpvar);
+
+    return qvarval;
 }
 
 
@@ -848,8 +892,8 @@ long cScr_TWTrapSetSpeed::OnTurnOn(sScrMsg* pMsg, cMultiParm& mpReply)
     data.speed = speed;
     data.immediate = immediate;
 
-    // And now update any moving terrain objects linked to this one via ScriptParams
-    IterateLinks("ScriptParams", ObjId(), 0, set_mterr_speed, this, static_cast<void*>(&data));
+    // And now update any moving terrain objects linked to this one via ScriptParams with data set to "SetSpeed"
+    IterateLinksByData("ScriptParams", ObjId(), 0, "SetSpeed", 9, set_mterr_speed, this, static_cast<void*>(&data));
 
 	return cBaseTrap::OnTurnOn(pMsg, mpReply);
 }
