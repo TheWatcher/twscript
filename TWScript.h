@@ -60,6 +60,8 @@ protected:
      *  qvar variable contains 'foo/100' this will take the value in foo and
      *  divide it by 100. If the quest variable does not exist, this returns
      *  the default value specified *without applying any calculations to it*.
+     *  The value may optionally be another QVar by placing $ before its name,
+     *  eg: foo/$bar will divide the value in foo by the value in bar.
      *
      * @param qvar    The name of the QVar to return the value of, possibly including simple maths.
      * @param def_val The default value to return if the qvar does not exist.
@@ -313,13 +315,11 @@ private:
  * documented below, and then send a TurnOn message to the object when you
  * want it to apply the speed to the destination.
  *
- * @note This script currently only allows for modification of speeds set on
- * TerrPts, *not* directly controlling the speed of the MovingTerrain object
- * moving between them. What this means is that the speed of the MovingTerrain
- * will not change *until it reaches another TerrPt*, at which point it will pick
- * up the new speed value. You should keep this in mind when distributing your
- * TerrPts, and possibly add in 'redundant' points to help reflect speed changes
- * more rapidly if needed.
+ * By default, the speed changes made by this script will not be picked up by
+ * and moving terrain objects moving between TerrPts until they reach their next
+ * waypoint. If you want the speed of any moving terrain object to be updated
+ * immediately by this script, link the object this script is placed on to the
+ * moving terrain object with a ScriptParams link, and set the data to "SetSpeed".
  *
  * Configuration
  * -------------
@@ -344,9 +344,11 @@ private:
  * objects and methods to trigger the right one. By using this parameter, you can
  * specify a QVar to read the speed from - each time you send a TurnOn to an
  * object with this script on it, and TWTrapSetSpeedQVar set, it will read the
- * value out of the QVar and then copy it to the destination object(s). The downside
- * to this parameter is that QVars may only store integer values, so you can not
- * use this if you need fractional speed control.
+ * value out of the QVar and then copy it to the destination object(s). If you
+ * need fractional speeds, you can include a simple calculation after the QVar
+ * name to scale it, for example, `TWTrapSetSpeedQVar=speed_var/10` will
+ * divide the value in speed_var by 10, so if `speed_var` contains 55, the
+ * speed set by the script will be 5.5.
  *
  * Parameter: TWTrapSetSpeedDest
  *      Type: string
@@ -359,6 +361,11 @@ private:
  * concrete objects that directly inherit from that archetype are updated, if you
  * use @Archetype then all concrete objects that inherit from the archetype
  * directly or indirectly are updated.
+ *
+ * Parameter: TWTrapSetSpeedImmediate
+ *      Type: boolean
+ *   Default: false
+ * If this is set to true,
  */
 class cScr_TWTrapSetSpeed : public cBaseTrap, public TWScript
 {
