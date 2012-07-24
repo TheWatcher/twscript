@@ -41,7 +41,7 @@ protected:
      * @param obj_id The ID of the object to obtain the name and number of.
      * @return A string containing the object name
      */
-    cAnsiStr get_object_namestr(object obj_id);
+    static cAnsiStr get_object_namestr(object obj_id);
 
 
     /** Fetch the value in the specified QVar if it exists, return the default if it
