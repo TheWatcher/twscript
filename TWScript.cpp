@@ -87,8 +87,8 @@ float TWScript::get_qvar_value(const char *qvar, float def_val)
     float  qvarval = def_val;
     char  *endstr  = NULL;
 
-    // Blegh, copy. But we may need to tinker with it.
-    char *tmpvar = (char *)g_pMalloc -> Alloc(strlen(qvar) + 1);
+    // Blegh, copy. Irritating, but we may need to tinker with it so that const has to go.
+    char *tmpvar = static_cast<char *>(g_pMalloc -> Alloc(strlen(qvar) + 1));
     if(!tmpvar) return def_val;
     strcpy(tmpvar, qvar);
 
@@ -98,15 +98,19 @@ float TWScript::get_qvar_value(const char *qvar, float def_val)
     while(*valstr) {
         if(*valstr == '/' || *valstr == '*') {
             op = *valstr;
-            endstr = --valstr; // Keep track of the last character before the operator, for space trimming
-            *valstr = '\0'; // null terminate the qvar name so tmpvar van be used 'as is'
+            endstr = valstr - 1; // Keep track of the last character before the operator, for space trimming
+            *valstr = '\0';     // null terminate the qvar name so tmpvar might be used 'as is'
             ++valstr;
             break;
         }
         ++valstr;
     }
+    // Skip spaces before the second operand if needed
+    while(*valstr == ' ') {
+        ++valstr;
+    }
 
-    // Trim spaces before the operator if needed (no need to trim after, as strtof does that)
+    // Trim spaces before the operator if needed
     if(endstr) {
         while(*endstr == ' ') {
             *endstr = '\0';
@@ -119,7 +123,7 @@ float TWScript::get_qvar_value(const char *qvar, float def_val)
     if(pQS -> Exists(tmpvar)) {
         qvarval = (float)pQS -> Get(tmpvar);
 
-        // If an operator has been specified, try to parse the value
+        // If an operator has been specified, try to parse the second operand and apply it
         if(op) {
             float adjval;
             endstr = NULL;
@@ -131,7 +135,7 @@ float TWScript::get_qvar_value(const char *qvar, float def_val)
                 adjval = strtof(valstr, &endstr);
             }
 
-            // Has a value been parsed, and is not zero? If so, apply the operator
+            // Has a value been parsed, and is not zero? (zeros are bad here...) If so, apply the operator.
             if(endstr != valstr && adjval) {
                 switch(op) {
                     case '/': qvarval /= adjval; break;
@@ -726,6 +730,7 @@ struct TWSetSpeedData
 {
     float speed;     //!< The speed set by the user.
     bool  immediate; //!< Whether the speed change should be immediate.
+    bool  debug;     //!< Show debugging output?
 };
 
 
@@ -737,6 +742,12 @@ int cScr_TWTrapSetSpeed::set_mterr_speed(ILinkSrv*, ILinkQuery* pLQ, IScript*, v
     sLink current_link;
     pLQ -> Link(&current_link);
     object mterr_obj = current_link.dest; // For readability
+
+    if(data -> debug) {
+        cAnsiStr mterr_name = get_object_namestr(mterr_obj);
+        cAnsiStr src_name   = get_object_namestr(current_link.source);
+        DebugPrintf("DEBUG[TWTrapSetSpeed(OnTurnOn)]: %s setting speed %.3f on %s", static_cast<const char *>(src_name), data -> speed, static_cast<const char *>(mterr_name));
+    }
 
     // Find out where the moving terrain is headed to
 	SInterface<ILinkManager> pLM(g_pScriptManager);
@@ -814,7 +825,7 @@ void cScr_TWTrapSetSpeed::init()
     char *design_note = GetObjectParams(ObjId());
 
     if(!design_note)
-        DebugPrintf("WARNING[TWTrapSetSpeed]: %s has no Editor -> Design Note. Falling back on defaults.", static_cast<const char *>(my_name));
+        DebugPrintf("WARNING[TWTrapSetSpeed(OnSim)]: %s has no Editor -> Design Note. Falling back on defaults.", static_cast<const char *>(my_name));
 
     // Get the speed the user has set for this object (which could be a QVar, so this may be 0)
     speed = GetParamFloat(design_note, "TWTrapSetSpeed", 0.0f);
@@ -838,9 +849,9 @@ void cScr_TWTrapSetSpeed::init()
     char *target = GetParamString(design_note, "TWTrapSetSpeedDest", "[me]");
     if(target) {
         set_target = target;
-        g_pMalloc -> Free(qvar);
+        g_pMalloc -> Free(target);
     }
-    if(!set_target) DebugPrintf("WARNING[TWTrapSetSpeed]: %s target set failed!", static_cast<const char *>(my_name));
+    if(!set_target) DebugPrintf("WARNING[TWTrapSetSpeed(OnSim)]: %s target set failed!", static_cast<const char *>(my_name));
 
     // If a design note was obtained, free it now
     if(design_note) g_pMalloc -> Free(design_note);
@@ -861,7 +872,7 @@ long cScr_TWTrapSetSpeed::OnTurnOn(sScrMsg* pMsg, cMultiParm& mpReply)
     cAnsiStr my_name = get_object_namestr(ObjId());
 
     if(debug)
-        DebugPrintf("DEBUG[TWTrapSetSpeed]: %s has received a TurnOn.", static_cast<const char *>(my_name));
+        DebugPrintf("DEBUG[TWTrapSetSpeed(OnTurnOn)]: %s has received a TurnOn.", static_cast<const char *>(my_name));
 
     // If the user has specified a QVar to use, read that
     if(qvar_name) {
@@ -869,12 +880,12 @@ long cScr_TWTrapSetSpeed::OnTurnOn(sScrMsg* pMsg, cMultiParm& mpReply)
     }
 
     if(debug)
-        DebugPrintf("DEBUG[TWTrapSetSpeed]: %s using speed %.3f.", static_cast<const char *>(my_name), speed);
+        DebugPrintf("DEBUG[TWTrapSetSpeed(OnTurnOn)]: %s using speed %.3f.", static_cast<const char *>(my_name), speed);
 
     // If a target has been parsed, fetch all the objects that match it
     if(set_target) {
         if(debug)
-            DebugPrintf("DEBUG[TWTrapSetSpeed]: %s looking up targets matched by %s.", static_cast<const char *>(my_name), static_cast<const char *>(set_target));
+            DebugPrintf("DEBUG[TWTrapSetSpeed(OnTurnOn)]: %s looking up targets matched by %s.", static_cast<const char *>(my_name), static_cast<const char *>(set_target));
 
         std::vector<object>* targets = get_target_objects(static_cast<const char *>(set_target), pMsg);
 
@@ -887,11 +898,11 @@ long cScr_TWTrapSetSpeed::OnTurnOn(sScrMsg* pMsg, cMultiParm& mpReply)
 
                 if(debug) {
                     targ_name = get_object_namestr(*it);
-                    DebugPrintf("DEBUG[TWTrapSetSpeed]: %s setting speed %.3f on %s.", static_cast<const char *>(my_name), speed, static_cast<const char *>(targ_name));
+                    DebugPrintf("DEBUG[TWTrapSetSpeed(OnTurnOn)]: %s setting speed %.3f on %s.", static_cast<const char *>(my_name), speed, static_cast<const char *>(targ_name));
                 }
             }
         } else {
-            DebugPrintf("WARNING[TWTrapSetSpeed]: %s TWTrapSetSpeedDest '%s' did not match any objects.", static_cast<const char *>(my_name), static_cast<const char *>(set_target));
+            DebugPrintf("WARNING[TWTrapSetSpeed(OnTurnOn)]: %s TWTrapSetSpeedDest '%s' did not match any objects.", static_cast<const char *>(my_name), static_cast<const char *>(set_target));
         }
 
         // And clean up
@@ -902,6 +913,7 @@ long cScr_TWTrapSetSpeed::OnTurnOn(sScrMsg* pMsg, cMultiParm& mpReply)
     TWSetSpeedData data;
     data.speed = speed;
     data.immediate = immediate;
+    data.debug = debug;
 
     // And now update any moving terrain objects linked to this one via ScriptParams with data set to "SetSpeed"
     IterateLinksByData("ScriptParams", ObjId(), 0, "SetSpeed", 9, set_mterr_speed, this, static_cast<void*>(&data));
