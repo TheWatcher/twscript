@@ -84,7 +84,8 @@ long TWScript::get_qvar_value(const char *qvar, long def_val)
 
 float TWScript::get_qvar_value(const char *qvar, float def_val)
 {
-    float qvarval = def_val;
+    float  qvarval = def_val;
+    char  *endstr  = NULL;
 
     // Blegh, copy. But we may need to tinker with it.
     char *tmpvar = (char *)g_pMalloc -> Alloc(strlen(qvar) + 1);
@@ -92,16 +93,25 @@ float TWScript::get_qvar_value(const char *qvar, float def_val)
     strcpy(tmpvar, qvar);
 
     // Check whether the user has included a multiply or divide operator
-    char op = '';
+    char op = '\0';
     char *valstr = tmpvar;
     while(*valstr) {
         if(*valstr == '/' || *valstr == '*') {
             op = *valstr;
+            endstr = --valstr; // Keep track of the last character before the operator, for space trimming
             *valstr = '\0'; // null terminate the qvar name so tmpvar van be used 'as is'
             ++valstr;
             break;
         }
         ++valstr;
+    }
+
+    // Trim spaces before the operator if needed (no need to trim after, as strtof does that)
+    if(endstr) {
+        while(*endstr == ' ') {
+            *endstr = '\0';
+            --endstr;
+        }
     }
 
     // Check the QVar exists before trying to use it...
@@ -111,12 +121,12 @@ float TWScript::get_qvar_value(const char *qvar, float def_val)
 
         // If an operator has been specified, try to parse the value
         if(op) {
-            char *endstr == NULL;
             float adjval;
+            endstr = NULL;
 
             // Is the value another QVar? If so, pull its value
             if(*valstr == '$') {
-                adjval = (float)get_qvar_value(&valstr[1], 1); // note the default!
+                adjval = (float)get_qvar_value(&valstr[1], (long)1); // note the default!
             } else {
                 adjval = strtof(valstr, &endstr);
             }
@@ -124,8 +134,8 @@ float TWScript::get_qvar_value(const char *qvar, float def_val)
             // Has a value been parsed, and is not zero? If so, apply the operator
             if(endstr != valstr && adjval) {
                 switch(op) {
-                case '/': qvarval /= adjval; break;
-                case '*': qvarval *= adjval; break;
+                    case '/': qvarval /= adjval; break;
+                    case '*': qvarval *= adjval; break;
                 }
             }
         }
@@ -138,10 +148,10 @@ float TWScript::get_qvar_value(const char *qvar, float def_val)
 }
 
 
-bool TWScript::radius_search(char *dest, float *radius, bool *lessthan, char **archetype)
+bool TWScript::radius_search(const char *dest, float *radius, bool *lessthan, const char **archetype)
 {
     char  mode   = 0;
-    char *search = dest;
+    const char *search = dest;
 
     // Search the string for a < or >, if found, record it and the start of the archetype
     while(*search) {
@@ -170,7 +180,7 @@ bool TWScript::radius_search(char *dest, float *radius, bool *lessthan, char **a
 }
 
 
-void TWScript::archetype_search(std::vector<object> *matches, char *archetype, bool do_full, bool do_radius, object from_obj, float radius, bool lessthan)
+void TWScript::archetype_search(std::vector<object> *matches, const char *archetype, bool do_full, bool do_radius, object from_obj, float radius, bool lessthan)
 {
     SInterface<IObjectSystem> pOS(g_pScriptManager);
 	SService<IObjectSrv> pOSrv(g_pScriptManager);
@@ -221,13 +231,13 @@ void TWScript::archetype_search(std::vector<object> *matches, char *archetype, b
 }
 
 
-std::vector<object>* TWScript::get_target_objects(char *dest, sScrMsg *pMsg)
+std::vector<object>* TWScript::get_target_objects(const char *dest, sScrMsg *pMsg)
 {
     std::vector<object>* matches = new std::vector<object>;
 
     float radius;
     bool  lessthan;
-    char *archname;
+    const char *archname;
 
     // Simple dest/source selection.
     if(!_stricmp(dest, "[me]")) {
@@ -242,7 +252,7 @@ std::vector<object>* TWScript::get_target_objects(char *dest, sScrMsg *pMsg)
 
     // Radius archetype search
     } else if(radius_search(dest, &radius, &lessthan, &archname)) {
-        char *realname = archname;
+        const char *realname = archname;
         // Jump filter controls if needed...
         if(*archname == '*' || *archname == '@') ++realname;
 
@@ -838,9 +848,9 @@ void cScr_TWTrapSetSpeed::init()
     // If debugging is enabled, print some Helpful Information
     if(debug) {
         DebugPrintf("DEBUG[TWTrapSetSpeed(OnSim)]: %s has initialised. Settings:\nSpeed: %.3f", static_cast<const char *>(my_name), speed);
-        DebugPrintf("Immediate speed change: %s\n", immediate ? "enabled" : "disabled");
-        if(qvar_name)  DebugPrintf("Speed will be read from QVar: %s\n", static_cast<const char *>(qvar_name));
-        if(set_target) DebugPrintf("Targetting: %s\n", static_cast<const char *>(set_target));
+        DebugPrintf("Immediate speed change: %s", immediate ? "enabled" : "disabled");
+        if(qvar_name)  DebugPrintf("Speed will be read from QVar: %s", static_cast<const char *>(qvar_name));
+        if(set_target) DebugPrintf("Targetting: %s", static_cast<const char *>(set_target));
     }
 }
 
@@ -855,17 +865,18 @@ long cScr_TWTrapSetSpeed::OnTurnOn(sScrMsg* pMsg, cMultiParm& mpReply)
 
     // If the user has specified a QVar to use, read that
     if(qvar_name) {
+        speed = get_qvar_value(qvar_name, (float)speed);
     }
 
     if(debug)
-        DebugPrintf("DEBUG[TWTrapSetSpeed]: %s using speed %.3f.", static_cast<const char *>(my_name), data.speed);
+        DebugPrintf("DEBUG[TWTrapSetSpeed]: %s using speed %.3f.", static_cast<const char *>(my_name), speed);
 
     // If a target has been parsed, fetch all the objects that match it
     if(set_target) {
         if(debug)
             DebugPrintf("DEBUG[TWTrapSetSpeed]: %s looking up targets matched by %s.", static_cast<const char *>(my_name), static_cast<const char *>(set_target));
 
-        std::vector<object>* targets = get_target_objects(target, pMsg);
+        std::vector<object>* targets = get_target_objects(static_cast<const char *>(set_target), pMsg);
 
         if(!targets -> empty()) {
             // Process the target list, setting the speeds accordingly
@@ -880,7 +891,7 @@ long cScr_TWTrapSetSpeed::OnTurnOn(sScrMsg* pMsg, cMultiParm& mpReply)
                 }
             }
         } else {
-            DebugPrintf("WARNING[TWTrapSetSpeed]: %s TWTrapSetSpeedDest '%s' did not match any objects.", static_cast<const char *>(my_name), target);
+            DebugPrintf("WARNING[TWTrapSetSpeed]: %s TWTrapSetSpeedDest '%s' did not match any objects.", static_cast<const char *>(my_name), static_cast<const char *>(set_target));
         }
 
         // And clean up

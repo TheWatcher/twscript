@@ -82,7 +82,7 @@ protected:
      * @param dest The destination string
      * @return A vector of object ids the destination matches.
      */
-    std::vector<object>* get_target_objects(char *dest, sScrMsg *pMsg = NULL);
+    std::vector<object>* get_target_objects(const char *dest, sScrMsg *pMsg = NULL);
 
 private:
     /** Determine whether the specified dest string is a radius search, and if so
@@ -98,7 +98,7 @@ private:
      *                  archetype name.
      * @return true if the dest string is a radius search, false otherwise.
      */
-    bool radius_search(char *dest, float *radius, bool *lessthan, char **archetype);
+    bool radius_search(const char *dest, float *radius, bool *lessthan, const char **archetype);
 
 
     /** Search for concrete objects that are descendants of the specified archetype,
@@ -124,7 +124,7 @@ private:
      * @param lessthan  If true, objects must fall within the sphere around from_obj,
      *                  if false they must be outside it.
      */
-    void archetype_search(std::vector<object> *matches, char *archetype, bool do_full, bool do_radius = false, object from_obj = 0, float radius = 0.0f, bool lessthan = false);
+    void archetype_search(std::vector<object> *matches, const char *archetype, bool do_full, bool do_radius = false, object from_obj = 0, float radius = 0.0f, bool lessthan = false);
 
 };
 
@@ -377,7 +377,7 @@ public:
 protected:
 
 	virtual long OnTurnOn(sScrMsg* pMsg, cMultiParm& mpReply);
-    virtual long OnSim(sScrMsg* pMsg, cMultiParm& mpReply);
+    virtual long OnSim(sSimMsg* pSimMsg, cMultiParm& mpReply);
 
 private:
     void init();
