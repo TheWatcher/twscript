@@ -427,16 +427,53 @@ public:
     { }
 
 protected:
-
+    /** TurnOn message handler, called whenever the script receives a TurnOn message.
+     */
 	virtual long OnTurnOn(sScrMsg* pMsg, cMultiParm& mpReply);
+
+    /** OnSim message handler, called when the level sim is starting or ending. This
+     *  does the setup and cleanup of the TWTrapSetSpeed settings.
+     */
     virtual long OnSim(sSimMsg* pSimMsg, cMultiParm& mpReply);
+
+    /** OnQuestChange handler, called whenever the questvar the script has subscribed
+     *  to is updated. Note that this will only trigger speed updates if the qvar has
+     *  actually changed, otherwise it will ignore the message.
+     */
     virtual long OnQuestChange(sQuestMsg* pQuestMsg, cMultiParm& mpReply);
 
 private:
+    /** Initialise the TWTrapSetSpeed instance. This parses the various
+     *  parameters from the design note, and sets up the script so that
+     *  it can be used correctly.
+     */
     void init();
+
+    /** Update the speed set on any selected destination object(s) and linked
+     *  moving terrain object(s). This is the function that does most of the
+     *  work of actually updating TerrPts and so on to reflect the currently
+     *  set speed. It will update the speed setting if the TWTrapSetSpeed
+     *  design note parameter contains a QVar.
+     *
+     * @param pMsg A pointer to the message that triggered the update.
+     */
     void update_speed(sScrMsg* pMsg);
+
+    /** Update the speed set on an individual TerrPt's TPath links.
+     *
+     * @param obj_id The TerrPt object to update the TPath links on.
+     */
     void set_tpath_speed(object obj_id);
 
+    /** Link iterator callback used to set the speed of moving terrain objects.
+     *  This allows the speed of moving terrain objects to be set on the fly,
+     *  either with immediate effect or allowing the physics system to change
+     *  the speed smoothly.
+     *
+     * @param pLQ   A pointer to the link query for the current call.
+     * @param pData A pointer to a structure containing the speed and other settings.
+     * @return Always returns 1.
+     */
     static int set_mterr_speed(ILinkSrv*, ILinkQuery* pLQ, IScript*, void* pData);
 
     float    speed;      //!< User-defined speed to set on targets and linked vators.
