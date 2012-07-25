@@ -152,6 +152,56 @@ float TWScript::get_qvar_value(const char *qvar, float def_val)
 }
 
 
+float TWScript::get_param_float(const char *design_note, const char *name, float def_val, cAnsiStr &qvar_str)
+{
+    float result = def_val;
+
+    // Fetch the value as a string, if possible
+    char *param = GetParamString(design_note, name, NULL);
+    if(param) {
+
+        // Starting with $ indicates that the string contains a qvar fetch
+        if(*param == '$') {
+            // Store the qvar string for later
+            qvar_str = &param[1];
+            result = get_qvar_value(&param[1], def_val);
+
+        // Otherwise assume it's a float string
+        } else {
+            char *endstr;
+            result = strtof(param, &endstr);
+
+            // Restore the default if parsing failed
+            if(endstr == param) result = def_val;
+        }
+
+        g_pMalloc -> Free(param);
+    }
+
+    return result;
+}
+
+
+int TWScript::get_qvar_namelen(const char *namestr)
+{
+    const char *workptr = namestr;
+
+    // Work along the string looking for /, * or null
+    while(*workptr && *workptr != '/' && *workptr != '*') ++workptr;
+
+    // not gone anywhere? No name available...
+    if(workptr == namestr) return 0;
+
+    // Go back a char, and strip spaces
+    do {
+        --workptr;
+    } while(*workptr == ' ');
+
+     // Return the length + 1, as the above loop always backs up 1 char too many
+    return (workptr - namestr) + 1;
+}
+
+
 bool TWScript::radius_search(const char *dest, float *radius, bool *lessthan, const char **archetype)
 {
     char  mode   = 0;
@@ -746,7 +796,7 @@ int cScr_TWTrapSetSpeed::set_mterr_speed(ILinkSrv*, ILinkQuery* pLQ, IScript*, v
     if(data -> debug) {
         cAnsiStr mterr_name = get_object_namestr(mterr_obj);
         cAnsiStr src_name   = get_object_namestr(current_link.source);
-        DebugPrintf("DEBUG[TWTrapSetSpeed(OnTurnOn)]: %s setting speed %.3f on %s", static_cast<const char *>(src_name), data -> speed, static_cast<const char *>(mterr_name));
+        DebugPrintf("DEBUG[TWTrapSetSpeed(set_mterr_speed)]: %s setting speed %.3f on %s", static_cast<const char *>(src_name), data -> speed, static_cast<const char *>(mterr_name));
     }
 
     // Find out where the moving terrain is headed to
@@ -825,10 +875,10 @@ void cScr_TWTrapSetSpeed::init()
     char *design_note = GetObjectParams(ObjId());
 
     if(!design_note)
-        DebugPrintf("WARNING[TWTrapSetSpeed(OnSim)]: %s has no Editor -> Design Note. Falling back on defaults.", static_cast<const char *>(my_name));
+        DebugPrintf("WARNING[TWTrapSetSpeed(init)]: %s has no Editor -> Design Note. Falling back on defaults.", static_cast<const char *>(my_name));
 
-    // Get the speed the user has set for this object (which could be a QVar, so this may be 0)
-    speed = GetParamFloat(design_note, "TWTrapSetSpeed", 0.0f);
+    // Get the speed the user has set for this object (which could be a QVar string)
+    speed = get_param_float(design_note, "TWTrapSetSpeed", 0.0f, qvar_name);
 
     // Is immediate mode enabled?
     immediate = GetParamBool(design_note, "TWTrapSetSpeedImmediate", false);
@@ -836,11 +886,20 @@ void cScr_TWTrapSetSpeed::init()
     // Is debugging mode enabled?
     debug = GetParamBool(design_note, "TWTrapSetSpeedDebug", false);
 
-    // If the user has specified a QVar to use, copy the name
-    char *qvar = GetParamString(design_note, "TWTrapSetSpeedQVar");
-    if(qvar) {
-        qvar_name = qvar;
-        g_pMalloc -> Free(qvar);
+    // Is qvar tracking enabled? (can only be turned on if there is a qvar to track, too)
+    if(GetParamBool(design_note, "TWTrapSetSpeedWatchQVar", false) && qvar_name) {
+        int namelen = get_qvar_namelen(static_cast<const char *>(qvar_name));
+
+        if(namelen) {
+            qvar_sub.Assign(namelen, static_cast<const char *>(qvar_name));
+
+            if(debug) DebugPrintf("DEBUG[TWTrapSetSpeed(init)]: %s adding subscription to qvar %s.", static_cast<const char *>(my_name), static_cast<const char *>(qvar_sub));
+
+            SService<IQuestSrv> pQS(g_pScriptManager);
+            pQS -> SubscribeMsg(ObjId(), static_cast<const char *>(qvar_sub), kQuestDataAny);
+        } else {
+            DebugPrintf("WARNING[TWTrapSetSpeed(init)]: %s unable to subscribe to qvar with name '%s'", static_cast<const char *>(my_name), static_cast<const char *>(qvar_name));
+        }
     }
 
     // Sort out the target string too.
@@ -851,14 +910,14 @@ void cScr_TWTrapSetSpeed::init()
         set_target = target;
         g_pMalloc -> Free(target);
     }
-    if(!set_target) DebugPrintf("WARNING[TWTrapSetSpeed(OnSim)]: %s target set failed!", static_cast<const char *>(my_name));
+    if(!set_target) DebugPrintf("WARNING[TWTrapSetSpeed(init)]: %s target set failed!", static_cast<const char *>(my_name));
 
     // If a design note was obtained, free it now
     if(design_note) g_pMalloc -> Free(design_note);
 
     // If debugging is enabled, print some Helpful Information
     if(debug) {
-        DebugPrintf("DEBUG[TWTrapSetSpeed(OnSim)]: %s has initialised. Settings:\nSpeed: %.3f", static_cast<const char *>(my_name), speed);
+        DebugPrintf("DEBUG[TWTrapSetSpeed(init)]: %s has initialised. Settings:\nCurrent speed: %.3f", static_cast<const char *>(my_name), speed);
         DebugPrintf("Immediate speed change: %s", immediate ? "enabled" : "disabled");
         if(qvar_name)  DebugPrintf("Speed will be read from QVar: %s", static_cast<const char *>(qvar_name));
         if(set_target) DebugPrintf("Targetting: %s", static_cast<const char *>(set_target));
@@ -866,13 +925,13 @@ void cScr_TWTrapSetSpeed::init()
 }
 
 
-long cScr_TWTrapSetSpeed::OnTurnOn(sScrMsg* pMsg, cMultiParm& mpReply)
+void cScr_TWTrapSetSpeed::update_speed(sScrMsg* pMsg)
 {
     SInterface<IObjectSystem> pOS(g_pScriptManager);
     cAnsiStr my_name = get_object_namestr(ObjId());
 
     if(debug)
-        DebugPrintf("DEBUG[TWTrapSetSpeed(OnTurnOn)]: %s has received a TurnOn.", static_cast<const char *>(my_name));
+        DebugPrintf("DEBUG[TWTrapSetSpeed(update_speed)]: %s has received a TurnOn.", static_cast<const char *>(my_name));
 
     // If the user has specified a QVar to use, read that
     if(qvar_name) {
@@ -880,12 +939,12 @@ long cScr_TWTrapSetSpeed::OnTurnOn(sScrMsg* pMsg, cMultiParm& mpReply)
     }
 
     if(debug)
-        DebugPrintf("DEBUG[TWTrapSetSpeed(OnTurnOn)]: %s using speed %.3f.", static_cast<const char *>(my_name), speed);
+        DebugPrintf("DEBUG[TWTrapSetSpeed(update_speed)]: %s using speed %.3f.", static_cast<const char *>(my_name), speed);
 
     // If a target has been parsed, fetch all the objects that match it
     if(set_target) {
         if(debug)
-            DebugPrintf("DEBUG[TWTrapSetSpeed(OnTurnOn)]: %s looking up targets matched by %s.", static_cast<const char *>(my_name), static_cast<const char *>(set_target));
+            DebugPrintf("DEBUG[TWTrapSetSpeed(update_speed)]: %s looking up targets matched by %s.", static_cast<const char *>(my_name), static_cast<const char *>(set_target));
 
         std::vector<object>* targets = get_target_objects(static_cast<const char *>(set_target), pMsg);
 
@@ -898,11 +957,11 @@ long cScr_TWTrapSetSpeed::OnTurnOn(sScrMsg* pMsg, cMultiParm& mpReply)
 
                 if(debug) {
                     targ_name = get_object_namestr(*it);
-                    DebugPrintf("DEBUG[TWTrapSetSpeed(OnTurnOn)]: %s setting speed %.3f on %s.", static_cast<const char *>(my_name), speed, static_cast<const char *>(targ_name));
+                    DebugPrintf("DEBUG[TWTrapSetSpeed(update_speed)]: %s setting speed %.3f on %s.", static_cast<const char *>(my_name), speed, static_cast<const char *>(targ_name));
                 }
             }
         } else {
-            DebugPrintf("WARNING[TWTrapSetSpeed(OnTurnOn)]: %s TWTrapSetSpeedDest '%s' did not match any objects.", static_cast<const char *>(my_name), static_cast<const char *>(set_target));
+            DebugPrintf("WARNING[TWTrapSetSpeed(update_speed)]: %s TWTrapSetSpeedDest '%s' did not match any objects.", static_cast<const char *>(my_name), static_cast<const char *>(set_target));
         }
 
         // And clean up
@@ -917,14 +976,50 @@ long cScr_TWTrapSetSpeed::OnTurnOn(sScrMsg* pMsg, cMultiParm& mpReply)
 
     // And now update any moving terrain objects linked to this one via ScriptParams with data set to "SetSpeed"
     IterateLinksByData("ScriptParams", ObjId(), 0, "SetSpeed", 9, set_mterr_speed, this, static_cast<void*>(&data));
+}
+
+
+long cScr_TWTrapSetSpeed::OnTurnOn(sScrMsg* pMsg, cMultiParm& mpReply)
+{
+    update_speed(pMsg);
 
 	return cBaseTrap::OnTurnOn(pMsg, mpReply);
 }
 
 
+long cScr_TWTrapSetSpeed::OnQuestChange(sQuestMsg* pMsg, cMultiParm& mpReply)
+{
+    // Only bother doing speed updates if the quest variable changes
+    if(pMsg -> m_newValue != pMsg -> m_oldValue) {
+        update_speed(pMsg);
+    } else if(debug) {
+        SInterface<IObjectSystem> pOS(g_pScriptManager);
+        cAnsiStr my_name = get_object_namestr(ObjId());
+
+        DebugPrintf("DEBUG[TWTrapSetSpeed(OnQuestChange)]: %s quest variable %s value has not changed, skipping update.", static_cast<const char *>(my_name), pMsg -> m_pName);
+    }
+
+	return cBaseTrap::OnQuestChange(pMsg, mpReply);
+}
+
+
 long cScr_TWTrapSetSpeed::OnSim(sSimMsg* pSimMsg, cMultiParm& mpReply)
 {
-    if(pSimMsg -> fStarting) init();
+    if(pSimMsg -> fStarting) {
+        init();
+
+    // Not starting, must be ending (I hope) - remove any qvar sub, if present.
+    } else if(qvar_sub) {
+        if(debug) {
+            SInterface<IObjectSystem> pOS(g_pScriptManager);
+            cAnsiStr my_name = get_object_namestr(ObjId());
+
+            DebugPrintf("DEBUG[TWTrapSetSpeed(OnSim)]: %s removing subscription to %s", static_cast<const char *>(my_name), static_cast<const char *>(qvar_sub));
+        }
+
+        SService<IQuestSrv> pQS(g_pScriptManager);
+		pQS -> UnsubscribeMsg(ObjId(), static_cast<const char *>(qvar_sub));
+    }
 
     return cBaseTrap::OnSim(pSimMsg, mpReply);
 }

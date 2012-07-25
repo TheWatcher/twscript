@@ -70,6 +70,41 @@ protected:
     float get_qvar_value(const char *qvar, float def_val);
 
 
+    /** Read a float parameter from a design note string. If the value specified
+     *  for the parameter in the design note is a simple number, this behaves
+     *  identically to GetParamFloat(). However, this allows the user to specify
+     *  the name of a QVar to read the value from by placing $ before the QVar
+     *  name, eg: `ExampleParam='$a_quest_var'`. If a qvar is specified in this
+     *  way, the user may also include the simple calculations supported by
+     *  get_qvar_value(). If a QVar is specified - with or without additional
+     *  calculations - the parameter string, with the leading $ removed, is stored
+     *  in the provided qvar_str for later use.
+     *
+     * @param design_note The design note string to parse the parameter from.
+     * @param name        The name of the parameter to parse.
+     * @param def_val     The default value to use if the parameter does not exist,
+     *                    or it references a non-existent QVar (note that qvar_str
+     *                    will contain the parameter string even if the QVar does
+     *                    not exist)
+     * @param qvar_str    A reference to a cAnsiStr to store the quest var name, or
+     *                    quest var and simple calculation string.
+     * @return The value specified in the parameter, or the float version of a value
+     *         read from the qvar named in the parameter.
+     */
+    float get_param_float(const char *design_note, const char *name, float def_val, cAnsiStr& qvar_str);
+
+
+    /** Establish the length of the name of the qvar in the specified string. This
+     *  will determine the length of the qvar name by looking for the end of the
+     *  name string, or the presence of a simple calculation, and then working back
+     *  until it hits the end of the name
+     *
+     * @param namestr A string containing a QVar name, and potentially a simple calculation.
+     * @return The length of the QVar name, or 0 if the length can not be established.
+     */
+    int get_qvar_namelen(const char *namestr);
+
+
     /** Given a destination string, generate a list of object ids the destination
      *  corresponds to. If dest is '[me]', the current object is returned, if dest
      *  is '[source]' the source object is returned, if the dest is an object
@@ -317,9 +352,10 @@ private:
  *
  * By default, the speed changes made by this script will not be picked up by
  * and moving terrain objects moving between TerrPts until they reach their next
- * waypoint. If you want the speed of any moving terrain object to be updated
- * immediately by this script, link the object this script is placed on to the
- * moving terrain object with a ScriptParams link, and set the data to "SetSpeed".
+ * waypoint. However, if you want the speed of any moving terrain object to be
+ * updated by this script before it reaches the next TerrPt, link the object
+ * this script is placed on to the moving terrain object with a ScriptParams link,
+ * and set the data for the link to "SetSpeed".
  *
  * Configuration
  * -------------
@@ -332,23 +368,28 @@ private:
  * Parameter: TWTrapSetSpeed
  *      Type: float
  *   Default: 0.0
- * The speed to set the target object's TPath speed value to when triggered. All
+ * The speed to set the target objects' TPath speed values to when triggered. All
  * TPath links on the target object are updated to reflect the speed given here.
+ * The value provided for this parameter may be taken from a QVar by placing a $
+ * before the QVar name, eg: `TWTrapSetSpeed='$speed_var'`. If you set a QVar
+ * as the speed source in this way, each time the script receives a TurnOn, it
+ * will read the value out of the QVar and then copy it to the destination object(s).
+ * Using a simple QVar as in the previous example will restrict your speeds to
+ * integer values; if you need fractional speeds, you can include a simple
+ * calculation after the QVar name to scale it, for example,
+ * `TWTrapSetSpeed='$speed_var / 10'` will divide the value in speed_var by 10,
+ * so if `speed_var` contains 55, the speed set by the script will be 5.5. You
+ * can even specify a QVar as the second operand if needed, again by prefixing
+ * the name with '$', eg: `TWTrapSetSpeed='$speed_var / $speed_div'`.
  *
- * Parameter: TWTrapSetSpeedQVar
- *      Type: string
- *   Default: none
- * The downside to using the TWTrapSetSpeed parameter is that the value you set is
- * fixed per object. While different objects can have different TWTrapSetSpeed
- * values, if you have a wide variety of speeds needed, you may need a lot of
- * objects and methods to trigger the right one. By using this parameter, you can
- * specify a QVar to read the speed from - each time you send a TurnOn to an
- * object with this script on it, and TWTrapSetSpeedQVar set, it will read the
- * value out of the QVar and then copy it to the destination object(s). If you
- * need fractional speeds, you can include a simple calculation after the QVar
- * name to scale it, for example, `TWTrapSetSpeedQVar=speed_var/10` will
- * divide the value in speed_var by 10, so if `speed_var` contains 55, the
- * speed set by the script will be 5.5.
+ * Parameter: TWTrapSetSpeedWatchQVar
+ *      Type: boolean
+ *   Default: false
+ * If TWTrapSetSpeed is set to read the speed from a QVar, you can make the
+ * script trigger whenever the QVar is changed by setting this to true. Note
+ * that this will only watch changes to the first QVar specified in TWTrapSetSpeed:
+ * if you set `TWTrapSetSpeed='$speed_var / $speed_div'` then changes to speed_var
+ * will be picked up, but any changes to speed_div will not trigger this script.
  *
  * Parameter: TWTrapSetSpeedDest
  *      Type: string
@@ -362,10 +403,21 @@ private:
  * use @Archetype then all concrete objects that inherit from the archetype
  * directly or indirectly are updated.
  *
+ * Parameter: TWTrapSetSpeedDebug
+ *      Type: boolean
+ *   Default: false
+ * If this is set to true, debugging messages will be written to the monolog to help
+ * trace problems with the script. Note that if you set this parameter to true, and
+ * see no new output in the monolog, double-check that you have twscript loaded!
+ *
  * Parameter: TWTrapSetSpeedImmediate
  *      Type: boolean
  *   Default: false
- * If this is set to true,
+ * If this is set to true, the speed of any linked moving terrain objects is immediately
+ * set to the speed value applied to the TerrPts. If it is false, the moving terrain
+ * object will smoothly change its speed to the new speed (essentially, setting this
+ * to true breaks the appearance of momentum and inertia on the moving object. It is
+ * very rare that you will want to set this to true.)
  */
 class cScr_TWTrapSetSpeed : public cBaseTrap, public TWScript
 {
@@ -378,9 +430,11 @@ protected:
 
 	virtual long OnTurnOn(sScrMsg* pMsg, cMultiParm& mpReply);
     virtual long OnSim(sSimMsg* pSimMsg, cMultiParm& mpReply);
+    virtual long OnQuestChange(sQuestMsg* pQuestMsg, cMultiParm& mpReply);
 
 private:
     void init();
+    void update_speed(sScrMsg* pMsg);
     void set_tpath_speed(object obj_id);
 
     static int set_mterr_speed(ILinkSrv*, ILinkQuery* pLQ, IScript*, void* pData);
@@ -388,7 +442,8 @@ private:
     float    speed;      //!< User-defined speed to set on targets and linked vators.
     bool     debug;      //!< If true, additional debugging output is shown.
     bool     immediate;  //!< If true, vator speed changes are instant.
-    cAnsiStr qvar_name;  //!< The name of the QVar to read speed from
+    cAnsiStr qvar_name;  //!< The name of the QVar to read speed from, may include basic maths.
+    cAnsiStr qvar_sub;   //!< The name of the QVar to subscribe to.
     cAnsiStr set_target; //!< The target string set by the user.
 };
 
