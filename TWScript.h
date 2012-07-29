@@ -355,12 +355,13 @@ private:
  * waypoint. However, if you want the speed of any moving terrain object to be
  * updated by this script before it reaches the next TerrPt, link the object
  * this script is placed on to the moving terrain object with a ScriptParams link,
- * and set the data for the link to "SetSpeed".
+ * and set the data for the link to "SetSpeed". This link is needed to get the moving
+ * terrain to start moving from a stop (speed = 0).
  *
  * Configuration
  * -------------
  * Parameters are specified using the Editor -> Design Note, please see the
- * main documentation for more about this.  Parameters supported by TWTweqSmooth
+ * main documentation for more about this.  Parameters supported by TWTrapSetSpeed
  * are listed below. If a parameter is not specified, the default value shown is
  * used instead. Note that all the parameters are optional, and if you do not
  * specify a parameter, the script will attempt to use a 'sane' default.
