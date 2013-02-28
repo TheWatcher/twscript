@@ -42,7 +42,7 @@ With several buttons and markers you can change the speed of the moving
 terrain object to different values as desired.
 
 More complex setups are obviously possible, and the example given above will
-set the speed of **all** `TerrPts` in the level - if you have different networks
+set the speed of **all** `TerrPt`s in the level - if you have different networks
 of `TerrPt`s, this is likely to be Undesirable Behaviour. One method to work
 around that without requiring an explosion of markers and links is to create
 new archetypes under `TerrPt`, one for each group of `TerrPt`s in your level
