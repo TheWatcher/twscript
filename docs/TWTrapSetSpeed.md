@@ -62,64 +62,64 @@ and if you do not specify a parameter the script will attempt to use a 'sane'
 default, you probably want to always set at least the `TWTrapSetSpeed`
 parameter to something.
 
-Parameter
-: `TWTrapSetSpeed`
-Type
-: `float`
-Default
-: `0.0`
-The speed to set the target objects' TPath speed values to when triggered. All
-TPath links on the target object are updated to reflect the speed given here.
-The value provided for this parameter may be taken from a QVar by placing a $
-before the QVar name, eg: `TWTrapSetSpeed='$speed_var'`. If you set a QVar
-as the speed source in this way, each time the script receives a `TurnOn`, it
-will read the value out of the QVar and then copy it to the destination
-object(s). Using a simple QVar as in the previous example will restrict your
-speeds to integer values; if you need fractional speeds, you can include a
-simple calculation after the QVar name to scale it, for example,
-`TWTrapSetSpeed='$speed_var / 10'` will divide the value in speed_var by `10`,
-so if `speed_var` contains `55`, the speed set by the script will be `5.5`. You
-can even specify a QVar as the second operand if needed, again by prefixing
-the name with '$', eg: `TWTrapSetSpeed='$speed_var / $speed_div'`.
+- Parameter: `TWTrapSetSpeed`
+- Type: `float`
+- Default: `0.0`
+- Definition: The speed to set the target objects' TPath speed values to when
+triggered. All TPath links on the target object are updated to reflect the
+speed given here. The value provided for this parameter may be taken from a
+QVar by placing a `$` before the QVar name, eg: `TWTrapSetSpeed='$speed_var'`.
+If you set a QVar as the speed source in this way, each time the script
+receives a `TurnOn`, it will read the value out of the QVar and then copy it
+to the destination object(s). Using a simple QVar as in the previous example
+will restrict your speeds to integer values; if you need fractional speeds,
+you can include a simple calculation after the QVar name to scale it, for
+example, `TWTrapSetSpeed='$speed_var / 10'` will divide the value in
+speed_var by `10`, so if `speed_var` contains `55`, the speed set by the
+script will be `5.5`. You can even specify a QVar as the second operand if
+needed, again by prefixing the name with `$`, eg:
+`TWTrapSetSpeed='$speed_var / $speed_div'`.
 
 
-Parameter: `TWTrapSetSpeedWatchQVar`
-     Type: `boolean`
-  Default: `false`
-If TWTrapSetSpeed is set to read the speed from a QVar, you can make the
-script trigger whenever the QVar is changed by setting this to true. Note
-that this will only watch changes to the first QVar specified in
+- Parameter: `TWTrapSetSpeedWatchQVar`
+- Type: `boolean`
+- Default: `false`
+- Definition: If `TWTrapSetSpeed` is set to read the speed from a QVar, you
+can make the script trigger whenever the QVar is changed by setting this to
+true. Note that this will only watch changes to the first QVar specified in
 `TWTrapSetSpeed`: if you set `TWTrapSetSpeed='$speed_var / $speed_div'` then
 changes to `speed_var` will be picked up, but any changes to `speed_div`
 will not trigger this script.
 
 
-Parameter: `TWTrapSetSpeedDest`
-     Type: `string`
-  Default: `[me]`
-Specify the target object(s) to update when triggered. This can either be
-an object name or id, [me] to update the object the script is on, [source] to
-update the object that triggered the change (if you need that, for some odd
-reason), or you may specify an archetype name preceeded by * or @ to update all
-objects that inherit from the specified archetype. If you use *Archetype then
-only concrete objects that directly inherit from that archetype are updated, if
-you use @Archetype then all concrete objects that inherit from the archetype
-directly or indirectly are updated.
+- Parameter: `TWTrapSetSpeedDest`
+- Type: `string`
+- Default: `[me]`
+- Definition: Specify the target object(s) to update when triggered. This can
+either be an object name or id, `[me]` to update the object the script is on,
+`[source]` to update the object that triggered the change (if you need that,
+for some odd reason), or you may specify an archetype name preceeded by `*`
+or `@` to update all objects that inherit from the specified archetype. If
+you use `*` then only concrete objects that directly inherit from that
+archetype are updated, if you use `@` then all concrete objects that inherit
+from the archetype directly or indirectly are updated.
 
 
-Parameter: `TWTrapSetSpeedDebug`
-     Type: `boolean`
-  Default: `false`
-If this is set to true, debugging messages will be written to the monolog to
-help trace problems with the script. Note that if you set this parameter to true,
-and see no new output in the monolog, double-check that you have twscript loaded!
+- Parameter: `TWTrapSetSpeedDebug`
+- Type: `boolean`
+- Default: `false`
+- Definition: If this is set to true, debugging messages will be written to
+the monolog to help trace problems with the script. Note that if you set this
+parameter to true, and see no new output in the monolog, double-check that
+you have twscript loaded!
 
 
-Parameter: `TWTrapSetSpeedImmediate`
-     Type: `boolean`
-  Default: `false`
-If this is set to true, the speed of any linked moving terrain objects is
-immediately set to the speed value applied to the TerrPts. If it is false, the
-moving terrain object will smoothly change its speed to the new speed
-(essentially, setting this to true breaks the appearance of momentum and inertia
-on the moving object. It is very rare that you will want to set this to true.)
+- Parameter: `TWTrapSetSpeedImmediate`
+- Type: `boolean`
+- Default: `false`
+- Definition: If this is set to true, the speed of any linked moving terrain
+objects is immediately set to the speed value applied to the TerrPts. If it
+is false, the moving terrain object will smoothly change its speed to the new
+speed (essentially, setting this to true breaks the appearance of momentum and
+inertia on the moving object. It is very rare that you will want to set this
+to true.)
