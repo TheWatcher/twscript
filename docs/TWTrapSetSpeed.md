@@ -1,5 +1,4 @@
-TWTrapSetSpeed
-==============
+# TWTrapSetSpeed
 
 TWTrapSetSpeed allows mission authors to control the speed setting of `TPath`
 waypoints while a mission is being played. This script lets the editor
@@ -18,8 +17,7 @@ to the moving terrain object, otherwise it will be impossible to make the
 moving terrain object move again!
 
 
-General setup
--------------
+## General setup
 
 In the most simple case, set up your vator and path as normal, then add a
 button and a marker to your level, and then do the following:
@@ -52,8 +50,7 @@ new archetypes under `TerrPt`, one for each group of `TerrPt`s in your level
 instances of those in your level as appropriate. Then you can use `*Loop1TerrPt`
 to update one group, `*Loop2TerrPt` to update the second, and so on.
 
-Configuration
--------------
+## Configuration
 
 All parameters are specified using the `Editor -> Design Note` as described
 in the DesignNote document. If a parameter is not specified, the default
@@ -62,10 +59,11 @@ and if you do not specify a parameter the script will attempt to use a 'sane'
 default, you probably want to always set at least the `TWTrapSetSpeed`
 parameter to something.
 
-- Parameter: `TWTrapSetSpeed`
+### Parameter: `TWTrapSetSpeed`
 - Type: `float`
 - Default: `0.0`
-- Definition: The speed to set the target objects' TPath speed values to when
+
+The speed to set the target objects' TPath speed values to when
 triggered. All TPath links on the target object are updated to reflect the
 speed given here. The value provided for this parameter may be taken from a
 QVar by placing a `$` before the QVar name, eg: `TWTrapSetSpeed='$speed_var'`.
@@ -81,10 +79,11 @@ needed, again by prefixing the name with `$`, eg:
 `TWTrapSetSpeed='$speed_var / $speed_div'`.
 
 
-- Parameter: `TWTrapSetSpeedWatchQVar`
+### Parameter: `TWTrapSetSpeedWatchQVar`
 - Type: `boolean`
 - Default: `false`
-- Definition: If `TWTrapSetSpeed` is set to read the speed from a QVar, you
+
+If `TWTrapSetSpeed` is set to read the speed from a QVar, you
 can make the script trigger whenever the QVar is changed by setting this to
 true. Note that this will only watch changes to the first QVar specified in
 `TWTrapSetSpeed`: if you set `TWTrapSetSpeed='$speed_var / $speed_div'` then
@@ -92,10 +91,11 @@ changes to `speed_var` will be picked up, but any changes to `speed_div`
 will not trigger this script.
 
 
-- Parameter: `TWTrapSetSpeedDest`
+### Parameter: `TWTrapSetSpeedDest`
 - Type: `string`
 - Default: `[me]`
-- Definition: Specify the target object(s) to update when triggered. This can
+
+Specify the target object(s) to update when triggered. This can
 either be an object name or id, `[me]` to update the object the script is on,
 `[source]` to update the object that triggered the change (if you need that,
 for some odd reason), or you may specify an archetype name preceeded by `*`
@@ -105,19 +105,21 @@ archetype are updated, if you use `@` then all concrete objects that inherit
 from the archetype directly or indirectly are updated.
 
 
-- Parameter: `TWTrapSetSpeedDebug`
+### Parameter: `TWTrapSetSpeedDebug`
 - Type: `boolean`
 - Default: `false`
-- Definition: If this is set to true, debugging messages will be written to
+
+If this is set to true, debugging messages will be written to
 the monolog to help trace problems with the script. Note that if you set this
 parameter to true, and see no new output in the monolog, double-check that
 you have twscript loaded!
 
 
-- Parameter: `TWTrapSetSpeedImmediate`
+### Parameter: `TWTrapSetSpeedImmediate`
 - Type: `boolean`
 - Default: `false`
-- Definition: If this is set to true, the speed of any linked moving terrain
+
+If this is set to true, the speed of any linked moving terrain
 objects is immediately set to the speed value applied to the TerrPts. If it
 is false, the moving terrain object will smoothly change its speed to the new
 speed (essentially, setting this to true breaks the appearance of momentum and
