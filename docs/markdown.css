@@ -46,3 +46,10 @@ code, tt {
     color: #a96300;
     background: inherit !important;
 }
+
+pre {
+    background-color: #F9F9F9;
+    border: 1px dashed #2F6FAB;
+    color: black;
+    padding: 1em;
+}
