@@ -344,7 +344,7 @@ private:
 
 /** @class cScr_TWTrapSetSpeed
  *
- * TWTrapSetSpeed allows the run-time modification of TPath speed settings.
+ * TWTrapSetSpeed allows the game-time modification of TPath speed settings.
  * This script lets you control how fast a vator moves between TerrPts on the
  * fly - add it to an object, set the TWTrapSetSpeed and TWTrapSetSpeedDest params
  * documented below, and then send a TurnOn message to the object when you
