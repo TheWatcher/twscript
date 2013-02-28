@@ -62,9 +62,12 @@ and if you do not specify a parameter the script will attempt to use a 'sane'
 default, you probably want to always set at least the `TWTrapSetSpeed`
 parameter to something.
 
-Parameter: `TWTrapSetSpeed`
-     Type: `float`
-  Default: `0.0`
+Parameter
+: `TWTrapSetSpeed`
+Type
+: `float`
+Default
+: `0.0`
 The speed to set the target objects' TPath speed values to when triggered. All
 TPath links on the target object are updated to reflect the speed given here.
 The value provided for this parameter may be taken from a QVar by placing a $
