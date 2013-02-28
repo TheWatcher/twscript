@@ -1,5 +1,5 @@
 ## @file
-# Makefile for TWScript, modified from the Makefile included with Tellliamed's
+# Makefile for TWScript, modified from the Makefile included with Telliamed's
 # Publis Scripts package.
 #
 # @author Chris Page <chris@starforge.co.uk>
@@ -34,20 +34,22 @@
 .PRECIOUS: %.o
 
 # Update these with the name of your script file, and the output .osm
-MYSCRIPT = TWScript
-MYOSM    = twscript.osm
+MYSCRIPT  = TWScript
+MYOSM     = twscript.osm
 
 # Change this to `1` for Thief 1, 3 for SS2.
-GAME     = 2
+GAME      = 2
 
-srcdir = .
-bindir = ./obj
+srcdir    = .
+bindir    = ./obj
+docdir    = ./docs
+distdir   = ./TWScript
 
-PUBDIR = ./pubscript
-LGDIR = ../lg
+PUBDIR    = ./pubscript
+LGDIR     = ../lg
 SCRLIBDIR = ../ScriptLib
-DH2DIR = ../DH2
-DH2LIB = -ldh2
+DH2DIR    = ../DH2
+DH2LIB    = -ldh2
 
 CC = gcc
 CXX = g++
@@ -55,6 +57,10 @@ AR = ar
 LD = g++
 DLLTOOL = dlltool
 RC = windres
+
+packer   = 7z
+packargs = a -t7z -m0=lzma -mx=9 -mfb=64 -md=32m -ms=on
+packfile = $(MYSCRIPT).7z
 
 DEFINES = -DWINVER=0x0400 -D_WIN32_WINNT=0x0400 -DWIN32_LEAN_AND_MEAN
 GAMEDEF = -D_DARKGAME=$(GAME)
@@ -114,7 +120,15 @@ $(PUBDIR)/%_res.o: $(PUBDIR)/%.rc
 all: $(bindir) $(MYOSM)
 
 clean:
-	$(RM) $(bindir)/* $(PUBDIR)/*.o $(MYOSM)
+	$(RM) $(bindir)/* $(PUBDIR)/*.o $(MYOSM) $(distdir)/* $(packfile)
+
+dist: all
+	$(docdir)/makedocs.pl $(docdir)/TWTrapSetSpeed.md $(distdir)/TWTrapSetSpeed.html
+	$(docdir)/makedocs.pl $(docdir)/DesignNote.md $(distdir)/DesignNote.html
+	cp $(docdir)/markdown.css $(distdir)/markdown.css
+	cp COPYING $(distdir)/
+	cp $(MYOSM) $(distdir)/
+	$(packer) $(packargs) $(packfile) $(distdir)
 
 $(bindir):
 	mkdir -p $@
