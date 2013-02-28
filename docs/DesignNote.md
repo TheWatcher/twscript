@@ -29,11 +29,11 @@ to give it, and it may require any of the following:
   you to use them.
 - `integer`: a 'whole number', one without any decimal part, eg: `3`.
   Negative numbers can be specified using `-`, eg: `-42`.
-- `boolean`: a true or false value. The value specified for this is case
-  insensitive, and the following are considered to be true values:
+- `boolean`: a true or false value. The following are considered to be 'true'
+  values, any words that do not start as describe, or the number `0`, are
+  considered to be false:
     - Any word starting 't', 'T', 'y' or 'Y'
     - Any non-zero integer value
-  Any other word, or zero, are considered to be false.
 - `string`: any text, no special meaning is attached to it. Note that, if
   the string needs to contain a semicolon (;) you must enclose the string
   in single or double quotes.
