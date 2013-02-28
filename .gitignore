@@ -2,3 +2,4 @@
 *.osm
 *.o
 obj
+dist
