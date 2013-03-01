@@ -119,13 +119,15 @@ $(PUBDIR)/%_res.o: $(PUBDIR)/%.rc
 
 all: $(bindir) $(MYOSM)
 
-clean:
-	$(RM) $(bindir)/* $(PUBDIR)/*.o $(MYOSM) $(packfile)
+clean: cleandist
+	$(RM) $(bindir)/* $(PUBDIR)/*.o $(MYOSM)
+
+cleandist:
+	$(RM) $(packfile)
 	rm -rf $(distdir)
 
 dist: all
-    mkdir $(distdir)
-	mkdir $(distdir)/docs
+	mkdir -p $(distdir)/docs
 	$(docdir)/makedocs.pl README.md $(distdir)/docs/README.html
 	$(docdir)/makedocs.pl $(docdir)/TWTrapSetSpeed.md $(distdir)/docs/TWTrapSetSpeed.html
 	$(docdir)/makedocs.pl $(docdir)/DesignNote.md $(distdir)/docs/DesignNote.html
