@@ -120,13 +120,17 @@ $(PUBDIR)/%_res.o: $(PUBDIR)/%.rc
 all: $(bindir) $(MYOSM)
 
 clean:
-	$(RM) $(bindir)/* $(PUBDIR)/*.o $(MYOSM) $(distdir)/* $(packfile)
+	$(RM) $(bindir)/* $(PUBDIR)/*.o $(MYOSM) $(packfile)
+	rm -rf $(distdir)
 
 dist: all
-	$(docdir)/makedocs.pl $(docdir)/TWTrapSetSpeed.md $(distdir)/TWTrapSetSpeed.html
-	$(docdir)/makedocs.pl $(docdir)/DesignNote.md $(distdir)/DesignNote.html
-	cp $(docdir)/markdown.css $(distdir)/markdown.css
-	cp COPYING $(distdir)/
+    mkdir $(distdir)
+	mkdir $(distdir)/docs
+	$(docdir)/makedocs.pl README.md $(distdir)/docs/README.html
+	$(docdir)/makedocs.pl $(docdir)/TWTrapSetSpeed.md $(distdir)/docs/TWTrapSetSpeed.html
+	$(docdir)/makedocs.pl $(docdir)/DesignNote.md $(distdir)/docs/DesignNote.html
+	cp $(docdir)/markdown.css $(distdir)/docs/markdown.css
+	cp LICENSE $(distdir)/
 	cp $(MYOSM) $(distdir)/
 	$(packer) $(packargs) $(packfile) $(distdir)
 
