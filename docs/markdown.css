@@ -53,3 +53,28 @@ pre {
     color: black;
     padding: 1em;
 }
+
+a.footnote, a.reversefootnote {
+    color: #a96300;
+    text-decoration: none;
+}
+
+a.footnote:hover, a.reversefootnote:hover {
+    text-decoration: underline;
+    color: #ff7700;
+}
+
+a.footnote {
+    vertical-align: super;
+    font-size: x-small;
+}
+
+div.footnotes {
+    font-size: smaller;
+}
+
+div.footnotes > hr {
+    width: 80%;
+    border: none;
+    border-bottom: 1px solid #CCCCCC;
+}
