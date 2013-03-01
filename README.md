@@ -52,7 +52,7 @@ next release are:
 The source code for TWScript, including supporting files and instructions for
 building the scripts is available at github:
 
-https://github.com/TheWatcher/twscript
+[https://github.com/TheWatcher/twscript](https://github.com/TheWatcher/twscript)
 
 
 [^1]: Actually, in this current release, there is only one script module you
@@ -61,6 +61,6 @@ development, so the plural will be justified eventually!
 
 [^2]: Note that doing this does have the downside that the version of the osm
 included with your mission will not get any bugfixes or updates unless you
-repackage your mission. Another, albeit less reliable method is to simply state
+repackage your mission. Another, albeit less reliable, method is to simply state
 that players must install the .osm in their Thief2 directory - but if you do
 that, expect to run into problems if players do not follow the instructions!
