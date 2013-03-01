@@ -1,3 +1,35 @@
+
+ADDITIONAL LICENSE INFORMATION
+
+TWScript is copyright(c) 2013 Chris Page. Parts of this sofware are
+based on the Public Scripts package that is copyright(c) 2005-2009
+Tom N Harris.
+
+This software is released under the terms of the GNU General Public
+License version 2, a copy of which is included in this document.
+
+Unmodified copies of the compiled binary files may be distributed
+along with fan-missions and expansion packs intended for use with
+Dark Engine based games without the creator of the fan-mission or
+expansion pack being required to provide the source code for this
+software. The fan-mission or expansion pack must completely comply
+with the terms of the Dromed License issued by Eidos Interactive,
+and the fan-mission or expansion pack must include the following
+copyright notice in its documentation:
+
+  This fan-mission uses TWScript, copyright (c) 2013 Chris Page
+
+  This software is licensed under terms of the GNU General Public
+  License. See http://thief.starforge.co.uk/wiki/Scripting:Contents
+  for more information, or write to [insert your email address here].
+
+You must then be prepared to answer any queries regarding the
+scripts, which may include offering copies of the original software
+package in case the official website is inaccessible.
+
+-------------------------------------------------------------------------------
+
+
 		    GNU GENERAL PUBLIC LICENSE
 		       Version 2, June 1991
 
