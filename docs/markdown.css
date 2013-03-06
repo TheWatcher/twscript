@@ -78,3 +78,9 @@ div.footnotes > hr {
     border: none;
     border-bottom: 1px solid #CCCCCC;
 }
+
+div.version {
+    font-size: x-small;
+    margin-top: 1em;
+    border-top: 1px solid #CCCCCC;
+}
