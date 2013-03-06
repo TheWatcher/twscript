@@ -1,16 +1,15 @@
-Design Note
-===========
+# Design Note
 
 These scripts uses the `Editor -> Design Note` feature in Dromed to store
-their configuration, in common with the behaviour of scripts provided by
-other authors like those found in NVScript, tnhScript, and PublicScripts.
+their configuration, something you will have encountered in the past if
+you have used NVScript, tnhScript, or PublicScripts.
 
-For some scripts, the Design Note may be left empty, in which case the
-script's default settings are used. However, this is rarely useful, and in
-practice the Design Note will contain one or more configuration parameters.
-Each parameter consists of three parts:
+For some scripts, the Design Note may be left empty: some scripts may use
+the values set in other object attributes for configuration, or they may not
+support any setup at all. However, in practice the Design Note will contain
+one or more configuration parameters. Each parameter consists of three parts:
 
-- a name, something like `TWTrapSetSpeedDest`
+- a oarameter name, something like `TWTrapSetSpeedDest`
 - an equals sign (=)
 - a value to set for the parameter
 
@@ -30,24 +29,28 @@ to give it, and it may require any of the following:
 - `integer`: a 'whole number', one without any decimal part, eg: `3`.
   Negative numbers can be specified using `-`, eg: `-42`.
 - `boolean`: a true or false value. The following are considered to be 'true'
-  values, any words that do not start as describe, or the number `0`, are
-  considered to be false:
-    - Any word starting 't', 'T', 'y' or 'Y'
-    - Any non-zero integer value
-- `string`: any text, no special meaning is attached to it. Note that, if
-  the string needs to contain a semicolon (;) you must enclose the string
-  in single or double quotes.
+  values: Any word starting 't', 'T', 'y' or 'Y'; Any non-zero integer value.
+  Any words that do not start as described, or the number `0`, are
+  considered to be false.
 - `time`: an integer that represents a period of time. Without any modifier,
   the the value is interpreted as a number of milliseconds, if you append
   `s` to the number (eg: `10s`) the value is interpreted as a number of
   seconds. If you place `m` after the number, it is interpreted as a number
   of minutes.
 - `object`: a Dromed object name, or object ID.
+- `string`: any text, no special meaning is attached to it. Note that, if
+  the string needs to contain a semicolon (;) you *must* enclose the string
+  in single or double quotes, `'like this'` or `"like this"`. If you need
+  to include a single quote in a single-quoted string, you can do so by
+  prefixing the `'` with `\`, ie: `\'`. Similarly, to include a double quote
+  in a double-quoted string, prefix it with a backslash, `\"`. If you need
+  to include a backslash in a quoted string, you should generally prefix it
+  with another, eg: `\\`.
 
-For the `integer`, `boolean`, and `time` types, you may also use a quest
-variable in place of a literal value. To do this, prepend the quest variable
-name with `$`. For example, this will use the value specified in the quest
-variable `platform_speed`:
+For the `integer`, `float`, `boolean`, and `time` types, you may also use a
+quest variable in place of a literal value. To do this, prepend the quest
+variable name with `$`. For example, this will use the value specified in
+the quest variable `platform_speed`:
 
     TWTrapSetSpeed=$platform_speed
 

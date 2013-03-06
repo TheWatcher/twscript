@@ -9,6 +9,9 @@ TWScript would not be possible without the Public Scripts package released by
 Telliamed (Tom N. Harris), and I would like to express my sincere thanks for
 his generous contribution to the community.
 
+I'd also like to thank LarryG for his suggestions, patience, feedback, and
+willingness to be a guinea-pig.
+
 ## Installing
 
 In order to use TWScript with missions, it must be made available to Thief 2
@@ -27,11 +30,11 @@ can simply zip up your mission directory and distribute that.[^2]
 The documentation for the scripts consists of a number of files in addition
 to this one:
 
-- `DesignNote.html` describes the way in which the parameters for the
-  scripts are specified in Dromed's `Editor -> Design Note` property.
+- [DesignNote.html](DesignNote.html) describes the way in which the parameters
+  for the scripts are specified in Dromed's `Editor -> Design Note` property.
 - The remaining HTML files describe each of the script modules and the
-  parameters they suppport. For example, `TWTrapSetSpeed.html` contains
-  the documentation for the `TWTrapSetSpeed` script, and so on.
+  parameters they suppport. For example, [TWTrapSetSpeed.html](TWTrapSetSpeed.html)
+  contains the documentation for the `TWTrapSetSpeed` script, and so on.[^3]
 
 ## Development information
 
@@ -52,8 +55,7 @@ next release are:
 The source code for TWScript, including supporting files and instructions for
 building the scripts is available at github:
 
-[https://github.com/TheWatcher/twscript](https://github.com/TheWatcher/twscript)
-
+<https://github.com/TheWatcher/twscript>
 
 [^1]: Actually, in this current release, there is only one script module you
 can really use - TWTrapSetSpeed - but several others are planned or in
@@ -64,3 +66,6 @@ included with your mission will not get any bugfixes or updates unless you
 repackage your mission. Another, albeit less reliable, method is to simply state
 that players must install the .osm in their Thief2 directory - but if you do
 that, expect to run into problems if players do not follow the instructions!
+
+[^3]: As the number of scripts increases, I will add an index to make navigating
+between script documents easier. For now it's somewhat redundant.

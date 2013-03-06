@@ -12,10 +12,9 @@ you want the speed of any moving terrain object to be updated by this script
 before it reaches the next `TerrPt`, link the object this script is placed on
 to the moving terrain object with a `ScriptParams` link, and set the data for
 the link to `SetSpeed`. Note that, if you set the speed to `0` at any point,
-you **must** set up the link from the object on which `TWTrapSetSpeed` is set
-to the moving terrain object, otherwise it will be impossible to make the
-moving terrain object move again!
-
+you **must** set up the `ScriptParams` link from the object on which
+`TWTrapSetSpeed` is set to the moving terrain object, otherwise it will be
+impossible to make the moving terrain object move again!
 
 ## General setup
 
@@ -95,14 +94,23 @@ will not trigger this script.
 - Type: `string`
 - Default: `[me]`
 
-Specify the target object(s) to update when triggered. This can
-either be an object name or id, `[me]` to update the object the script is on,
-`[source]` to update the object that triggered the change (if you need that,
-for some odd reason), or you may specify an archetype name preceeded by `*`
-or `@` to update all objects that inherit from the specified archetype. If
+Specify the target object(s) to update when triggered. This can either be an
+object name or id, `[me]` to update the object the script is on, `[source]`
+to update the object that triggered the change (if you need that, for some
+odd reason), or you may specify an archetype name preceeded by `*` or `@`
+to update all objects that inherit from the specified archetype. If
 you use `*` then only concrete objects that directly inherit from that
 archetype are updated, if you use `@` then all concrete objects that inherit
-from the archetype directly or indirectly are updated.
+from the archetype directly or indirectly are updated. Finally, this may
+also be set to perform a radius search for objects of a given archetype:
+`5.0<TerrPt` will match all concrete `TerrPt` objects within 5 units of the
+object on which `TWTrapSetSpeed` has been placed, while `10>TerrPt` will
+match all concrete `TerrPt` objects more than 10 units away from the object
+on which `TWTrapSetSpeed` has been placed. Note that you can modify the
+behaviour of radius searches using `*` and `@`, so `7<@TerrPt` will match
+all concrete objects within 7 units that inherit from TerrPt directly or
+indirectly (the default is to only match objects that injerit directly
+from the named archetype, ie: `7<*TerrPt` and `7<TerrPt` are equivalent)
 
 
 ### Parameter: `TWTrapSetSpeedDebug`
