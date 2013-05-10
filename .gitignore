@@ -3,3 +3,4 @@
 *.o
 obj
 TWScript
+.emacs.desktop
