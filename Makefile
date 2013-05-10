@@ -137,6 +137,7 @@ dist: all
 	cp LICENSE $(distdir)/
 	cp $(MYOSM) $(distdir)/
 	$(packer) $(packargs) $(packfile) $(distdir)
+	rm -rf $(distdir)
 
 $(bindir):
 	mkdir -p $@

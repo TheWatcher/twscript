@@ -1145,14 +1145,16 @@ int cScr_TWTrapPhysStateControl::set_state(ILinkSrv*, ILinkQuery* pLQ, IScript*,
 	if(pPS -> Possessed(target_obj, "PhysState")) {
 
         if(data -> set_velocity) {
-            pPS -> Set(target_obj, "PhysState", "Velocity", &data -> velocity);
+            cMultiParm prop = data -> velocity;
+            pPS -> Set(target_obj, "PhysState", "Velocity", prop);
 
             if(data -> debug)
                 DebugPrintf("DEBUG[TWTrapPhysStateControl]: setting Velocity of %s to X: %.3f Y: %.3f Z: %.3f", static_cast<const char *>(target_name), data -> velocity.x, data -> velocity.y, data -> velocity.z);
         }
 
         if(data -> set_rotvel) {
-            pPS -> Set(target_obj, "PhysState", "Rot Velocity", &data -> rotvel);
+            cMultiParm prop = data -> rotvel;
+            pPS -> Set(target_obj, "PhysState", "Rot Velocity", prop);
 
             if(data -> debug)
                 DebugPrintf("DEBUG[TWTrapPhysStateControl]: setting Rot Velocity of %s to H: %.3f P: %.3f B: %.3f", static_cast<const char *>(target_name), data -> rotvel.z, data -> rotvel.y, data -> rotvel.x);

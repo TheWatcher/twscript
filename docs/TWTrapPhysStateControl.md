@@ -17,13 +17,6 @@ state you want to control using ControlDevice links. Whenever the marker is sent
 a TurnOn message, the script will update the physics state of the objects linked
 to the marker.
 
-## Note
-
-During testing, I was unable to reliably get the heading component of rotational
-velocity to do anything. The value is going in fine, just none of my tests seemed
-to be able to get a response to it - whether this is an error in my code, tests,
-or the engine ignoring the value set I don't currently know.
-
 ## Configuration
 
 Parameters are specified using the Editor -> Design Note, please see the

@@ -33,8 +33,12 @@ to this one:
 - [DesignNote.html](DesignNote.html) describes the way in which the parameters
   for the scripts are specified in Dromed's `Editor -> Design Note` property.
 - The remaining HTML files describe each of the script modules and the
-  parameters they suppport. For example, [TWTrapSetSpeed.html](TWTrapSetSpeed.html)
-  contains the documentation for the `TWTrapSetSpeed` script, and so on.[^2]
+  parameters they suppport.
+
+Currently available scripts are:
+
+- [TWTrapSetSpeed.html](TWTrapSetSpeed.html)
+- [TWTrapPhysStateControl.html](TWTrapPhysStateControl.html)
 
 ## Development information
 
@@ -62,6 +66,3 @@ included with your mission will not get any bugfixes or updates unless you
 repackage your mission. Another, albeit less reliable, method is to simply state
 that players must install the .osm in their Thief2 directory - but if you do
 that, expect to run into problems if players do not follow the instructions!
-
-[^2]: As the number of scripts increases, I will add an index to make navigating
-between script documents easier. For now it's somewhat redundant.
