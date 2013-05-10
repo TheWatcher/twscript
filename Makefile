@@ -36,6 +36,7 @@
 # Update these with the name of your script file, and the output .osm
 MYSCRIPT  = TWScript
 MYOSM     = twscript.osm
+SCRIPTVER = 1.1
 
 # Change this to `1` for Thief 1, 3 for SS2.
 GAME      = 2
@@ -43,7 +44,7 @@ GAME      = 2
 srcdir    = .
 bindir    = ./obj
 docdir    = ./docs
-distdir   = ./TWScript
+distdir   = ./TWScript-$(SCRIPTVER)
 
 PUBDIR    = ./pubscript
 LGDIR     = ../lg
@@ -60,7 +61,7 @@ RC = windres
 
 packer   = 7z
 packargs = a -t7z -m0=lzma -mx=9 -mfb=64 -md=32m -ms=on
-packfile = $(MYSCRIPT).7z
+packfile = $(MYSCRIPT)-$(SCRIPTVER).7z
 
 DEFINES = -DWINVER=0x0400 -D_WIN32_WINNT=0x0400 -DWIN32_LEAN_AND_MEAN
 GAMEDEF = -D_DARKGAME=$(GAME)
@@ -130,6 +131,7 @@ dist: all
 	mkdir -p $(distdir)/docs
 	$(docdir)/makedocs.pl README.md $(distdir)/docs/README.html
 	$(docdir)/makedocs.pl $(docdir)/TWTrapSetSpeed.md $(distdir)/docs/TWTrapSetSpeed.html
+	$(docdir)/makedocs.pl $(docdir)/TWTrapPhysStateControl.md $(distdir)/docs/TWTrapPhysStateControl.html
 	$(docdir)/makedocs.pl $(docdir)/DesignNote.md $(distdir)/docs/DesignNote.html
 	cp $(docdir)/markdown.css $(distdir)/docs/markdown.css
 	cp LICENSE $(distdir)/

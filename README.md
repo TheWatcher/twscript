@@ -1,6 +1,6 @@
 # TWScript
 
-TWScript is a collection of script modules for Thief 2[^1]. These scripts are
+TWScript is a collection of script modules for Thief 2. These scripts are
 provided under the terms of the GNU GPL v2, a full copy of which may be found
 in the LICENSE file in the distribution directory, along with other license
 information.
@@ -23,7 +23,7 @@ with a mission, Thief 2 will use that version.
 For editors, the simplest method to include TWScript is to place the .osm in
 your mission's directory inside the Thief2\FMs\ directory, and use FMSel to
 select your mission when editing it. When you distribute your mission you
-can simply zip up your mission directory and distribute that.[^2]
+can simply zip up your mission directory and distribute that.[^1]
 
 ## Documentation
 
@@ -34,7 +34,7 @@ to this one:
   for the scripts are specified in Dromed's `Editor -> Design Note` property.
 - The remaining HTML files describe each of the script modules and the
   parameters they suppport. For example, [TWTrapSetSpeed.html](TWTrapSetSpeed.html)
-  contains the documentation for the `TWTrapSetSpeed` script, and so on.[^3]
+  contains the documentation for the `TWTrapSetSpeed` script, and so on.[^2]
 
 ## Development information
 
@@ -57,15 +57,11 @@ building the scripts is available at github:
 
 <https://github.com/TheWatcher/twscript>
 
-[^1]: Actually, in this current release, there is only one script module you
-can really use - TWTrapSetSpeed - but several others are planned or in
-development, so the plural will be justified eventually!
-
-[^2]: Note that doing this does have the downside that the version of the osm
+[^1]: Note that doing this does have the downside that the version of the osm
 included with your mission will not get any bugfixes or updates unless you
 repackage your mission. Another, albeit less reliable, method is to simply state
 that players must install the .osm in their Thief2 directory - but if you do
 that, expect to run into problems if players do not follow the instructions!
 
-[^3]: As the number of scripts increases, I will add an index to make navigating
+[^2]: As the number of scripts increases, I will add an index to make navigating
 between script documents easier. For now it's somewhat redundant.
