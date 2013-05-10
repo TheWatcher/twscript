@@ -70,6 +70,23 @@ protected:
     float get_qvar_value(const char *qvar, float def_val);
 
 
+    /** Parse a string containing either a float value, or a qvar name, and
+     *  return the float value contained in the string or qvar. See the docs
+     *  for get_param_float for more information.
+     *
+     * @param param       A string to parse.
+     * @param def_val     The default value to use if the string does not contain
+     *                    a parseable value, or it references a non-existent QVar
+     *                    (note that qvar_str will contain the QVar name, even if
+     *                    the QVar does not exist)
+     * @param qvar_str    A reference to a cAnsiStr to store the quest var name, or
+     *                    quest var and simple calculation string.
+     * @return The value specified in the string, or the float version of a value
+     *         read from the qvar named in the string.
+     */
+    float parse_float(const char *param, float def_val, cAnsiStr &qvar_str);
+
+
     /** Read a float parameter from a design note string. If the value specified
      *  for the parameter in the design note is a simple number, this behaves
      *  identically to GetParamFloat(). However, this allows the user to specify
@@ -92,6 +109,29 @@ protected:
      *         read from the qvar named in the parameter.
      */
     float get_param_float(const char *design_note, const char *name, float def_val, cAnsiStr& qvar_str);
+
+
+    /** Read a float vector (triple of three floats) from a design note string. This
+     *  behaves in the same way as get_param_float(), except that instead of a single
+     *  float value or QVar string, this expects three comma-separated float or QVar
+     *  strings, one for each component of a vector (x, y, and z, in that order).
+     *  If components are missing, this will use the specified default values
+     *  instead.
+     *
+     * @param design_note The design note string to parse the parameter from.
+     * @param name        The name of the parameter to parse.
+     * @param vect        A reference to a vector to store the values in.
+     * @param defx        The default value to use if no value has been set for the x component.
+     * @param defy        The default value to use if no value has been set for the y component.
+     * @param defz        The default value to use if no value has been set for the z component.
+     * @return true if the named parameter <b>is present in the design note</b>. false
+     *         if it is not. Note that this returns true even if the user has simply
+     *         provided the parameter with no actual values, and defaults have been
+     *         used for all the vector components. This should not be treated as indicating
+     *         whether any values were parsed, rather it should be used to determine
+     *         whether the parameter has been found.
+     */
+    bool get_param_floatvec(const char *design_note, const char *name, cScrVec &vect, float defx = 0.0f, float defy = 0.0f, float defz = 0.0f);
 
 
     /** Establish the length of the name of the qvar in the specified string. This
@@ -161,6 +201,16 @@ private:
      */
     void archetype_search(std::vector<object> *matches, const char *archetype, bool do_full, bool do_radius = false, object from_obj = 0, float radius = 0.0f, bool lessthan = false);
 
+
+    /** Split a string at a comma. This located the first comma in the specified string,
+     *  replaces the comma with a null character, and returns a pointer to the character
+     *  immediately following the replaced comma.
+     *
+     * @param src A pointer to a string to split at the first comma.
+     * @return A pointer to the character immediately after a comma split, or NULL if
+     *         the src string does not contain any commas.
+     */
+    char *comma_split(char *src);
 };
 
 
@@ -485,10 +535,120 @@ private:
     cAnsiStr set_target; //!< The target string set by the user.
 };
 
+
+
+/** @class cScr_TWTrapPhysStateControl
+ *
+ * TWTrapPhysStateControl provides direct control over the location, orientation,
+ * velocity, and rotational velocity of objects in Thief 2. Note that this script
+ * provides a means to set the physics state values, but the game may ignore these
+ * values in some situations, and any changes you make will be subsequently subject
+ * to the normal physics simulation performed by the game (so, for example, changing
+ * an object's position may result in it either staying in the new location, or
+ * falling to (or through!) the ground, depending on how the object has been set up).
+ *
+ * Expect to have to experiment with this script!
+ *
+ * Add this script to a marker, link the marker to the object(s) whose physics
+ * state you want to control using ControlDevice links. Whenever the marker is sent
+ * a TurnOn message, the script will update the physics state of the objects linked
+ * to the marker.
+ *
+ * *NOTE*: during testing, I was unable to reliably get the heading component of
+ * rotational velocity to do anything. The value is going in fine, just none of my
+ * tests seemed to be able to get a response to it - whether this is an error
+ * in my code, tests, or the engine ignoring the value set I don't currently know.
+ *
+ * Configuration
+ * -------------
+ * Parameters are specified using the Editor -> Design Note, please see the
+ * main documentation for more about this.  Parameters supported by
+ * TWTrapPhysStateControl are listed below. If a parameter is not specified,
+ * the default value shown is used instead. Note that all the parameters are
+ * optional, and if you do not specify a parameter, the script will attempt to use
+ * a 'sane' default.
+ *
+ * Parameter: TWTrapPhysStateCtrlLocation
+ *      Type: float vector
+ *   Default: none (location is not changed)
+ * Set the location of the controlled object(s) the position specified. If this
+ * parameter is not specified, the location of the object(s) is not modified. If you
+ * specify this parameter, but give it no value (ie: `TWTrapPhysStateCtrlLocation=;`)
+ * then the default location of `0, 0, 0` is used.
+ *
+ * Parameter: TWTrapPhysStateCtrlFacing
+ *      Type: float vector
+ *   Default: none (orientation is not changed)
+ * Set the orientation of the controlled object(s) the values specified. If this
+ * parameter is not specified, the orientation of the object(s) is not modified. If you
+ * specify this parameter, but give it no value (ie: `TWTrapPhysStateCtrlFacing=;`)
+ * then the default orientation of `0, 0, 0` is used. *IMPORTANT NOTE*: the values
+ * specified for this parameter match the order found in Physics -> Model -> State,
+ * so the first value is bank (B), the second is pitch (P), and the third is
+ * heading (H). This is the opposite of the order most people would expect; if you
+ * find yourself having problems orienting objects, check that you haven't mixed up
+ * the bank and heading!
+ *
+ * Parameter: TWTrapPhysStateCtrlVelocity
+ *      Type: float vector
+ *   Default: none (velocity is not changed)
+ * Set the velocity of the controlled object(s) the values specified. If this
+ * parameter is not specified, the velocity of the object(s) is not modified. If you
+ * specify this parameter, but give it no value (ie: `TWTrapPhysStateCtrlVelocity=;`)
+ * then the default velocity of `0, 0, 0` is used.
+ *
+ * Parameter: TWTrapPhysStateCtrlRotVel
+ *      Type: float vector
+ *   Default: none (rotational velocity is not changed)
+ * Set the rotational velocity of the controlled object(s) the values specified. If
+ * this parameter is not specified, the rotational velocity of the object(s) is not
+ * modified. If you specify this parameter, but give it no value
+ * (ie: `TWTrapPhysStateCtrlRotVel=;`) then the default of `0, 0, 0` is used. Note
+ * that, as with TWTrapPhysStateCtrlFacing, the first value of the vector is the
+ * bank, the second is the pitch, and the third is the heading.
+ *
+ * Parameter: TWTrapPhysStateCtrlDebug
+ *      Type: boolean
+ *   Default: false
+ * If this is set to true, debugging messages will be written to the monolog to help
+ * trace problems with the script. Note that if you set this parameter to true, and
+ * see no new output in the monolog, double-check that you have twscript loaded!
+ */
+class cScr_TWTrapPhysStateControl : public cBaseTrap, public TWScript
+{
+public:
+    cScr_TWTrapPhysStateControl(const char* pszName, int iHostObjId)
+		: cBaseTrap(pszName, iHostObjId)
+    { }
+
+protected:
+    /** TurnOn message handler, called whenever the script receives a TurnOn message.
+     */
+	virtual long OnTurnOn(sScrMsg* pMsg, cMultiParm& mpReply);
+
+private:
+    /** Update the TWTrapPhysStateControl instance. This parses the various
+     *  parameters from the design note, and updates the linked object(s).
+     */
+    void update();
+
+
+    /** Link iterator callback used to set the physics state of objects. This
+     *  is used to set the location, facing, velocity, and rotational velocity
+     *  of objects linked to the script object via ControlDevice links.
+     *
+     * @param pLQ   A pointer to the link query for the current call.
+     * @param pData A pointer to a structure containing the physics state settings.
+     * @return Always returns 1.
+     */
+    static int set_state(ILinkSrv*, ILinkQuery* pLQ, IScript*, void* pData);
+};
+
 #else // SCR_GENSCRIPTS
 
-GEN_FACTORY("TWTweqSmooth"     , "BaseScript"             , cScr_TWTweqSmooth)
-GEN_FACTORY("TWTrapSetSpeed"   , "BaseTrap"               , cScr_TWTrapSetSpeed)
+GEN_FACTORY("TWTweqSmooth"          , "BaseScript", cScr_TWTweqSmooth)
+GEN_FACTORY("TWTrapSetSpeed"        , "BaseTrap"  , cScr_TWTrapSetSpeed)
+GEN_FACTORY("TWTrapPhysStateControl", "BaseTrap"  , cScr_TWTrapPhysStateControl)
 
 #endif // SCR_GENSCRIPTS
 

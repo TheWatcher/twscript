@@ -19,11 +19,11 @@
  *
  *****************************************************************************/
 
-#include <lg/config.h>
-#include <lg/objstd.h>
-#include <lg/interfaceimp.h>
-#include <lg/script.h>
-#include <lg/scrmanagers.h>
+#include "lg/config.h"
+#include "lg/objstd.h"
+#include "lg/interfaceimp.h"
+#include "lg/script.h"
+#include "lg/scrmanagers.h"
 
 extern IMalloc *g_pMalloc;
 extern IScriptMan *g_pScriptManager;

@@ -152,21 +152,18 @@ float TWScript::get_qvar_value(const char *qvar, float def_val)
 }
 
 
-float TWScript::get_param_float(const char *design_note, const char *name, float def_val, cAnsiStr &qvar_str)
+float TWScript::parse_float(const char *param, float def_val, cAnsiStr &qvar_str)
 {
     float result = def_val;
 
-    // Fetch the value as a string, if possible
-    char *param = GetParamString(design_note, name, NULL);
     if(param) {
-
         // Starting with $ indicates that the string contains a qvar fetch
         if(*param == '$') {
             // Store the qvar string for later
             qvar_str = &param[1];
             result = get_qvar_value(&param[1], def_val);
 
-        // Otherwise assume it's a float string
+            // Otherwise assume it's a float string
         } else {
             char *endstr;
             result = strtof(param, &endstr);
@@ -174,6 +171,58 @@ float TWScript::get_param_float(const char *design_note, const char *name, float
             // Restore the default if parsing failed
             if(endstr == param) result = def_val;
         }
+    }
+
+    return result;
+}
+
+
+char *TWScript::comma_split(char *src)
+{
+    while(*src) {
+        if(*src == ',') {
+            *src = '\0';
+            return (src + 1);
+        }
+        ++src;
+    }
+
+    return NULL;
+}
+
+
+bool TWScript::get_param_floatvec(const char *design_note, const char *name, cScrVec &vect, float defx, float defy, float defz)
+{
+    bool parsed = false;
+    char *param = GetParamString(design_note, name, NULL);
+
+    if(param) {
+        char *ystr = comma_split(param);              // Getting y is safe...
+        char *zstr = ystr ? comma_split(ystr) : NULL; // z needs to be handled more carefully
+
+        cAnsiStr tmp; // This is actually throw-away, needed for parse_float
+
+        vect.x = parse_float(param, defx, tmp);
+        vect.y = parse_float( ystr, defy, tmp); // Note these are safe even if ystr and zstr are NULL
+        vect.z = parse_float( zstr, defz, tmp); // as parse_float checks for non-NULL
+
+        parsed = true;
+
+        g_pMalloc -> Free(param);
+    }
+
+    return parsed;
+}
+
+
+float TWScript::get_param_float(const char *design_note, const char *name, float def_val, cAnsiStr &qvar_str)
+{
+    float result = def_val;
+
+    // Fetch the value as a string, if possible
+    char *param = GetParamString(design_note, name, NULL);
+    if(param) {
+        result = parse_float(param, def_val, qvar_str);
 
         g_pMalloc -> Free(param);
     }
@@ -1022,4 +1071,134 @@ long cScr_TWTrapSetSpeed::OnSim(sSimMsg* pSimMsg, cMultiParm& mpReply)
     }
 
     return cBaseTrap::OnSim(pSimMsg, mpReply);
+}
+
+
+/* =============================================================================
+ *  TWTrapPhysStateControl Impmementation
+ */
+
+/** A convenience structure used to pass vectors and control data
+ *  from the cScr_TWTrapPhysStateControl::update() function to the
+ *  link iterator callback.
+ */
+struct TWStateData
+{
+    bool    set_location;  //!< Update the object position?
+    cScrVec location;      //!< The x,y,z coordinates to set the object at.
+
+    bool    set_facing;    //!< Update the heading, bank, and pitch of the object?
+    cScrVec facing;        //!< The orientation to set, x=bank, y=pitch, z=heading (as in Physics -> Model -> State)
+
+    bool    set_velocity;  //!< Update the object's velocity?
+    cScrVec velocity;      //!< The velocity to set for the object
+
+    bool    set_rotvel;    //!< Update the rotational velocity?
+    cScrVec rotvel;        //!< The rotational velocity to set, x=bank, y=pitch, z=heading (as in Physics -> Model -> State)
+
+    bool  debug;           //!< Show debugging output?
+};
+
+
+int cScr_TWTrapPhysStateControl::set_state(ILinkSrv*, ILinkQuery* pLQ, IScript*, void* pData)
+{
+    TWStateData *data = static_cast<TWStateData *>(pData);
+
+    // Get the ControlDevice link - dest should be a moving terrain object
+    sLink current_link;
+    pLQ -> Link(&current_link);
+    object target_obj = current_link.dest; // For readability
+
+    // Names are only needed for debugging, but meh.
+    cAnsiStr target_name = get_object_namestr(target_obj);
+    cAnsiStr src_name    = get_object_namestr(current_link.source);
+
+    if(data -> debug)
+        DebugPrintf("DEBUG[TWTrapPhysStateControl(set_state)]: %s setting state of %s", static_cast<const char *>(src_name), static_cast<const char *>(target_name));
+
+    // Obtain the current location and orientation - both are needed, even if one is being updated,
+    // so that teleport will work
+    SService<IObjectSrv> pOS(g_pScriptManager);
+    cScrVec position, facing;
+    pOS -> Position(position, target_obj);
+    pOS -> Facing(facing, target_obj);
+
+    // Update the location if needed
+    if(data -> set_location) {
+        position = data -> location;
+        if(data -> debug)
+            DebugPrintf("DEBUG[TWTrapPhysStateControl]: setting Location of %s to X: %.3f Y: %.3f Z: %.3f", static_cast<const char *>(target_name), position.x, position.y, position.z);
+    }
+
+    // And the orientation
+    if(data -> set_facing) {
+        facing = data -> facing;
+        if(data -> debug)
+            DebugPrintf("DEBUG[TWTrapPhysStateControl]: setting Facing of %s to H: %.3f P: %.3f B: %.3f", static_cast<const char *>(target_name), facing.z, facing.y, facing.x);
+    }
+
+    // Move and orient the object
+    pOS -> Teleport(target_obj, position, facing, 0);
+
+    // Now fix up the object velocities.
+ 	SService<IPropertySrv> pPS(g_pScriptManager);
+	if(pPS -> Possessed(target_obj, "PhysState")) {
+
+        if(data -> set_velocity) {
+            pPS -> Set(target_obj, "PhysState", "Velocity", &data -> velocity);
+
+            if(data -> debug)
+                DebugPrintf("DEBUG[TWTrapPhysStateControl]: setting Velocity of %s to X: %.3f Y: %.3f Z: %.3f", static_cast<const char *>(target_name), data -> velocity.x, data -> velocity.y, data -> velocity.z);
+        }
+
+        if(data -> set_rotvel) {
+            pPS -> Set(target_obj, "PhysState", "Rot Velocity", &data -> rotvel);
+
+            if(data -> debug)
+                DebugPrintf("DEBUG[TWTrapPhysStateControl]: setting Rot Velocity of %s to H: %.3f P: %.3f B: %.3f", static_cast<const char *>(target_name), data -> rotvel.z, data -> rotvel.y, data -> rotvel.x);
+        }
+
+    } else if(data -> debug) {
+        DebugPrintf("DEBUG[TWTrapPhysStateControl]: %s has no PhysState property. This should not happen!", static_cast<const char *>(target_name));
+    }
+
+    return 1;
+}
+
+
+void cScr_TWTrapPhysStateControl::update()
+{
+    struct TWStateData data;
+    cAnsiStr my_name = get_object_namestr(ObjId());
+
+    // Fetch the contents of the object's design note
+    char *design_note = GetObjectParams(ObjId());
+
+    if(!design_note)
+        DebugPrintf("WARNING[TWTrapPhysStateControl(update)]: %s has no Editor -> Design Note. Falling back on defaults.", static_cast<const char *>(my_name));
+
+    // Is debugging mode enabled?
+    data.debug = GetParamBool(design_note, "TWTrapPhysStateCtrlDebug", false);
+
+    data.set_location = get_param_floatvec(design_note, "TWTrapPhysStateCtrlLocation", data.location, 0.0f, 0.0f, 0.0f);
+    data.set_facing   = get_param_floatvec(design_note, "TWTrapPhysStateCtrlFacing"  , data.facing  , 0.0f, 0.0f, 0.0f);
+    data.set_velocity = get_param_floatvec(design_note, "TWTrapPhysStateCtrlVelocity", data.velocity, 0.0f, 0.0f, 0.0f);
+    data.set_rotvel   = get_param_floatvec(design_note, "TWTrapPhysStateCtrlRotVel"  , data.rotvel  , 0.0f, 0.0f, 0.0f);
+
+    if(data.set_location || data.set_facing || data.set_velocity || data.set_rotvel) {
+        IterateLinks("ControlDevice", ObjId(), 0, set_state, this, static_cast<void*>(&data));
+    } else if(data.debug) {
+        DebugPrintf("WARNING[TWTrapPhysStateControl(update)]: %s design note will not update linked objects, skipping.", static_cast<const char *>(my_name));
+    }
+
+    // If a design note was obtained, free it now
+    if(design_note) g_pMalloc -> Free(design_note);
+}
+
+
+long cScr_TWTrapPhysStateControl::OnTurnOn(sScrMsg* pMsg, cMultiParm& mpReply)
+{
+    update();
+
+    return cBaseTrap::OnTurnOn(pMsg, mpReply);
 }

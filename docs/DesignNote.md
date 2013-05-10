@@ -9,7 +9,7 @@ the values set in other object attributes for configuration, or they may not
 support any setup at all. However, in practice the Design Note will contain
 one or more configuration parameters. Each parameter consists of three parts:
 
-- a oarameter name, something like `TWTrapSetSpeedDest`
+- a parameter name, something like `TWTrapSetSpeedDest`
 - an equals sign (=)
 - a value to set for the parameter
 
@@ -26,6 +26,18 @@ to give it, and it may require any of the following:
   using `-`, eg: `-2.54`. Note that, in some cases, negatives can
   produce unexpected or undesirable behaviours if the script doesn't expect
   you to use them.
+- `float vector`: three `float` values, separated by commas. You may place
+  whitespace between the `float` values and the commas, but *do not* use
+  quotes around each value, ie: `SomeParam=0 , 1.2, 5;` is fine, as is
+  `SomeParam="1.2, 3.4,5.6";`, but `SomeParam="0","1.2","3";` **is not**
+  valid. I generally recomment avoid using quotes when specifying the values
+  for `float vector` types. Unless otherwise indicated in the documentation,
+  the first value corresponds to the `x` component of the vector, the second
+  to the `y` component, and the third to the `z`. Any components you do not
+  specify a value for will be set to `0.0`. For example, the value `6,,10.5`
+  will set `x` to `6.0`, `y` to `0.0`, and `z` to `10.5`. Similarly, `1,0.5`
+  will set `x` to `1.0`, `y` to `0.5`, and `z` (which has been omitted
+  entirely from the example here!) will be set to `0.0`.
 - `integer`: a 'whole number', one without any decimal part, eg: `3`.
   Negative numbers can be specified using `-`, eg: `-42`.
 - `boolean`: a true or false value. The following are considered to be 'true'
@@ -53,6 +65,10 @@ variable name with `$`. For example, this will use the value specified in
 the quest variable `platform_speed`:
 
     TWTrapSetSpeed=$platform_speed
+
+Note that, for `float vector` types, each value may be a quest variable:
+
+    TWTrapPhysStateCtrlLocation=$thingx, $thingy, $thingz;
 
 Values *may* be enclosed in quotes, either single quotes or double quotes,
 but this is not required *unless* you are specifying a string containing a
