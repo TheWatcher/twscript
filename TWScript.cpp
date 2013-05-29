@@ -1,3 +1,21 @@
+/** @file
+ * This file contains the implementations of the TWScript functions.
+ *
+ * @author Chris Page &lt;chris@starforge.co.uk&gt;
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses/.
+ */
 
 #include "TWScript.h"
 #include "ScriptModule.h"
@@ -1052,13 +1070,16 @@ long cScr_TWTrapSetSpeed::OnQuestChange(sQuestMsg* pMsg, cMultiParm& mpReply)
 }
 
 
-long cScr_TWTrapSetSpeed::OnSim(sSimMsg* pSimMsg, cMultiParm& mpReply)
+long cScr_TWTrapSetSpeed::OnBeginScript(sScrMsg* pMsg, cMultiParm& mpReply)
 {
-    if(pSimMsg -> fStarting) {
-        init();
+    init();
 
-    // Not starting, must be ending (I hope) - remove any qvar sub, if present.
-    } else if(qvar_sub) {
+    return cBaseTrap::OnBeginScript(pMsg, mpReply);
+}
+
+long cScr_TWTrapSetSpeed::OnEndScript(sScrMsg* pMsg, cMultiParm& mpReply)
+{
+    if(qvar_sub) {
         if(debug) {
             SInterface<IObjectSystem> pOS(g_pScriptManager);
             cAnsiStr my_name = get_object_namestr(ObjId());
@@ -1070,7 +1091,7 @@ long cScr_TWTrapSetSpeed::OnSim(sSimMsg* pSimMsg, cMultiParm& mpReply)
 		pQS -> UnsubscribeMsg(ObjId(), static_cast<const char *>(qvar_sub));
     }
 
-    return cBaseTrap::OnSim(pSimMsg, mpReply);
+    return cBaseTrap::OnEndScript(pMsg, mpReply);
 }
 
 
