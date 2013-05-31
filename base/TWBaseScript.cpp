@@ -409,6 +409,12 @@ long TWBaseScript::dispatch_message(sScrMsg* msg, sMultiParm* reply)
         }
     }
 
+    // Capture and bin Null messages (to prevent TornOn/TurnOff triggering in
+    // subclasses when the TirnOn/TurnOff message has been set to Null)
+    if(!::_stricmp(msg -> message, "Null")) {
+        return S_OK;
+    }
+
     // Invoke the message handling!
     return (on_message(msg, static_cast<cMultiParm&>(*reply)) != MS_ERROR);
 }
