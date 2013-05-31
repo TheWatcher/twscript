@@ -52,7 +52,8 @@ public:
 
     /** Destroy the TWBaseScript object.
      */
-    virtual ~TWBaseScript();
+    virtual ~TWBaseScript()
+        { /* fnord */ }
 
 
     /** Entrypoint for messages recieved from the game. All messages sent to
@@ -250,6 +251,8 @@ protected:
         DL_WARNING,   //!< An important debugging message indicating there may be a problem.
         DL_ERROR      //!< A serious problem has been encountered.
     };
+
+    static const char * const debug_levels[]; //!< An array of debug level strings
 
 
     /** Print out a debugging message to the monolog. This prints out a formatted
@@ -494,15 +497,18 @@ private:
      */
     char *comma_split(char *src);
 
+
+    /* ------------------------------------------------------------------------
+     *  Variables
+     */
+
     bool need_fixup;   //!< Does the script need to fix links to the player?
     bool sim_running;  //!< Is the sum currently running?
     uint message_time; //!< The sim time stored in the last recieved message
-
-    static const char * const debug_levels[]; //!< An array of debug level strings
 };
 
 #else // SCR_GENSCRIPTS
-GEN_FACTORY("TWBaseScript", "CustomScript", cBaseScript)
+GEN_FACTORY("TWBaseScript", "CustomScript", TWBaseScript)
 #endif // SCR_GENSCRIPTS
 
 #endif // TWBASESCRIPT_H
