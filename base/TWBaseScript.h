@@ -75,6 +75,13 @@ public:
     STDMETHOD(ReceiveMessage)(sScrMsg* msg, sMultiParm* reply, eScrTraceAction trace);
 
 
+    enum CountMode {
+        CM_NOTHING = 0,
+        CM_TURNON,
+        CM_TURNOFF,
+        CM_BOTH
+    };
+
 protected:
     /* ------------------------------------------------------------------------
      *  Message handling
@@ -323,6 +330,7 @@ protected:
      *  Design note support
      */
 
+
     /** Parse a string containing either a float value, or a qvar name, and
      *  return the float value contained in the string or qvar. See the docs
      *  for get_param_float for more information.
@@ -338,6 +346,38 @@ protected:
      *         read from the qvar named in the string.
      */
     float parse_float(const char *param, float def_val, cAnsiStr &qvar_str);
+
+
+    /** Attempt to parse the count mode out of the specified design note.
+     *  This handle situations where the user has set the CountOnly
+     *  parameter to 0, 1, 2, 3, None, On, Off, or Both. Because it is
+     *  nifty like that.
+     *
+     * @param design_note The design note to parse the count mode from.
+     * @param default     The default CountMode to use if not set.
+     * @return The selected count mode, or the default if the mode has not
+     *         been set by the user, or the set value is invalid.
+     */
+    CountMode get_param_countmode(char *design_note, CountMode def_mode = CM_BOTH);
+
+
+    /** Parse the value and falloff for a specified parameter from the
+     *  design note. This tries to parse a value for the parameter,
+     *  and a corresponding falloff if one has been specified.
+     *
+     * @param design_note The design note to parse the count mode from.
+     * @param param       The name of the parameter to parse the value and
+     *                    falloff for.
+     * @param value       A pointer to an int to store the value in. The
+     *                    int this points to will be set to 0 if no value
+     *                    has been specified for the parameter. If you do
+     *                    not need to parse a value, set this to NULL.
+     * @param falloff     A pointer to an int to store the falloff value
+     *                    in. If no value has been specified for the param,
+     *                    the int pointed to by this will be set to 0. If
+     *                    you do not need to parse a falloff, set this to NULL.
+     */
+    void get_param_valuefalloff(char *design_note, const char *param, int *value = NULL, int *falloff = NULL);
 
 
     /** Read a float parameter from a design note string. If the value specified

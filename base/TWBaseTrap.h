@@ -36,13 +36,6 @@ public:
      *  Public interface exposed to the rest of the game
      */
 
-    enum CountModes {
-        CM_NOTHING = 0,
-        CM_TURNON,
-        CM_TURNOFF,
-        CM_BOTH
-    };
-
     /** Create a new TWBaseTrap object. This sets up a new TWBaseTrap object
      *  that is attached to a concrete object in the game world.
      *
@@ -74,38 +67,11 @@ protected:
  	virtual MsgStatus on_message(sScrMsg* msg, cMultiParm& reply);
 
 
-    /** Attempt to parse the count mode out of the specified design note.
-     *  This handle situations where the user has set the CountOnly
-     *  parameter to 0, 1, 2, 3, None, On, Off, or Both. Because it is
-     *  nifty like that.
-     *
-     * @param design_note The design note to parse the count mode from.
-     * @param default     The default CountMode to use if not set.
-     * @return The selected (or default) count mode.
-     */
-    CountMode parse_countmode(char *design_note, CountMode default = CM_BOTH);
-
-
-    /** Parse the value and falloff for a specified parameter from the
-     *  design note. This tries to parse a value for the parameter,
-     *  and a corresponding falloff if one has been specified.
-     *
-     * @param design_note The design note to parse the count mode from.
-     * @param param       The name of the parameter to parse the value and
-     *                    falloff for.
-     * @param value       A pointer to an int to store the value in. The
-     *                    int this points to will be set to 0 if no value
-     *                    has been specified for the parameter. If you do
-     *                    not need to parse a value, set this to NULL.
-     * @param falloff     A pointer to an int to store the falloff value
-     *                    in. If no value has been specified for the param,
-     *                    the int pointed to by this will be set to 0. If
-     *                    you do not need to parse a falloff, set this to NULL.
-     */
-    void parse_valuefalloff(char *design_note, const char *param, int *value = NULL, int *falloff = NULL);
-
-
 private:
+    /* ------------------------------------------------------------------------
+     *  Initialisation related
+     */
+
     /** Initialise the trap counters, message names, and other aspects of
      *  the trap class that couldn't be handled in the constructor. This
      *  should be called as part of processing BeginScript, before any
@@ -116,13 +82,17 @@ private:
     void init(int time);
 
 
+    /* ------------------------------------------------------------------------
+     *  Variables
+     */
+
     // Message names
     cAnsiStr turnon_msg;        //!< The name of the message that should tigger the 'TurnOn' action
     cAnsiStr turnoff_msg;       //!< The name of the message that should tigger the 'TurnOff' action
 
     // Count handling
     SavedCounter count;         //!< Control how many times the script will work
-    CountModes   count_mode;    //!< What counts as 'working'?
+    CountMode    count_mode;    //!< What counts as 'working'?
 
     // Capacitors
     SavedCounter on_capacitor;  //!< Control how frequently TurnOn actions work
