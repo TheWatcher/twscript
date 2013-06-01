@@ -14,7 +14,7 @@ void SavedCounter::init(int curr_time, int min_count, int max_count, int falloff
 
     // If min and max are specified, max must be less than min or the counter will never work
     if(min_count && max_count && max_count < min_count) {
-        int swp = min_count;
+        int swap = min_count;
         min_count = max_count;
         max_count = swap;
     }
