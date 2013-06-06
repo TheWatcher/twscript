@@ -71,17 +71,20 @@ public:
      *  increment - is equal to or greater than the minimum and less than or equal
      *  to the maximum (if they are set).
      *
-     * @param time The current sim time.
+     * @param time   The current sim time.
+     * @param amount The amount to increment the counter by. If this is zero, the
+     *               function behaves as normal - applying falloff, etc - but the
+     *               counter isn't incremented at all.
      * @return true if the count is in the range min <= count <= max.
      */
-    bool increase_count(int time);
+    bool increment(int time, uint amount = 1);
 
 
     /** Reset the counter to zero. Does exactly what it says on the tin.
      *
      * @param time The current sim time.
      */
-    void reset_count(int time)
+    void reset(int time)
         { count = 0; last_time = time; }
 
 

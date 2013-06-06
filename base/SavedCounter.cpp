@@ -27,10 +27,10 @@ void SavedCounter::init(int curr_time, int min_count, int max_count, int falloff
 }
 
 
-bool SavedCounter::increase_count(int time)
+bool SavedCounter::increment(int time, uint amount)
 {
     // Let apply_falloff work out what the count should be before incrementing
-    int newcount = apply_falloff(time) + 1;
+    int newcount = apply_falloff(time) + amount;
 
     // If there is no minimum, it is zero, so there doesn't need to be a special check
     // for it here; count will *always* be > 0 here.
