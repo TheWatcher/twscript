@@ -46,7 +46,7 @@ public:
      * @param object The ID of the client object to add the script to.
      * @return A new TWBaseScript object.
      */
-    TWBaseScript(const char* name, int object) : cScript(name, object), need_fixup(true), sim_running(false), message_time(0)
+    TWBaseScript(const char* name, int object) : cScript(name, object), need_fixup(true), sim_running(false), debug(false), message_time(0)
         { /* fnord */ }
 
 
@@ -75,13 +75,6 @@ public:
     STDMETHOD(ReceiveMessage)(sScrMsg* msg, sMultiParm* reply, eScrTraceAction trace);
 
 
-    enum CountMode {
-        CM_NOTHING = 0,
-        CM_TURNON,
-        CM_TURNOFF,
-        CM_BOTH
-    };
-
 protected:
     /* ------------------------------------------------------------------------
      *  Message handling
@@ -109,8 +102,7 @@ protected:
      * @return A status value indicating whether the caller should continue
      *         processing the message
      */
- 	virtual MsgStatus on_message(sScrMsg* msg, cMultiParm& reply)
-		{ return MS_CONTINUE; }
+ 	virtual MsgStatus on_message(sScrMsg* msg, cMultiParm& reply);
 
 
     /* ------------------------------------------------------------------------
@@ -259,7 +251,15 @@ protected:
         DL_ERROR      //!< A serious problem has been encountered.
     };
 
-    static const char * const debug_levels[]; //!< An array of debug level strings
+    static const char*  const debug_levels[]; //!< An array of debug level strings
+
+
+    /** Has the editor enabled debugging via the design note?
+     *
+     * @return true if the editor has enabled debugging, false otherwise.
+     */
+    inline bool debug_enabled(void) const
+        { return debug; }
 
 
     /** Print out a debugging message to the monolog. This prints out a formatted
@@ -273,7 +273,7 @@ protected:
      * @param format A sprintf compatible format string.
      * @param ...    Optional additional arguments for the format.
      */
-    void debug_printf(DebugLevel level, const char *format, ...);
+    void debug_printf(DebugLevel level, const char* format, ...);
 
 
     /** Obtain a string containing the specified object's name (or archetype name),
@@ -300,36 +300,47 @@ protected:
      *  QVar convenience functions
      */
 
-    /** Fetch the value in the specified QVar if it exists, return the default if it
-     *  does not.
-     *
-     * @param qvar    The name of the QVar to return the value of.
-     * @param def_val The default value to return if the qvar does not exist.
-     * @return The QVar value, or the default specified.
-     */
-    long get_qvar_value(const char *qvar, long def_val);
-
-
-    /** A somewhat more powerful version of get_qvar_value() that allows the
-     *  inclusion of simple calculations to be applied to the value set in the
-     *  QVar by including *value or /value in the string. For example, if the
-     *  qvar variable contains 'foo/100' this will take the value in foo and
-     *  divide it by 100. If the quest variable does not exist, this returns
-     *  the default value specified *without applying any calculations to it*.
-     *  The value may optionally be another QVar by placing $ before its name,
-     *  eg: foo/$bar will divide the value in foo by the value in bar.
+    /** Fetch the value stored in a qvar, potentially applying a simple calculation
+     *  to the value set in the QVar. This takes a string of the form
+     *  qvarname([-*+/](value|$qvarname)) and parses out the name, and operation
+     *  and value or qvar name if they are present, and returns the value in the
+     *  left hand side qvar, potentially modified by the operator and value or
+     *  the value in the right hand qvar. For example, if the qvar variable
+     *  contains 'foo/100' this will take the value in foo and divide it by 100.
+     *  If the quest variable does not exist, this returns the default value
+     *  specified *without applying any calculations to it*. The value may
+     *  optionally be another QVar by placing $ before its name, eg: foo/$bar will
+     *  divide the value in foo by the value in bar.
      *
      * @param qvar    The name of the QVar to return the value of, possibly including simple maths.
      * @param def_val The default value to return if the qvar does not exist.
      * @return The QVar value, or the default specified.
      */
-    float get_qvar_value(const char *qvar, float def_val);
+    int get_qvar_value(const char* qvar, int def_val);
+
+
+    /** Fetch the value stored in a qvar, potentially applying a simple calculation
+     *  to the value set in the QVar. This takes a string of the form
+     *  qvarname([-*+/](value|$qvarname)) and parses out the name, and operation
+     *  and value or qvar name if they are present, and returns the value in the
+     *  left hand side qvar, potentially modified by the operator and value or
+     *  the value in the right hand qvar. For example, if the qvar variable
+     *  contains 'foo/2.5' this will take the value in foo and divide it by 2.5.
+     *  If the quest variable does not exist, this returns the default value
+     *  specified *without applying any calculations to it*. The value may
+     *  optionally be another QVar by placing $ before its name, eg: foo/$bar will
+     *  divide the value in foo by the value in bar.
+     *
+     * @param qvar    The name of the QVar to return the value of, possibly including simple maths.
+     * @param def_val The default value to return if the qvar does not exist.
+     * @return The QVar value, or the default specified.
+     */
+    float get_qvar_value(const char* qvar, float def_val);
 
 
     /* ------------------------------------------------------------------------
      *  Design note support
      */
-
 
     /** Parse a string containing either a float value, or a qvar name, and
      *  return the float value contained in the string or qvar. See the docs
@@ -345,8 +356,17 @@ protected:
      * @return The value specified in the string, or the float version of a value
      *         read from the qvar named in the string.
      */
-    float parse_float(const char *param, float def_val, cAnsiStr &qvar_str);
+    float parse_float(const char* param, float def_val, cAnsiStr &qvar_str);
 
+
+    /** Values that may be returned from the get_scriptparam_countmode() function.
+     */
+    enum CountMode {
+        CM_NOTHING = 0, //!< Count nothing
+        CM_TURNON,      //!< Count only TurnOns
+        CM_TURNOFF,     //!< Count only TurnOffs
+        CM_BOTH         //!< Count both TurnOn and TurnOff
+    };
 
     /** Attempt to parse the count mode out of the specified design note.
      *  This handle situations where the user has set the CountOnly
@@ -354,11 +374,13 @@ protected:
      *  nifty like that.
      *
      * @param design_note The design note to parse the count mode from.
+     * @param param       The name of the parameter to parse. This will be prepended
+     *                    with the current script name.
      * @param default     The default CountMode to use if not set.
      * @return The selected count mode, or the default if the mode has not
      *         been set by the user, or the set value is invalid.
      */
-    CountMode get_param_countmode(char *design_note, CountMode def_mode = CM_BOTH);
+    CountMode get_scriptparam_countmode(char* design_note, const char* param, CountMode def_mode = CM_BOTH);
 
 
     /** Parse the value and falloff for a specified parameter from the
@@ -367,7 +389,8 @@ protected:
      *
      * @param design_note The design note to parse the count mode from.
      * @param param       The name of the parameter to parse the value and
-     *                    falloff for.
+     *                    falloff for. This will be prepended with the current
+     *                    script name.
      * @param value       A pointer to an int to store the value in. The
      *                    int this points to will be set to 0 if no value
      *                    has been specified for the parameter. If you do
@@ -377,7 +400,7 @@ protected:
      *                    the int pointed to by this will be set to 0. If
      *                    you do not need to parse a falloff, set this to NULL.
      */
-    void get_param_valuefalloff(char *design_note, const char *param, int *value = NULL, int *falloff = NULL);
+    void get_scriptparam_valuefalloff(char* design_note, const char* param, int *value = NULL, int *falloff = NULL);
 
 
     /** Read a float parameter from a design note string. If the value specified
@@ -390,8 +413,15 @@ protected:
      *  calculations - the parameter string, with the leading $ removed, is stored
      *  in the provided qvar_str for later use.
      *
+     * @note Unlike the GetParamFloat() function, this will automatically prepend
+     *       the script name to the specified parameter name. So, for example, if
+     *       this is called from within `FooScript` with `name` set to `Bar`, the
+     *       parameter this will actually try to parse a float value for will be
+     *       `FooScriptBar`.
+     *
      * @param design_note The design note string to parse the parameter from.
-     * @param name        The name of the parameter to parse.
+     * @param param       The name of the parameter to parse. This will be prepended
+     *                    with the current script name.
      * @param def_val     The default value to use if the parameter does not exist,
      *                    or it references a non-existent QVar (note that qvar_str
      *                    will contain the parameter string even if the QVar does
@@ -401,7 +431,35 @@ protected:
      * @return The value specified in the parameter, or the float version of a value
      *         read from the qvar named in the parameter.
      */
-    float get_param_float(const char *design_note, const char *name, float def_val, cAnsiStr& qvar_str);
+    float get_scriptparam_float(const char* design_note, const char* param, float def_val, cAnsiStr& qvar_str);
+
+
+    /** Parse an integer parameter from the specified design note.
+     */
+    int get_scriptparam_int(const char *design_note, const char *param, int def_val);
+
+
+    /** Read a string from a design note. This will attempt to locate the first
+     *  occurance of a parameter with the specified name in the design note, and
+     *  return the value associated with it as a string. The caller must free the
+     *  string once it is no longer needed.
+     *
+     * @note Unlike the GetParamString() function, this will automatically prepend
+     *       the script name to the specified parameter name. So, for example, if
+     *       this is called from within `FooScript` with `name` set to `Bar`, the
+     *       parameter this will actually try to fetch a string for will be
+     *       `FooScriptBar`.
+     *
+     * @param design_note The design note string to parse the parameter from.
+     * @param param       The name of the parameter to parse. This will be prepended
+     *                    with the current script name.
+     * @param def_val     The default value to use if the parameter does not exist.
+     *                    Note that, if the paramter does not exist, this is **copied**
+     *                    into the returned string!
+     * @return A pointer to a string containing the parameter value. This must be
+     *         released by the caller using `g_pMalloc -> Free()`.
+     */
+    char* get_scriptparam_string(const char* design_note, const char* param, const char* def_val);
 
 
     /** Read a float vector (triple of three floats) from a design note string. This
@@ -412,7 +470,8 @@ protected:
      *  instead.
      *
      * @param design_note The design note string to parse the parameter from.
-     * @param name        The name of the parameter to parse.
+     * @param param       The name of the parameter to parse.  This will be prepended
+     *                    with the current script name.
      * @param vect        A reference to a vector to store the values in.
      * @param defx        The default value to use if no value has been set for the x component.
      * @param defy        The default value to use if no value has been set for the y component.
@@ -424,8 +483,12 @@ protected:
      *         whether any values were parsed, rather it should be used to determine
      *         whether the parameter has been found.
      */
-    bool get_param_floatvec(const char *design_note, const char *name, cScrVec &vect, float defx = 0.0f, float defy = 0.0f, float defz = 0.0f);
+    bool get_scriptparam_floatvec(const char* design_note, const char* param, cScrVec &vect, float defx = 0.0f, float defy = 0.0f, float defz = 0.0f);
 
+
+    /* ------------------------------------------------------------------------
+     *  Targetting
+     */
 
     /** Given a target description string, generate a list of object ids the string
      *  corresponds to. If targ is '[me]', the current object is returned, if targ
@@ -442,10 +505,23 @@ protected:
      * @return A vector of object ids the target string matches. The caller must
      *         free this when done with it.
      */
-    std::vector<object>* get_target_objects(const char *targ, sScrMsg *msg = NULL);
+    std::vector<object>* get_target_objects(const char* targ, sScrMsg *msg = NULL);
 
 
 private:
+    /* ------------------------------------------------------------------------
+     *  Initialisation related
+     */
+
+    /** Initialise the debug flag and anything else that couldn't be handled in
+     *  the constructor. This should be called as part of processing BeginScript,
+     *  before any attempt to use the class' features is made.
+     *
+     * @param time The current sim time.
+     */
+    void init(int time);
+
+
     /* ------------------------------------------------------------------------
      *  Message handling
      */
@@ -497,7 +573,7 @@ private:
      * @param lessthan  If true, objects must fall within the sphere around from_obj,
      *                  if false they must be outside it.
      */
-    void archetype_search(std::vector<object> *matches, const char *archetype, bool do_full = false, bool do_radius = false, object from_obj = 0, float radius = 0.0f, bool lessthan = false);
+    void archetype_search(std::vector<object> *matches, const char* archetype, bool do_full = false, bool do_radius = false, object from_obj = 0, float radius = 0.0f, bool lessthan = false);
 
 
     /** Determine whether the specified target string is a radius search, and if so
@@ -513,7 +589,44 @@ private:
      *                  archetype name.
      * @return true if the target string is a radius search, false otherwise.
      */
-    bool radius_search(const char *target, float *radius, bool *lessthan, const char **archetype);
+    bool radius_search(const char* target, float *radius, bool *lessthan, const char* *archetype);
+
+
+    /** Fetch the value in the specified QVar if it exists, return the default if it
+     *  does not.
+     *
+     * @param qvar    The name of the QVar to return the value of.
+     * @param def_val The default value to return if the qvar does not exist.
+     * @return The QVar value, or the default specified.
+     */
+    int get_qvar(const char *name, int def_val);
+
+
+    /** Fetch the value in the specified QVar if it exists, return the default if it
+     *  does not.
+     *
+     * @param qvar    The name of the QVar to return the value of.
+     * @param def_val The default value to return if the qvar does not exist.
+     * @return The QVar value, or the default specified.
+     */
+    float get_qvar(const char *name, float def_val);
+
+
+    /** Parse the pieces of a qvar name string, potentially including a simple calculation.
+     *  The takes a string containing a qvar name, and potentially an operator and either
+     *  a number or another qvar, and stores pointers to the two sides of the operator, plus
+     *  the operator itself, in the provided pointers.
+     *
+     * @param qvar A pointer to the string containing the qvar name.
+     * @param lhs  A pointer to a string pointer in which to store a pointer to the left
+     *             hand side operand.
+     * @param op   A pointer to a char to store the operator in, if there is one.
+     * @param rhs  A pointer to a string pointer in which to store a pointer to the right
+     *             hand side operand, if there is one.
+     * @return A pointer to a buffer containing a processed version of `qvar`. This should
+     *         be freed by the called using `g_pMalloc -> Free()`.
+     */
+    char* parse_qvar(const char* qvar, char** lhs, char* op, char **rhs);
 
 
     /** Establish the length of the name of the qvar in the specified string. This
@@ -524,7 +637,7 @@ private:
      * @param namestr A string containing a QVar name, and potentially a simple calculation.
      * @return The length of the QVar name, or 0 if the length can not be established.
      */
-    int get_qvar_namelen(const char *namestr);
+    int get_qvar_namelen(const char* namestr);
 
 
     /** Split a string at a comma. This locates the first comma in the specified string,
@@ -535,7 +648,7 @@ private:
      * @return A pointer to the character immediately after a comma split, or NULL if
      *         the src string does not contain any commas.
      */
-    char *comma_split(char *src);
+    char* comma_split(char* src);
 
 
     /* ------------------------------------------------------------------------
@@ -544,6 +657,7 @@ private:
 
     bool need_fixup;   //!< Does the script need to fix links to the player?
     bool sim_running;  //!< Is the sum currently running?
+    bool debug;        //!< Is debugging enabled?
     uint message_time; //!< The sim time stored in the last recieved message
 };
 

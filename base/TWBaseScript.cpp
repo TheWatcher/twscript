@@ -7,6 +7,7 @@
 #include <lg/properties.h>
 #include <lg/propdefs.h>
 #include <exception>
+#include <cctype>
 #include <cstring>
 #include <cstdlib>
 #include <cstdio>
@@ -16,7 +17,7 @@
 #include "ScriptModule.h"
 #include "ScriptLib.h"
 
-const char * const TWBaseScript::debug_levels[] = {"DEBUG", "WARNING", "ERROR"};
+const char*  const TWBaseScript::debug_levels[] = {"DEBUG", "WARNING", "ERROR"};
 
 
 /* ------------------------------------------------------------------------
@@ -57,6 +58,21 @@ STDMETHODIMP TWBaseScript::ReceiveMessage(sScrMsg* msg, sMultiParm* reply, eScrT
     }
 
     return result;
+}
+
+
+/* ------------------------------------------------------------------------
+ *  Message handling
+ */
+
+TWBaseScript::MsgStatus TWBaseScript::on_message(sScrMsg* msg, cMultiParm& reply)
+{
+    // Handle setting up the script from the design note
+    if(!::_stricmp(msg -> message, "BeginScript")) {
+        init(msg -> time);
+    }
+
+    return MS_CONTINUE;
 }
 
 
@@ -131,7 +147,7 @@ bool TWBaseScript::clear_script_data(const char* name, cMultiParm& data)
  *  Debugging support
  */
 
-void TWBaseScript::debug_printf(TWBaseScript::DebugLevel level, const char *format, ...)
+void TWBaseScript::debug_printf(TWBaseScript::DebugLevel level, const char* format, ...)
 {
     va_list args;
     cAnsiStr name;
@@ -146,11 +162,11 @@ void TWBaseScript::debug_printf(TWBaseScript::DebugLevel level, const char *form
     va_end(args);
 
     // And spit out the result to monolog
-	g_pfnMPrintf("%s[%s(%s)]: %s\n", debug_levels[level], Name(), static_cast<const char *>(name), buffer);
+	g_pfnMPrintf("%s[%s(%s)]: %s\n", debug_levels[level], Name(), static_cast<const char* >(name), buffer);
 }
 
 
-void TWBaseScript::get_object_namestr(cAnsiStr &name, object obj_id)
+void TWBaseScript::get_object_namestr(cAnsiStr& name, object obj_id)
 {
     // NOTE: obj_name isn't freed when GetName sets it to non-NULL. As near
     // as I can tell, it doesn't need to, it only needs to be freed when
@@ -158,7 +174,7 @@ void TWBaseScript::get_object_namestr(cAnsiStr &name, object obj_id)
     // The docs for this are pretty shit, so this is mostly guesswork.
 
     SInterface<IObjectSystem> ObjSys(g_pScriptManager);
-    const char *obj_name = ObjSys -> GetName(obj_id);
+    const char* obj_name = ObjSys -> GetName(obj_id);
 
     // If the object system has returned a name here, the concrete object
     // has been given a name, so use it
@@ -170,7 +186,7 @@ void TWBaseScript::get_object_namestr(cAnsiStr &name, object obj_id)
     } else {
         SInterface<ITraitManager> TraitMan(g_pScriptManager);
         object archetype_id = TraitMan -> GetArchetype(obj_id);
-        const char *archetype_name = ObjSys -> GetName(archetype_id);
+        const char* archetype_name = ObjSys -> GetName(archetype_id);
 
         // Archetype name found, use it in the string
         if(archetype_name) {
@@ -184,7 +200,7 @@ void TWBaseScript::get_object_namestr(cAnsiStr &name, object obj_id)
 }
 
 
-void TWBaseScript::get_object_namestr(cAnsiStr &name)
+void TWBaseScript::get_object_namestr(cAnsiStr& name)
 {
     get_object_namestr(name, ObjId());
 }
@@ -194,84 +210,85 @@ void TWBaseScript::get_object_namestr(cAnsiStr &name)
  *  QVar convenience functions
  */
 
-long TWBaseScript::get_qvar_value(const char *qvar, long def_val)
+int TWBaseScript::get_qvar_value(const char* qvar, int def_val)
 {
-    SService<IQuestSrv> QuestSrv(g_pScriptManager);
-    if(QuestSrv -> Exists(qvar))
-        return QuestSrv -> Get(qvar);
+    int value = def_val;
+    char  op;
+    char* lhs_qvar, *rhs_data, *endstr = NULL;
+    char* buffer = parse_qvar(qvar, &lhs_qvar, &op, &rhs_data);
 
-    return def_val;
-}
+    if(buffer) {
+        value = get_qvar(lhs_qvar, def_val);
 
+        // If an operation and right hand side value/qvar were found, use them
+        if(op && rhs_data) {
+            int adjval = 0;
 
-float TWBaseScript::get_qvar_value(const char *qvar, float def_val)
-{
-    float qvarval = def_val;
-    char *endstr  = NULL;
-
-    // Blegh, copy. Irritating, but we may need to tinker with it so that const has to go.
-    char *tmpvar = static_cast<char *>(g_pMalloc -> Alloc(strlen(qvar) + 1));
-    if(!tmpvar) return def_val;
-    strcpy(tmpvar, qvar);
-
-    // Check whether the user has included a multiply or divide operator
-    char op = '\0';
-    char *valstr = tmpvar;
-    while(*valstr) {
-        if(*valstr == '/' || *valstr == '*') {
-            op = *valstr;
-            endstr = valstr - 1; // Keep track of the last character before the operator, for space trimming
-            *valstr = '\0';      // null terminate the qvar name so tmpvar might be used 'as is'
-            ++valstr;
-            break;
-        }
-        ++valstr;
-    }
-    // Skip spaces before the second operand if needed
-    while(*valstr == ' ') {
-        ++valstr;
-    }
-
-    // Trim spaces before the operator if needed
-    if(endstr) {
-        while(*endstr == ' ') {
-            *endstr = '\0';
-            --endstr;
-        }
-    }
-
-    // Check the QVar exists before trying to use it...
-    SService<IQuestSrv> QuestSrv(g_pScriptManager);
-    if(QuestSrv -> Exists(tmpvar)) {
-        qvarval = (float)QuestSrv -> Get(tmpvar);
-
-        // If an operator has been specified, try to parse the second operand and apply it
-        if(op) {
-            float adjval;
-            endstr = NULL;
-
-            // Is the value another QVar? If so, pull its value
-            if(*valstr == '$') {
-                adjval = (float)get_qvar_value(&valstr[1], (long)1); // default needs to be explicitly set to long.
+            // Is the RHS a qvar itself? If so, fetch it, otherwise treat it as an int
+            if(*rhs_data == '$') {
+                adjval = get_qvar(&rhs_data[1], 0);
             } else {
-                // Doesn't appear to be a qvar, treat it as a float and see what happens...
-                adjval = strtof(valstr, &endstr);
+                adjval = strtol(rhs_data, &endstr, 10);
             }
 
-            // Has a value been parsed, and is not zero? (zeros are bad here...) If so, apply the operator.
-            if(endstr != valstr && adjval) {
+            // If a value was parsed in some way, apply it (this also avoids
+            // division-by-zero problems for / )
+            if(endstr != rhs_data && adjval) {
                 switch(op) {
-                    case '/': qvarval /= adjval; break;
-                    case '*': qvarval *= adjval; break;
+                    case('+'): value += adjval; break;
+                    case('-'): value -= adjval; break;
+                    case('*'): value *= adjval; break;
+                    case('/'): value /= adjval; break;
                 }
             }
         }
+
+        g_pMalloc -> Free(buffer);
     }
 
-    // Done with the copy now
-    g_pMalloc -> Free(tmpvar);
+    return value;
+}
 
-    return qvarval;
+// I could probably avoid this hideous duplication of the above through
+// templating, but it's possible that float and int handling may support
+// different features in future, so I'm leaving the duplication for now...
+float TWBaseScript::get_qvar_value(const char* qvar, float def_val)
+{
+    float value = def_val;
+    char  op;
+    char* lhs_qvar, *rhs_data, *endstr = NULL;
+    char* buffer = parse_qvar(qvar, &lhs_qvar, &op, &rhs_data);
+
+    if(buffer) {
+        value = get_qvar(lhs_qvar, def_val);
+
+        // If an operation and right hand side value/qvar were found, use them
+        if(op && rhs_data) {
+            float adjval = 0;
+
+            // Is the RHS a qvar itself? If so, fetch it, otherwise treat it as an int
+            if(*rhs_data == '$') {
+                adjval = get_qvar(&rhs_data[1], 0.0f);
+            } else {
+                adjval = strtof(rhs_data, &endstr);
+            }
+
+            // If a value was parsed in some way, apply it (this also avoids
+            // division-by-zero problems for / )
+            if(endstr != rhs_data && adjval) {
+                switch(op) {
+                    case('+'): value += adjval; break;
+                    case('-'): value -= adjval; break;
+                    case('*'): value *= adjval; break;
+                    case('/'): value /= adjval; break;
+                }
+            }
+        }
+
+        g_pMalloc -> Free(buffer);
+    }
+
+    return value;
 }
 
 
@@ -279,7 +296,7 @@ float TWBaseScript::get_qvar_value(const char *qvar, float def_val)
  *  Design note support
  */
 
-float TWBaseScript::parse_float(const char *param, float def_val, cAnsiStr &qvar_str)
+float TWBaseScript::parse_float(const char* param, float def_val, cAnsiStr& qvar_str)
 {
     float result = def_val;
 
@@ -294,7 +311,7 @@ float TWBaseScript::parse_float(const char *param, float def_val, cAnsiStr &qvar
 
         // Otherwise assume it's a float string
         } else {
-            char *endstr;
+            char* endstr;
             result = strtof(param, &endstr);
 
             // Restore the default if parsing failed
@@ -306,35 +323,31 @@ float TWBaseScript::parse_float(const char *param, float def_val, cAnsiStr &qvar
 }
 
 
-void TWBaseScript::get_param_valuefalloff(char *design_note, const char *param, int *value, int *falloff)
+void TWBaseScript::get_scriptparam_valuefalloff(char* design_note, const char* param, int *value, int *falloff)
 {
     cAnsiStr workstr;
 
     // Get the value
     if(value) {
-        workstr.FmtStr("%s%s", Name(), param);
-        *value = GetParamInt(design_note, static_cast<const char *>(workstr), 0);
+        *value = get_scriptparam_int(design_note, param, 0);
     }
 
     // Allow uses to fall off over time
     if(falloff) {
-        workstr.FmtStr("%s%sFalloff", Name(), param);
-        *falloff = GetParamInt(design_note, static_cast<const char *>(workstr), 0);
+        workstr.FmtStr("%sFalloff", param);
+        *falloff = GetParamInt(design_note, static_cast<const char* >(workstr), 0);
     }
 }
 
 
-TWBaseScript::CountMode TWBaseScript::get_param_countmode(char *design_note, CountMode def_mode)
+TWBaseScript::CountMode TWBaseScript::get_scriptparam_countmode(char* design_note, const char* param, CountMode def_mode)
 {
-    cAnsiStr workstr;
     TWBaseScript::CountMode result = def_mode;
 
-    workstr.FmtStr("%sCountOnly", Name());
-    char *mode = GetParamString(design_note, static_cast<const char *>(workstr), "Both");
-
-    // The editor has specified /something/ for CountOnly, so try to work out what
+    // Get the value the editor has set for countonly (or the default) and process it
+    char* mode = get_scriptparam_string(design_note, param, "Both");
     if(mode) {
-        char *end = NULL;
+        char* end = NULL;
 
         // First up, art thou an int?
         int parsed = strtol(mode, &end, 10);
@@ -362,47 +375,60 @@ TWBaseScript::CountMode TWBaseScript::get_param_countmode(char *design_note, Cou
 }
 
 
-bool TWBaseScript::get_param_floatvec(const char *design_note, const char *name, cScrVec &vect, float defx, float defy, float defz)
-{
-    bool parsed = false;
-    char *param = GetParamString(design_note, name, NULL);
-
-    if(param) {
-        char *ystr = comma_split(param);              // Getting y is safe...
-        char *zstr = ystr ? comma_split(ystr) : NULL; // z needs to be handled more carefully
-
-        cAnsiStr tmp; // This is actually throw-away, needed for parse_float
-
-        vect.x = parse_float(param, defx, tmp);
-        vect.y = parse_float( ystr, defy, tmp); // Note these are safe even if ystr and zstr are NULL
-        vect.z = parse_float( zstr, defz, tmp); // as parse_float checks for non-NULL
-
-        parsed = true;
-
-        g_pMalloc -> Free(param);
-    }
-
-    return parsed;
-}
-
-
-float TWBaseScript::get_param_float(const char *design_note, const char *name, float def_val, cAnsiStr &qvar_str)
+float TWBaseScript::get_scriptparam_float(const char* design_note, const char* param, float def_val, cAnsiStr& qvar_str)
 {
     float result = def_val;
 
     // Fetch the value as a string, if possible
-    char *param = GetParamString(design_note, name, NULL);
-    if(param) {
-        result = parse_float(param, def_val, qvar_str);
+    char* value = get_scriptparam_string(design_note, param, NULL);
+    if(value) {
+        result = parse_float(value, def_val, qvar_str);
 
-        g_pMalloc -> Free(param);
+        g_pMalloc -> Free(value);
     }
 
     return result;
 }
 
 
-std::vector<object>* TWBaseScript::get_target_objects(const char *target, sScrMsg *msg)
+char* TWBaseScript::get_scriptparam_string(const char* design_note, const char* param, const char* def_val)
+{
+    cAnsiStr namestr = Name();
+    namestr += param;
+
+    return GetParamString(design_note, static_cast<const char* >(namestr), def_val);
+}
+
+
+bool TWBaseScript::get_scriptparam_floatvec(const char* design_note, const char* param, cScrVec& vect, float defx, float defy, float defz)
+{
+    bool parsed = false;
+    char* value = get_scriptparam_string(design_note, param, NULL);
+
+    if(value) {
+        char* ystr = comma_split(value);              // Getting y is safe...
+        char* zstr = ystr ? comma_split(ystr) : NULL; // z needs to be handled more carefully
+
+        cAnsiStr tmp; // This is actually throw-away, needed for parse_float
+
+        vect.x = parse_float(value, defx, tmp);
+        vect.y = parse_float( ystr, defy, tmp); // Note these are safe even if ystr and zstr are NULL
+        vect.z = parse_float( zstr, defz, tmp); // as parse_float checks for non-NULL
+
+        parsed = true;
+
+        g_pMalloc -> Free(value);
+    }
+
+    return parsed;
+}
+
+
+/* ------------------------------------------------------------------------
+ *  Targetting
+ */
+
+std::vector<object>* TWBaseScript::get_target_objects(const char* target, sScrMsg *msg)
 {
     std::vector<object>* matches = new std::vector<object>;
 
@@ -411,7 +437,7 @@ std::vector<object>* TWBaseScript::get_target_objects(const char *target, sScrMs
 
     float radius;
     bool  lessthan;
-    const char *archname;
+    const char* archname;
 
     // Simple target/source selection.
     if(!_stricmp(target, "[me]")) {
@@ -426,7 +452,7 @@ std::vector<object>* TWBaseScript::get_target_objects(const char *target, sScrMs
 
     // Radius archetype search
     } else if(radius_search(target, &radius, &lessthan, &archname)) {
-        const char *realname = archname;
+        const char* realname = archname;
         // Jump filter controls if needed...
         if(*archname == '*' || *archname == '@') ++realname;
 
@@ -442,6 +468,17 @@ std::vector<object>* TWBaseScript::get_target_objects(const char *target, sScrMs
     }
 
     return matches;
+}
+
+
+/* ------------------------------------------------------------------------
+ *  Initialisation related
+ */
+
+void init(int time)
+{
+
+
 }
 
 
@@ -492,7 +529,7 @@ void TWBaseScript::fixup_player_links(void)
 }
 
 
-void TWBaseScript::archetype_search(std::vector<object> *matches, const char *archetype, bool do_full, bool do_radius, object from_obj, float radius, bool lessthan)
+void TWBaseScript::archetype_search(std::vector<object> *matches, const char* archetype, bool do_full, bool do_radius, object from_obj, float radius, bool lessthan)
 {
     // Get handles to game interfaces here for convenience
     SInterface<IObjectSystem> ObjectSys(g_pScriptManager);
@@ -544,10 +581,10 @@ void TWBaseScript::archetype_search(std::vector<object> *matches, const char *ar
 }
 
 
-bool TWBaseScript::radius_search(const char *target, float *radius, bool *lessthan, const char **archetype)
+bool TWBaseScript::radius_search(const char* target, float *radius, bool *lessthan, const char* *archetype)
 {
     char mode = 0; // This gets set to '>' or '<' if a mode is found in the string
-    const char *search = target;
+    const char* search = target;
 
     // Search the string for a < or >, if found, record it and the start of the archetype
     while(*search) {
@@ -564,7 +601,7 @@ bool TWBaseScript::radius_search(const char *target, float *radius, bool *lessth
     if(!mode || !*archetype) return false;
 
     // It's a radius search, so try to parse the radius
-    char *end;
+    char* end;
     *radius = strtof(target, &end);
 
     // If the value didn't parse, or parsing stopped before the < or >, give up (the latter
@@ -576,9 +613,81 @@ bool TWBaseScript::radius_search(const char *target, float *radius, bool *lessth
 }
 
 
-int TWBaseScript::get_qvar_namelen(const char *namestr)
+int TWBaseScript::get_qvar(const char* qvar, int def_val)
 {
-    const char *workptr = namestr;
+    SService<IQuestSrv> QuestSrv(g_pScriptManager);
+    if(QuestSrv -> Exists(qvar))
+        return QuestSrv -> Get(qvar);
+
+    return def_val;
+}
+
+
+float TWBaseScript::get_qvar(const char* qvar, float def_val)
+{
+    SService<IQuestSrv> QuestSrv(g_pScriptManager);
+    if(QuestSrv -> Exists(qvar))
+        return static_cast<float>(QuestSrv -> Get(qvar));
+
+    return def_val;
+}
+
+
+char* TWBaseScript::parse_qvar(const char* qvar, char** lhs, char* op, char **rhs)
+{
+    char* buffer = static_cast<char* >(g_pMalloc -> Alloc(strlen(qvar) + 1));
+    if(!buffer) return NULL;
+    strcpy(buffer, qvar);
+
+    char *workstr = buffer;
+
+    // skip any leading spaces or $
+    while(*workstr && (isspace(*workstr) || *workstr == '$')) {
+        ++workstr;
+    }
+
+    *lhs = workstr;
+
+    // Search for an operator
+    char *endstr = NULL;
+    *op = '\0';
+    while(*workstr) {
+        if(*workstr == '+' || *workstr == '-' || *workstr == '*' || *workstr == '/') {
+            *op = *workstr;
+            endstr = workstr - 1; // record the character before the operator, for space trimming
+            *workstr = '\0';      // terminate so that lhs can potentially be used 'as is'
+            ++workstr;
+            break;
+        }
+        ++workstr;
+    }
+
+    // Only bother doing any more work if an operator was found
+    if(op && endstr) {
+        // Trim spaces before the operator if needed
+        while(isspace(*endstr)) {
+            *endstr = '\0';
+            --endstr;
+        }
+
+        // Skip spaces before the second operand
+        while(*workstr && isspace(*workstr)) {
+            ++workstr;
+        }
+
+        // If there is anything left on the right side, store the pointer to it
+        if(*workstr) {
+            *rhs = workstr;
+        }
+    }
+
+    return buffer;
+}
+
+
+int TWBaseScript::get_qvar_namelen(const char* namestr)
+{
+    const char* workptr = namestr;
 
     // Work along the string looking for /, * or null
     while(*workptr && *workptr != '/' && *workptr != '*') ++workptr;
@@ -596,7 +705,7 @@ int TWBaseScript::get_qvar_namelen(const char *namestr)
 }
 
 
-char *TWBaseScript::comma_split(char *src)
+char* TWBaseScript::comma_split(char* src)
 {
     while(*src) {
         if(*src == ',') {

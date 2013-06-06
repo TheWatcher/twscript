@@ -67,6 +67,13 @@ protected:
  	virtual MsgStatus on_message(sScrMsg* msg, cMultiParm& reply);
 
 
+    virtual MsgStatus on_turnon(sScrMsg* msg, cMultiParm& reply)
+        { return MS_CONTINUE; }
+
+
+    virtual MsgStatus on_turnoff(sScrMsg* msg, cMultiParm& reply)
+        { return MS_CONTINUE; }
+
 private:
     /* ------------------------------------------------------------------------
      *  Initialisation related
