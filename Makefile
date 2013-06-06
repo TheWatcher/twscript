@@ -36,71 +36,83 @@
 # Update these with the name of your script file, and the output .osm
 MYSCRIPT  = TWScript
 MYOSM     = twscript.osm
-SCRIPTVER = 1.1
+SCRIPTVER = 2.0
 
 # Change this to `1` for Thief 1, 3 for SS2.
 GAME      = 2
 
-srcdir    = .
-bindir    = ./obj
-docdir    = ./docs
-distdir   = ./TWScript-$(SCRIPTVER)
-
+# Directories needed throughout the makefile
+SRCDIR    = .
+DOCDIR    = ./docs
+BINDIR    = ./obj
 PUBDIR    = ./pubscript
+BASEDIR   = ./base
+DISTDIR   = ./TWScript-$(SCRIPTVER)
 LGDIR     = ../lg
 SCRLIBDIR = ../ScriptLib
-DH2DIR    = ../DH2
-DH2LIB    = -ldh2
 
-CC = gcc
-CXX = g++
-AR = ar
-LD = g++
-DLLTOOL = dlltool
-RC = windres
+# Commands used
+CC        = gcc
+CXX       = g++
+AR        = ar
+LD        = g++
+DLLTOOL   = dlltool
+RC        = windres
+PACKER    = 7z
 
-packer   = 7z
-packargs = a -t7z -m0=lzma -mx=9 -mfb=64 -md=32m -ms=on
-packfile = $(MYSCRIPT)-$(SCRIPTVER).7z
-
-DEFINES = -DWINVER=0x0400 -D_WIN32_WINNT=0x0400 -DWIN32_LEAN_AND_MEAN
-GAMEDEF = -D_DARKGAME=$(GAME)
+DEFINES   = -DWINVER=0x0400 -D_WIN32_WINNT=0x0400 -DWIN32_LEAN_AND_MEAN
+GAMEDEF   = -D_DARKGAME=$(GAME)
 
 ifdef DEBUG
-DEFINES := $(DEFINES) -DDEBUG
-CXXDEBUG = -g -O0
-LDDEBUG = -g
-LGLIB = -llg-d
+DEFINES  := $(DEFINES) -DDEBUG
+CXXDEBUG  = -g -O0
+LDDEBUG   = -g
+LGLIB     = -llg-d
 SCRIPTLIB = -lScript$(GAME)-d
 else
-DEFINES := $(DEFINES) -DNDEBUG
-CXXDEBUG = -O2
-LDDEBUG =
-LGLIB = -llg
+DEFINES  := $(DEFINES) -DNDEBUG
+CXXDEBUG  = -O2
+LDDEBUG   =
+LGLIB     = -llg
 SCRIPTLIB = -lScript$(GAME)
 endif
 
-ARFLAGS  = rc
-LDFLAGS  = -mwindows -mdll -Wl,--enable-auto-image-base
-LIBDIRS  = -L. -L$(LGDIR) -L$(SCRLIBDIR) -L$(DH2DIR)
-LIBS     = $(DH2LIB) $(LGLIB) -luuid
-INCLUDES = -I. -I$(srcdir) -I$(LGDIR) -I$(SCRLIBDIR) -I$(DH2DIR) -I$(PUBDIR)
-CXXFLAGS = -W -Wall -masm=intel -std=gnu++0x
-DLLFLAGS = --add-underscore
+# Command arguments/flags
+ARFLAGS   = rc
+LDFLAGS   = -mwindows -mdll -Wl,--enable-auto-image-base
+LIBDIRS   = -L. -L$(LGDIR) -L$(SCRLIBDIR)
+LIBS      = $(LGLIB) -luuid
+INCLUDES  = -I. -I$(SRCDIR) -I$(LGDIR) -I$(SCRLIBDIR) -I$(PUBDIR) -I$(BASEDIR)
+CXXFLAGS  = -W -Wall -masm=intel -std=gnu++0x
+DLLFLAGS  = --add-underscore
+PACKARGS  = a -t7z -m0=lzma -mx=9 -mfb=64 -md=32m -ms=on
 
-# Public scripts objects
-OSM_OBJS  = $(PUBDIR)/ScriptModule.o $(PUBDIR)/Script.o $(PUBDIR)/Allocator.o $(PUBDIR)/exports.o
-BASE_OBJS = $(PUBDIR)/MsgHandlerArray.o $(PUBDIR)/BaseTrap.o $(PUBDIR)/BaseScript.o
-MISC_OBJS = $(bindir)/ScriptDef.o $(PUBDIR)/utils.o
+# Core scripts objects
+PUB_OBJS  = $(PUBDIR)/ScriptModule.o $(PUBDIR)/Script.o $(PUBDIR)/Allocator.o $(PUBDIR)/exports.o
+BASE_OBJS = $(BASEDIR)/TWBaseScript.o $(BASEDIR)/TWBaseTrap.o $(BASEDIR)/SavedCounter.o
+MISC_OBJS = $(BINDIR)/ScriptDef.o $(PUBDIR)/utils.o
 
 # Custom script objects
-SCR_OBJS  = $(bindir)/$(MYSCRIPT).o
-RES_OBJS  = $(bindir)/$(MYSCRIPT)_res.o
+SCR_OBJS  = $(BINDIR)/$(MYSCRIPT).o
+RES_OBJS  = $(BINDIR)/$(MYSCRIPT)_res.o
 
-$(bindir)/%.o: $(srcdir)/%.cpp
+# Archive file
+PACKFILE = $(MYSCRIPT)-$(SCRIPTVER).7z
+
+# Build rules
+%.o: %.cpp
 	$(CXX) $(CXXFLAGS) $(CXXDEBUG) $(DEFINES) $(GAMEDEF) $(INCLUDES) -o $@ -c $<
 
-$(bindir)/%_res.o: $(srcdir)/%.rc
+%_res.o: %.rc
+	$(RC) $(DEFINES) $(GAMEDEF) -o $@ -i $<
+
+%.osm: %.o $(PUB_OBJS)
+	$(LD) $(LDFLAGS) $(LDDEBUG) $(LIBDIRS) -o $@ script.def $< $(PUB_OBJS) $(SCRIPTLIB) $(LIBS)
+
+$(BINDIR)/%.o: $(SRCDIR)/%.cpp
+	$(CXX) $(CXXFLAGS) $(CXXDEBUG) $(DEFINES) $(GAMEDEF) $(INCLUDES) -o $@ -c $<
+
+$(BINDIR)/%_res.o: $(SRCDIR)/%.rc
 	$(RC) $(DEFINES) $(GAMEDEF) -o $@ -i $<
 
 $(PUBDIR)/%.o: $(PUBDIR)/%.cpp
@@ -109,51 +121,64 @@ $(PUBDIR)/%.o: $(PUBDIR)/%.cpp
 $(PUBDIR)/%_res.o: $(PUBDIR)/%.rc
 	$(RC) $(DEFINES) $(GAMEDEF) -o $@ -i $<
 
-%.o: %.cpp
+$(BASEDIR)/%.o: $(BASEDIR)/%.cpp
 	$(CXX) $(CXXFLAGS) $(CXXDEBUG) $(DEFINES) $(GAMEDEF) $(INCLUDES) -o $@ -c $<
 
-%_res.o: %.rc
-	$(RC) $(DEFINES) $(GAMEDEF) -o $@ -i $<
-
-%.osm: %.o $(OSM_OBJS)
-	$(LD) $(LDFLAGS) $(LDDEBUG) $(LIBDIRS) -o $@ script.def $< $(OSM_OBJS) $(SCRIPTLIB) $(LIBS)
-
-all: $(bindir) $(MYOSM)
+# Targets
+all: $(BINDIR) $(MYOSM)
 
 clean: cleandist
-	$(RM) $(bindir)/* $(PUBDIR)/*.o $(MYOSM)
+	$(RM) $(BINDIR)/* $(BASEDIR)/*.o $(PUBDIR)/*.o $(MYOSM)
 
 cleandist:
-	$(RM) $(packfile)
-	rm -rf $(distdir)
+	$(RM) $(PACKFILE)
+	rm -rf $(DISTDIR)
 
 dist: all
-	mkdir -p $(distdir)/docs
-	$(docdir)/makedocs.pl README.md $(distdir)/docs/README.html
-	$(docdir)/makedocs.pl $(docdir)/TWTrapSetSpeed.md $(distdir)/docs/TWTrapSetSpeed.html
-	$(docdir)/makedocs.pl $(docdir)/TWTrapPhysStateControl.md $(distdir)/docs/TWTrapPhysStateControl.html
-	$(docdir)/makedocs.pl $(docdir)/DesignNote.md $(distdir)/docs/DesignNote.html
-	cp $(docdir)/markdown.css $(distdir)/docs/markdown.css
-	cp LICENSE $(distdir)/
-	cp $(MYOSM) $(distdir)/
-	$(packer) $(packargs) $(packfile) $(distdir)
-	rm -rf $(distdir)
+	mkdir -p $(DISTDIR)/docs
+	$(DOCDIR)/makedocs.pl README.md $(DISTDIR)/docs/README.html
+	$(DOCDIR)/makedocs.pl $(DOCDIR)/TWTrapSetSpeed.md $(DISTDIR)/docs/TWTrapSetSpeed.html
+	$(DOCDIR)/makedocs.pl $(DOCDIR)/TWTrapPhysStateControl.md $(DISTDIR)/docs/TWTrapPhysStateControl.html
+	$(DOCDIR)/makedocs.pl $(DOCDIR)/DesignNote.md $(DISTDIR)/docs/DesignNote.html
+	cp $(DOCDIR)/markdown.css $(DISTDIR)/docs/markdown.css
+	cp LICENSE $(DISTDIR)/
+	cp $(MYOSM) $(DISTDIR)/
+	$(PACKER) $(PACKARGS) $(PACKFILE) $(DISTDIR)
+	rm -rf $(DISTDIR)
 
-$(bindir):
-	mkdir -p $@
-
+# Source dependencies
 $(PUBDIR)/exports.o: $(PUBDIR)/ScriptModule.o
 	$(DLLTOOL) $(DLLFLAGS) --dllname script.osm --output-exp $@ $^
 
-$(PUBDIR)/ScriptModule.o: $(PUBDIR)/ScriptModule.cpp $(PUBDIR)/ScriptModule.h $(PUBDIR)/Allocator.h
-$(PUBDIR)/Script.o: $(PUBDIR)/Script.cpp $(PUBDIR)/Script.h
-$(PUBDIR)/Allocator.o: $(PUBDIR)/Allocator.cpp $(PUBDIR)/Allocator.h
+$(PUBDIR)/ScriptModule.o:
+	$(PUBDIR)/ScriptModule.cpp $(PUBDIR)/ScriptModule.h $(PUBDIR)/Allocator.h
 
-$(PUBDIR)/BaseScript.o: $(PUBDIR)/BaseScript.cpp $(PUBDIR)/BaseScript.h $(PUBDIR)/Script.h $(PUBDIR)/ScriptModule.h $(PUBDIR)/MsgHandlerArray.h
-$(PUBDIR)/BaseTrap.o: $(PUBDIR)/BaseTrap.cpp $(PUBDIR)/BaseTrap.h $(PUBDIR)/BaseScript.h $(PUBDIR)/Script.h
-$(bindir)/ScriptDef.o: ScriptDef.cpp $(MYSCRIPT).h $(PUBDIR)/BaseTrap.h $(PUBDIR)/BaseScript.h $(PUBDIR)/ScriptModule.h $(PUBDIR)/genscripts.h
-$(bindir)/$(MYSCRIPT)s.o: $(MYSCRIPT).cpp $(MYSCRIPT).h $(PUBDIR)/BaseTrap.h $(PUBDIR)/BaseScript.h $(PUBDIR)/Script.h
-$(bindir)/$(MYSCRIPT)_res.o: $(MYSCRIPT).rc $(PUBDIR)/version.rc
+$(PUBDIR)/Script.o:
+	$(PUBDIR)/Script.cpp $(PUBDIR)/Script.h
 
-$(MYOSM): $(SCR_OBJS) $(BASE_OBJS) $(OSM_OBJS) $(MISC_OBJS) $(RES_OBJS)
+$(PUBDIR)/Allocator.o:
+	$(PUBDIR)/Allocator.cpp $(PUBDIR)/Allocator.h
+
+$(BASEDIR)/TWBaseScript.o:
+	$(BASEDIR)/TWBaseScript.cpp $(BASEDIR)/TWBaseScript.h $(PUBDIR)/Script.h $(PUBDIR)/ScriptModule.h $(BASEDIR)/MsgHandlerArray.h
+
+$(BASEDIR)/TWBaseTrap.o:
+	$(BASEDIR)/TWBaseTrap.cpp $(BASEDIR)/TWBaseTrap.h $(BASEDIR)/TWBaseScript.h $(BASEDIR)/SavedCounter$(PUBDIR)/Script.h
+
+$(BASEDIR)/SavedCounter.o:
+	$(BASEDIR)/SavedCounter.cpp $(BASEDIR)/SavedCounter.h
+
+$(BINDIR)/ScriptDef.o:
+	ScriptDef.cpp $(MYSCRIPT).h $(PUBDIR)/BaseTrap.h $(PUBDIR)/BaseScript.h $(PUBDIR)/ScriptModule.h $(PUBDIR)/genscripts.h
+
+$(BINDIR)/$(MYSCRIPT)s.o:
+	$(MYSCRIPT).cpp $(MYSCRIPT).h $(PUBDIR)/BaseTrap.h $(PUBDIR)/BaseScript.h $(PUBDIR)/Script.h
+
+$(BINDIR)/$(MYSCRIPT)_res.o:
+	$(MYSCRIPT).rc $(PUBDIR)/version.rc
+
+$(BINDIR):
+	mkdir -p $@
+
+$(MYOSM): $(SCR_OBJS) $(BASE_OBJS) $(PUB_OBJS) $(MISC_OBJS) $(RES_OBJS)
 	$(LD) $(LDFLAGS) -Wl,--image-base=0x11200000 $(LDDEBUG) $(LIBDIRS) -o $@ $(PUBDIR)/script.def $^ $(SCRIPTLIB) $(LIBS)

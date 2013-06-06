@@ -57,16 +57,12 @@
  * to be a member. Plus, it frees you from having to write the factory into your
  * class definition.
  */
-#include "BaseScript.h"
-#include "BaseTrap.h"
+#include "TWBaseScript.h"
+#include "TWBaseTrap.h"
 #include "TWScript.h"
 
-#undef BASESCRIPT_H
-#undef BASETRAP_H
-#undef PUBLICSCRIPTS_H
-#undef T1SCRIPTS_H
-#undef T2SCRIPTS_H
-#undef SS2SCRIPTS_H
+#undef TWBASESCRIPT_H
+#undef TWBASETRAP_H
 #undef TWSCRIPT_H
 
 #if defined(SCR_GENSCRIPTFACTORY)
