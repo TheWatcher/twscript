@@ -55,29 +55,33 @@ void TWBaseTrap::init(int time)
     char *msg;
     char *design_note = GetObjectParams(ObjId());
 
-    // Work out what the turnon and turnoff messages should be
-    if((msg = get_scriptparam_string(design_note, "On", "TurnOn")) != NULL) {
-        turnon_msg = msg;
-        g_pMalloc -> Free(msg);
+    if(design_note) {
+        // Work out what the turnon and turnoff messages should be
+        if((msg = get_scriptparam_string(design_note, "On", "TurnOn")) != NULL) {
+            turnon_msg = msg;
+            g_pMalloc -> Free(msg);
+        }
+
+        if((msg = get_scriptparam_string(design_note, "Off", "TurnOff")) != NULL) {
+            turnoff_msg = msg;
+            g_pMalloc -> Free(msg);
+        }
+
+        // Now for use limiting.
+        int value, falloff;
+        get_scriptparam_valuefalloff(design_note, "Count", &value, &falloff);
+        count.init(time, 0, value, falloff);
+
+        // Handle modes
+        count_mode = get_scriptparam_countmode(design_note, "CountOnly");
+
+        // Now deal with capacitors
+        get_scriptparam_valuefalloff(design_note, "OnCapacitor", &value, &falloff);
+        on_capacitor.init(time, value, 0, falloff);
+
+        get_scriptparam_valuefalloff(design_note, "OffCapacitor", &value, &falloff);
+        off_capacitor.init(time, value, 0, falloff);
+
+        g_pMalloc -> Free(design_note);
     }
-
-    if((msg = get_scriptparam_string(design_note, "Off", "TurnOff")) != NULL) {
-        turnoff_msg = msg;
-        g_pMalloc -> Free(msg);
-    }
-
-    // Now for use limiting.
-    int value, falloff;
-    get_scriptparam_valuefalloff(design_note, "Count", &value, &falloff);
-    count.init(time, 0, value, falloff);
-
-    // Handle modes
-    count_mode = get_scriptparam_countmode(design_note, "CountOnly");
-
-    // Now deal with capacitors
-    get_scriptparam_valuefalloff(design_note, "OnCapacitor", &value, &falloff);
-    on_capacitor.init(time, value, 0, falloff);
-
-    get_scriptparam_valuefalloff(design_note, "OffCapacitor", &value, &falloff);
-    off_capacitor.init(time, value, 0, falloff);
 }
