@@ -434,9 +434,35 @@ protected:
     float get_scriptparam_float(const char* design_note, const char* param, float def_val, cAnsiStr& qvar_str);
 
 
-    /** Parse an integer parameter from the specified design note.
+    /** Parse an integer parameter from the specified design note. This behaves
+     *  much like GetParamInt(), except that it automatically prepends the
+     *  script name to the specified parameter. It also supports simple calculations
+     *  in the value, see the documentation for get_scriptparam_float() for more details.
+     *
+     * @param design_note The design note string to parse the parameter from.
+     * @param param       The name of the parameter to parse. This will be prepended
+     *                    with the current script name.
+     * @param def_val     The default value to use if the parameter does not exist,
+     *                    or it references a non-existent QVar (note that qvar_str
+     *                    will contain the parameter string even if the QVar does
+     *                    not exist)
+     * @return The value specified in the parameter, or the int read from the qvar
+     *         named in the parameter.
      */
-    int get_scriptparam_int(const char *design_note, const char *param, int def_val);
+    int get_scriptparam_int(const char *design_note, const char *param, int def_val = 0);
+
+
+    /** Parse a boolean parameter from the specified design note. This behaves identically
+     *  to GetParamBool, except that it prepends the script name to the specified
+     *  parameter name.
+     *
+     * @param design_note The design note string to parse the parameter from.
+     * @param param       The name of the parameter to parse. This will be prepended
+     *                    with the current script name.
+     * @param def_val     The default value to use if the parameter does not exist.
+     * @return The value specified in the parameter, or the default value.
+     */
+    bool get_scriptparam_bool(const char *design_note, const char *param, bool def_val = false);
 
 
     /** Read a string from a design note. This will attempt to locate the first
@@ -459,7 +485,7 @@ protected:
      * @return A pointer to a string containing the parameter value. This must be
      *         released by the caller using `g_pMalloc -> Free()`.
      */
-    char* get_scriptparam_string(const char* design_note, const char* param, const char* def_val);
+    char* get_scriptparam_string(const char* design_note, const char* param, const char* def_val = NULL);
 
 
     /** Read a float vector (triple of three floats) from a design note string. This

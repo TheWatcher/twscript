@@ -151,14 +151,14 @@ void TWBaseScript::debug_printf(TWBaseScript::DebugLevel level, const char* form
 {
     va_list args;
     cAnsiStr name;
-    char buffer[1000]; // Temporary buffer, 1000 is the limit imposed by MPrint.
+    char buffer[900]; // Temporary buffer, 900 is the limit imposed by MPrint. This is really nasty and needs fixing.
 
     // Need the name of the current object
     get_object_namestr(name);
 
     // build the string the caller requested
     va_start(args, format);
-    _vsnprintf(buffer, 999, format, args);
+    _vsnprintf(buffer, 899, format, args);
     va_end(args);
 
     // And spit out the result to monolog
@@ -249,6 +249,7 @@ int TWBaseScript::get_qvar_value(const char* qvar, int def_val)
     return value;
 }
 
+
 // I could probably avoid this hideous duplication of the above through
 // templating, but it's possible that float and int handling may support
 // different features in future, so I'm leaving the duplication for now...
@@ -302,6 +303,10 @@ float TWBaseScript::parse_float(const char* param, float def_val, cAnsiStr& qvar
 
     // Gracefully handle the situation where the parameter is NULL or empty
     if(param || *param == '\0') {
+        // Skip any leading whitespace
+        while(isspace(*param)) {
+            ++param;
+        }
 
         // Starting with $ indicates that the string contains a qvar, fetch it
         if(*param == '$') {
@@ -329,7 +334,7 @@ void TWBaseScript::get_scriptparam_valuefalloff(char* design_note, const char* p
 
     // Get the value
     if(value) {
-        *value = get_scriptparam_int(design_note, param, 0);
+        *value = get_scriptparam_int(design_note, param);
     }
 
     // Allow uses to fall off over time
@@ -380,7 +385,7 @@ float TWBaseScript::get_scriptparam_float(const char* design_note, const char* p
     float result = def_val;
 
     // Fetch the value as a string, if possible
-    char* value = get_scriptparam_string(design_note, param, NULL);
+    char* value = get_scriptparam_string(design_note, param);
     if(value) {
         result = parse_float(value, def_val, qvar_str);
 
@@ -388,6 +393,46 @@ float TWBaseScript::get_scriptparam_float(const char* design_note, const char* p
     }
 
     return result;
+}
+
+
+int TWBaseScript::get_scriptparam_int(const char *design_note, const char *param, int def_val)
+{
+    int result = def_val;
+    char *value = get_scriptparam_string(design_note, param);
+
+    if(value) {
+        char *workptr = value;
+
+        // Skip any leading whitespace
+        while(isspace(*workptr)) {
+            ++workptr;
+        }
+
+        // If the string starts with a '$', it is a qvar, in theory
+        if(*workptr == '$') {
+            result = get_qvar_value(&workptr[1], def_val);
+        } else {
+            char* endstr;
+            result = strtol(workptr, &endstr, 10);
+
+            // Restore the default if parsing failed
+            if(endstr == workptr) result = def_val;
+        }
+
+        g_pMalloc -> Free(value);
+    }
+
+    return result;
+}
+
+
+bool TWBaseScript::get_scriptparam_bool(const char *design_note, const char *param, bool def_val)
+{
+    cAnsiStr namestr = Name();
+    namestr += param;
+
+    return GetParamBool(design_note, static_cast<const char* >(namestr), def_val);
 }
 
 
@@ -475,10 +520,18 @@ std::vector<object>* TWBaseScript::get_target_objects(const char* target, sScrMs
  *  Initialisation related
  */
 
-void init(int time)
+void TWBaseScript::init(int time)
 {
+    char *design_note = GetObjectParams(ObjId());
 
+    if(design_note) {
+        debug = get_scriptparam_bool(design_note, "Debug");
 
+        if(debug_enabled())
+            debug_printf(DL_DEBUG, "Script debugging enabled");
+
+        g_pMalloc -> Free(design_note);
+    }
 }
 
 
