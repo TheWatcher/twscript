@@ -150,32 +150,17 @@ dist: all
 $(PUBDIR)/exports.o: $(PUBDIR)/ScriptModule.o
 	$(DLLTOOL) $(DLLFLAGS) --dllname script.osm --output-exp $@ $^
 
-$(PUBDIR)/ScriptModule.o:
-	$(PUBDIR)/ScriptModule.cpp $(PUBDIR)/ScriptModule.h $(PUBDIR)/Allocator.h
+$(PUBDIR)/ScriptModule.o: $(PUBDIR)/ScriptModule.cpp $(PUBDIR)/ScriptModule.h $(PUBDIR)/Allocator.h
+$(PUBDIR)/Script.o: $(PUBDIR)/Script.cpp $(PUBDIR)/Script.h
+$(PUBDIR)/Allocator.o: $(PUBDIR)/Allocator.cpp $(PUBDIR)/Allocator.h
 
-$(PUBDIR)/Script.o:
-	$(PUBDIR)/Script.cpp $(PUBDIR)/Script.h
+$(BASEDIR)/TWBaseScript.o: $(BASEDIR)/TWBaseScript.cpp $(BASEDIR)/TWBaseScript.h $(PUBDIR)/Script.h $(PUBDIR)/ScriptModule.h
+$(BASEDIR)/TWBaseTrap.o: $(BASEDIR)/TWBaseTrap.cpp $(BASEDIR)/TWBaseTrap.h $(BASEDIR)/TWBaseScript.h $(BASEDIR)/SavedCounter.h $(PUBDIR)/Script.h
+$(BASEDIR)/SavedCounter.o: $(BASEDIR)/SavedCounter.cpp $(BASEDIR)/SavedCounter.h
 
-$(PUBDIR)/Allocator.o:
-	$(PUBDIR)/Allocator.cpp $(PUBDIR)/Allocator.h
-
-$(BASEDIR)/TWBaseScript.o:
-	$(BASEDIR)/TWBaseScript.cpp $(BASEDIR)/TWBaseScript.h $(PUBDIR)/Script.h $(PUBDIR)/ScriptModule.h $(BASEDIR)/MsgHandlerArray.h
-
-$(BASEDIR)/TWBaseTrap.o:
-	$(BASEDIR)/TWBaseTrap.cpp $(BASEDIR)/TWBaseTrap.h $(BASEDIR)/TWBaseScript.h $(BASEDIR)/SavedCounter$(PUBDIR)/Script.h
-
-$(BASEDIR)/SavedCounter.o:
-	$(BASEDIR)/SavedCounter.cpp $(BASEDIR)/SavedCounter.h
-
-$(BINDIR)/ScriptDef.o:
-	ScriptDef.cpp $(MYSCRIPT).h $(PUBDIR)/BaseTrap.h $(PUBDIR)/BaseScript.h $(PUBDIR)/ScriptModule.h $(PUBDIR)/genscripts.h
-
-$(BINDIR)/$(MYSCRIPT)s.o:
-	$(MYSCRIPT).cpp $(MYSCRIPT).h $(PUBDIR)/BaseTrap.h $(PUBDIR)/BaseScript.h $(PUBDIR)/Script.h
-
-$(BINDIR)/$(MYSCRIPT)_res.o:
-	$(MYSCRIPT).rc $(PUBDIR)/version.rc
+$(BINDIR)/ScriptDef.o: ScriptDef.cpp $(MYSCRIPT).h $(BASEDIR)/TWBaseTrap.h $(BASEDIR)/TWBaseScript.h $(PUBDIR)/ScriptModule.h $(PUBDIR)/genscripts.h
+$(BINDIR)/$(MYSCRIPT)s.o: $(MYSCRIPT).cpp $(MYSCRIPT).h $(BASEDIR)/TWBaseTrap.h $(BASEDIR)/TWBaseScript.h $(PUBDIR)/Script.h
+$(BINDIR)/$(MYSCRIPT)_res.o: $(MYSCRIPT).rc $(PUBDIR)/version.rc
 
 $(BINDIR):
 	mkdir -p $@
