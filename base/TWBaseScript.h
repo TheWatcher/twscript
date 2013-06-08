@@ -115,7 +115,7 @@ protected:
      * @return A status value indicating whether the caller should continue
      *         processing the message
      */
- 	virtual MsgStatus on_message(sScrMsg* msg, cMultiParm& reply);
+     virtual MsgStatus on_message(sScrMsg* msg, cMultiParm& reply);
 
 
     /* ------------------------------------------------------------------------
@@ -572,7 +572,7 @@ private:
      * @return S_OK (zero) if the message has been processed successfully,
      *         S_FALSE if an error occurred.
      */
-	long dispatch_message(sScrMsg* msg, sMultiParm* reply);
+    long dispatch_message(sScrMsg* msg, sMultiParm* reply);
 
 
     /* ------------------------------------------------------------------------

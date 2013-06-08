@@ -78,7 +78,7 @@ protected:
      * @return A status value indicating whether the caller should continue
      *         processing the message
      */
- 	virtual MsgStatus on_message(sScrMsg* msg, cMultiParm& reply);
+    virtual MsgStatus on_message(sScrMsg* msg, cMultiParm& reply);
 
 
     virtual MsgStatus on_turnon(sScrMsg* msg, cMultiParm& reply)

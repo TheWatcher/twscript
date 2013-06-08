@@ -219,7 +219,7 @@ int TWTrapSetSpeed::set_mterr_speed(ILinkSrv*, ILinkQuery* link_query, IScript* 
     }
 
     // Find out where the moving terrain is headed to
-	SInterface<ILinkManager> link_mgr(g_pScriptManager);
+    SInterface<ILinkManager> link_mgr(g_pScriptManager);
     SInterface<IRelation> path_next_rel = link_mgr -> GetRelationNamed("TPathNext");
 
     // Try to get the link to the next waypoint
@@ -375,8 +375,8 @@ int TWTrapPhysStateCtrl::set_state(ILinkSrv*, ILinkQuery* link_query, IScript* s
     obj_srv -> Teleport(target_obj, position, facing, 0);
 
     // Now fix up the object velocities.
- 	SService<IPropertySrv> prop_srv(g_pScriptManager);
-	if(prop_srv -> Possessed(target_obj, "PhysState")) {
+    SService<IPropertySrv> prop_srv(g_pScriptManager);
+    if(prop_srv -> Possessed(target_obj, "PhysState")) {
 
         if(state_data -> set_velocity) {
             cMultiParm prop = state_data -> velocity;
