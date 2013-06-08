@@ -17,7 +17,7 @@
 #include "ScriptModule.h"
 #include "ScriptLib.h"
 
-const char*  const TWBaseScript::debug_levels[] = {"DEBUG", "WARNING", "ERROR"};
+const char* const TWBaseScript::debug_levels[] = {"DEBUG", "WARNING", "ERROR"};
 
 
 /* ------------------------------------------------------------------------
@@ -469,6 +469,26 @@ bool TWBaseScript::get_scriptparam_floatvec(const char* design_note, const char*
 }
 
 
+int TWBaseScript::get_qvar_namelen(const char* namestr)
+{
+    const char* workptr = namestr;
+
+    // Work along the string looking for /, * or null
+    while(*workptr && *workptr != '/' && *workptr != '*') ++workptr;
+
+    // not gone anywhere? No name available...
+    if(workptr == namestr) return 0;
+
+    // Go back a char, and strip spaces
+    do {
+        --workptr;
+    } while(*workptr == ' ');
+
+     // Return length + 1, as the above loop always backs up 1 char too many
+    return (workptr - namestr) + 1;
+}
+
+
 /* ------------------------------------------------------------------------
  *  Targetting
  */
@@ -735,26 +755,6 @@ char* TWBaseScript::parse_qvar(const char* qvar, char** lhs, char* op, char **rh
     }
 
     return buffer;
-}
-
-
-int TWBaseScript::get_qvar_namelen(const char* namestr)
-{
-    const char* workptr = namestr;
-
-    // Work along the string looking for /, * or null
-    while(*workptr && *workptr != '/' && *workptr != '*') ++workptr;
-
-    // not gone anywhere? No name available...
-    if(workptr == namestr) return 0;
-
-    // Go back a char, and strip spaces
-    do {
-        --workptr;
-    } while(*workptr == ' ');
-
-     // Return length + 1, as the above loop always backs up 1 char too many
-    return (workptr - namestr) + 1;
 }
 
 

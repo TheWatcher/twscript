@@ -77,6 +77,19 @@ public:
 
 protected:
     /* ------------------------------------------------------------------------
+     *  Initialisation related
+     */
+
+    /** Initialise the debug flag and anything else that couldn't be handled in
+     *  the constructor. This should be called as part of processing BeginScript,
+     *  before any attempt to use the class' features is made.
+     *
+     * @param time The current sim time.
+     */
+    virtual void init(int time);
+
+
+    /* ------------------------------------------------------------------------
      *  Message handling
      */
 
@@ -512,6 +525,17 @@ protected:
     bool get_scriptparam_floatvec(const char* design_note, const char* param, cScrVec &vect, float defx = 0.0f, float defy = 0.0f, float defz = 0.0f);
 
 
+    /** Establish the length of the name of the qvar in the specified string. This
+     *  will determine the length of the qvar name by looking for the end of the
+     *  name string, or the presence of a simple calculation, and then working back
+     *  until it hits the end of the name
+     *
+     * @param namestr A string containing a QVar name, and potentially a simple calculation.
+     * @return The length of the QVar name, or 0 if the length can not be established.
+     */
+    int get_qvar_namelen(const char* namestr);
+
+
     /* ------------------------------------------------------------------------
      *  Targetting
      */
@@ -535,19 +559,6 @@ protected:
 
 
 private:
-    /* ------------------------------------------------------------------------
-     *  Initialisation related
-     */
-
-    /** Initialise the debug flag and anything else that couldn't be handled in
-     *  the constructor. This should be called as part of processing BeginScript,
-     *  before any attempt to use the class' features is made.
-     *
-     * @param time The current sim time.
-     */
-    void init(int time);
-
-
     /* ------------------------------------------------------------------------
      *  Message handling
      */
@@ -653,17 +664,6 @@ private:
      *         be freed by the called using `g_pMalloc -> Free()`.
      */
     char* parse_qvar(const char* qvar, char** lhs, char* op, char **rhs);
-
-
-    /** Establish the length of the name of the qvar in the specified string. This
-     *  will determine the length of the qvar name by looking for the end of the
-     *  name string, or the presence of a simple calculation, and then working back
-     *  until it hits the end of the name
-     *
-     * @param namestr A string containing a QVar name, and potentially a simple calculation.
-     * @return The length of the QVar name, or 0 if the length can not be established.
-     */
-    int get_qvar_namelen(const char* namestr);
 
 
     /** Split a string at a comma. This locates the first comma in the specified string,
