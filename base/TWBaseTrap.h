@@ -51,6 +51,20 @@ public:
 
 protected:
     /* ------------------------------------------------------------------------
+     *  Initialisation related
+     */
+
+    /** Initialise the trap counters, message names, and other aspects of
+     *  the trap class that couldn't be handled in the constructor. This
+     *  should be called as part of processing BeginScript, before any
+     *  attempt to use the class' features is made.
+     *
+     * @param time The current sim time.
+     */
+    virtual void init(int time);
+
+
+    /* ------------------------------------------------------------------------
      *  Message handling
      */
 
@@ -75,19 +89,6 @@ protected:
         { return MS_CONTINUE; }
 
 private:
-    /* ------------------------------------------------------------------------
-     *  Initialisation related
-     */
-
-    /** Initialise the trap counters, message names, and other aspects of
-     *  the trap class that couldn't be handled in the constructor. This
-     *  should be called as part of processing BeginScript, before any
-     *  attempt to use the class' features is made.
-     *
-     * @param time The current sim time.
-     */
-    void init(int time);
-
 
     /* ------------------------------------------------------------------------
      *  Variables

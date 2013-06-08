@@ -13,17 +13,16 @@ TWBaseScript::MsgStatus TWBaseTrap::on_message(sScrMsg* msg, cMultiParm& reply)
     MsgStatus result = TWBaseScript::on_message(msg, reply);
     if(result != MS_CONTINUE) return result;
 
-    // Handle setting up the script from the design note
-    if(!::_stricmp(msg -> message, "BeginScript")) {
-        init(msg -> time);
-    }
-
     if(!::_stricmp(msg -> message, static_cast<const char *>(turnon_msg))) {
 
         if(count.increment(msg -> time, (count_mode & CM_TURNON) ? 1 : 0)) {
             if(on_capacitor.increment(msg -> time)) {
                 return on_turnon(msg, reply);
+            } else if(debug_enabled()) {
+                debug_printf(DL_DEBUG, "TurnOn suppressed by on capacitor");
             }
+        } else if(debug_enabled()) {
+            debug_printf(DL_DEBUG, "TurnOn suppressed - count limit reached");
         }
 
         // Get here and one of the counters returned false, so halt further processing.
@@ -34,12 +33,21 @@ TWBaseScript::MsgStatus TWBaseTrap::on_message(sScrMsg* msg, cMultiParm& reply)
         if(count.increment(msg -> time, (count_mode & CM_TURNOFF) ? 1 : 0)) {
             if(off_capacitor.increment(msg -> time)) {
                 return on_turnoff(msg, reply);
+            } else if(debug_enabled()) {
+                debug_printf(DL_DEBUG, "TurnOff suppressed by off capacitor");
             }
+        } else if(debug_enabled()) {
+            debug_printf(DL_DEBUG, "TurnOff suppressed - count limit reached");
         }
 
         // Get here and one of the counters returned false, so halt further processing.
         return MS_HALT;
 
+    } else if(!::_stricmp(msg -> message, "ResetCount")) {
+        count.reset(msg -> time);
+
+        if(debug_enabled())
+            debug_printf(DL_DEBUG, "Use count reset to 0");
     }
 
     return MS_CONTINUE;
@@ -52,6 +60,8 @@ TWBaseScript::MsgStatus TWBaseTrap::on_message(sScrMsg* msg, cMultiParm& reply)
 
 void TWBaseTrap::init(int time)
 {
+    TWBaseScript::init(time);
+
     char *msg;
     char *design_note = GetObjectParams(ObjId());
 
