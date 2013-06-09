@@ -15,9 +15,12 @@ TWBaseScript::MsgStatus TWBaseTrap::on_message(sScrMsg* msg, cMultiParm& reply)
 
     if(!::_stricmp(msg -> message, static_cast<const char *>(turnon_msg))) {
 
+        if(debug_enabled())
+            debug_printf(DL_DEBUG, "Received TurnOn");
+
         if(count.increment(msg -> time, (count_mode & CM_TURNON) ? 1 : 0)) {
             if(on_capacitor.increment(msg -> time)) {
-                return on_turnon(msg, reply);
+                return on_onmsg(msg, reply);
             } else if(debug_enabled()) {
                 debug_printf(DL_DEBUG, "TurnOn suppressed by on capacitor");
             }
@@ -30,9 +33,12 @@ TWBaseScript::MsgStatus TWBaseTrap::on_message(sScrMsg* msg, cMultiParm& reply)
 
     } else if(!::_stricmp(msg -> message, static_cast<const char *>(turnoff_msg))) {
 
+        if(debug_enabled())
+            debug_printf(DL_DEBUG, "Received TurnOff");
+
         if(count.increment(msg -> time, (count_mode & CM_TURNOFF) ? 1 : 0)) {
             if(off_capacitor.increment(msg -> time)) {
-                return on_turnoff(msg, reply);
+                return on_offmsg(msg, reply);
             } else if(debug_enabled()) {
                 debug_printf(DL_DEBUG, "TurnOff suppressed by off capacitor");
             }
@@ -89,20 +95,20 @@ void TWBaseTrap::init(int time)
         count_mode = get_scriptparam_countmode(design_note, "CountOnly");
 
         if(debug_enabled())
-            debug_printf(DL_DEBUG, "Count is %d %s with a falloff of %d milliseconds, count mode is %d", value, (value ? "" : "(no use limit)"), falloff, static_cast<int>(count_mode));
+            debug_printf(DL_DEBUG, "Count is %d%s with a falloff of %d milliseconds, count mode is %d", value, (value ? "" : " (no use limit)"), falloff, static_cast<int>(count_mode));
 
         // Now deal with capacitors
         get_scriptparam_valuefalloff(design_note, "OnCapacitor", &value, &falloff);
         on_capacitor.init(time, value, 0, falloff);
 
         if(debug_enabled())
-            debug_printf(DL_DEBUG, "OnCapacitor is %d %s with a falloff of %d milliseconds", value, (value > 1 ? "" : "(every turnon fires)"), falloff);
+            debug_printf(DL_DEBUG, "OnCapacitor is %d%s with a falloff of %d milliseconds", value, (value > 1 ? "" : " (every turnon fires)"), falloff);
 
         get_scriptparam_valuefalloff(design_note, "OffCapacitor", &value, &falloff);
         off_capacitor.init(time, value, 0, falloff);
 
         if(debug_enabled())
-            debug_printf(DL_DEBUG, "OffCapacitor is %d %s with a falloff of %d milliseconds", value, (value > 1 ? "" : "(every turnoff fires)"), falloff);
+            debug_printf(DL_DEBUG, "OffCapacitor is %d%s with a falloff of %d milliseconds", value, (value > 1 ? "" : " (every turnoff fires)"), falloff);
 
         g_pMalloc -> Free(design_note);
     }
