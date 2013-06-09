@@ -146,7 +146,7 @@ protected:
      * @return A status value indicating whether the caller should continue
      *         processing the message
      */
-    MsgStatus on_turnon(sScrMsg* msg, cMultiParm& reply);
+    MsgStatus on_onmsg(sScrMsg* msg, cMultiParm& reply);
 
 
     /** QuestChange message handler, called whenever the script receives a QuestChange message.
@@ -282,7 +282,7 @@ protected:
      * @return A status value indicating whether the caller should continue
      *         processing the message
      */
-    MsgStatus on_turnon(sScrMsg* msg, cMultiParm& reply);
+    MsgStatus on_onmsg(sScrMsg* msg, cMultiParm& reply);
 
 private:
     /** Update the TWTrapPhysStateControl instance. This parses the various

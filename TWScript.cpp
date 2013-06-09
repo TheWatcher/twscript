@@ -33,9 +33,9 @@ TWBaseScript::MsgStatus TWTrapSetSpeed::on_message(sScrMsg* msg, cMultiParm& rep
 }
 
 
-TWBaseScript::MsgStatus TWTrapSetSpeed::on_turnon(sScrMsg* msg, cMultiParm& reply)
+TWBaseScript::MsgStatus TWTrapSetSpeed::on_onmsg(sScrMsg* msg, cMultiParm& reply)
 {
-    MsgStatus result = TWBaseTrap::on_turnon(msg, reply);
+    MsgStatus result = TWBaseTrap::on_onmsg(msg, reply);
 
     if(result == MS_CONTINUE)
         update_speed(msg);
@@ -272,9 +272,9 @@ int TWTrapSetSpeed::set_mterr_speed(ILinkSrv*, ILinkQuery* link_query, IScript* 
  *  TWTrapPhysStateCtrl Impmementation - protected members
  */
 
-TWBaseScript::MsgStatus TWTrapPhysStateCtrl::on_turnon(sScrMsg* msg, cMultiParm& reply)
+TWBaseScript::MsgStatus TWTrapPhysStateCtrl::on_onmsg(sScrMsg* msg, cMultiParm& reply)
 {
-    MsgStatus result = TWBaseTrap::on_turnon(msg, reply);
+    MsgStatus result = TWBaseTrap::on_onmsg(msg, reply);
 
     if(result == MS_CONTINUE)
         update();
