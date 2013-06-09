@@ -32,25 +32,24 @@ to this one:
 
 - [DesignNote.html](DesignNote.html) describes the way in which the parameters
   for the scripts are specified in Dromed's `Editor -> Design Note` property.
+- [TWBaseTrap.html](TWBaseTrap.html) describes the standard parameters available
+  to all TWTrap scripts. If you have used NVScript, many of these will be
+  familiar to you.
 - The remaining HTML files describe each of the script modules and the
   parameters they suppport.
 
 Currently available scripts are:
 
 - [TWTrapSetSpeed.html](TWTrapSetSpeed.html)
-- [TWTrapPhysStateControl.html](TWTrapPhysStateControl.html)
+- [TWTrapPhysStateCtrl.html](TWTrapPhysStateCtrl.html)
 
 ## Development information
 
-The current version of TWScript is essentially an early beta release, and some
-significant changes are in development. Some features that should be in the
-next release are:
+Currently planned scripts for future versions of TWScript include:
 
-- Support for defining which script messages are interpreted as `TurnOn` and
-  `TurnOff` for traps and triggers (much like the features provided by NVScript)
 - A `TWTweqSmooth` script to support more flexible ease-in and ease-out on
   joint tweqs.
-- A `TWTrapRequireMessages` script that will send a `TurnOn` when it has
+- A `TWTriggerRequireMessages` script that will send a `TurnOn` when it has
   recieved a set of messages, and `TurnOff` when it recieves a different set.
 
 

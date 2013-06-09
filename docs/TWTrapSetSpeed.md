@@ -25,7 +25,7 @@ button and a marker to your level, and then do the following:
 - Give it a useful name, for example `SetSpeed5`
 - Add `S -> Scripts`, set `Script 0` to `TWTrapSetSpeed`
 - Add `Editor -> Design Note`
-- In the design note put `TWTrapSetSpeed=5;TWTrapSetSpeedDest='*TerrPt'`
+- In the design note put `TWTrapSetSpeedSpeed=5;TWTrapSetSpeedDest='*TerrPt'`
 - Link `SetSpeed5` to your moving terrain object with a `ScriptParams` link,
   and set the data for the link to `SetSpeed`
 - Open the button's properties.
@@ -58,24 +58,24 @@ and if you do not specify a parameter the script will attempt to use a 'sane'
 default, you probably want to always set at least the `TWTrapSetSpeed`
 parameter to something.
 
-### Parameter: `TWTrapSetSpeed`
+### Parameter: `TWTrapSetSpeedSpeed`
 - Type: `float`
 - Default: `0.0`
 
 The speed to set the target objects' TPath speed values to when
 triggered. All TPath links on the target object are updated to reflect the
 speed given here. The value provided for this parameter may be taken from a
-QVar by placing a `$` before the QVar name, eg: `TWTrapSetSpeed='$speed_var'`.
+QVar by placing a `$` before the QVar name, eg: `TWTrapSetSpeedSpeed='$speed_var'`.
 If you set a QVar as the speed source in this way, each time the script
 receives a `TurnOn`, it will read the value out of the QVar and then copy it
 to the destination object(s). Using a simple QVar as in the previous example
 will restrict your speeds to integer values; if you need fractional speeds,
 you can include a simple calculation after the QVar name to scale it, for
-example, `TWTrapSetSpeed='$speed_var / 10'` will divide the value in
+example, `TWTrapSetSpeedSpeed='$speed_var / 10'` will divide the value in
 speed_var by `10`, so if `speed_var` contains `55`, the speed set by the
 script will be `5.5`. You can even specify a QVar as the second operand if
 needed, again by prefixing the name with `$`, eg:
-`TWTrapSetSpeed='$speed_var / $speed_div'`.
+`TWTrapSetSpeedSpeed='$speed_var / $speed_div'`.
 
 
 ### Parameter: `TWTrapSetSpeedWatchQVar`
@@ -111,16 +111,6 @@ behaviour of radius searches using `*` and `@`, so `7<@TerrPt` will match
 all concrete objects within 7 units that inherit from TerrPt directly or
 indirectly (the default is to only match objects that injerit directly
 from the named archetype, ie: `7<*TerrPt` and `7<TerrPt` are equivalent)
-
-
-### Parameter: `TWTrapSetSpeedDebug`
-- Type: `boolean`
-- Default: `false`
-
-If this is set to true, debugging messages will be written to
-the monolog to help trace problems with the script. Note that if you set this
-parameter to true, and see no new output in the monolog, double-check that
-you have twscript loaded!
 
 
 ### Parameter: `TWTrapSetSpeedImmediate`

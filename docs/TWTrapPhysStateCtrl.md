@@ -1,6 +1,6 @@
-# TWTrapPhysStateControl
+# TWTrapPhysStateCtrl
 
-TWTrapPhysStateControl provides direct control over the location, orientation,
+TWTrapPhysStateCtrl provides direct control over the location, orientation,
 velocity, and rotational velocity of objects in Thief 2. Note that this script
 provides a means to set the physics state values, but the game may ignore these
 values in some situations, and any changes you make will be subsequently subject
@@ -21,7 +21,7 @@ to the marker.
 
 Parameters are specified using the Editor -> Design Note, please see the
 main documentation for more about this.  Parameters supported by
-TWTrapPhysStateControl are listed below. If a parameter is not specified,
+TWTrapPhysStateCtrl are listed below. If a parameter is not specified,
 the default value shown is used instead. Note that all the parameters are
 optional, and if you do not specify a parameter, the script will attempt to use
 a 'sane' default.
@@ -68,11 +68,3 @@ modified. If you specify this parameter, but give it no value
 (ie: `TWTrapPhysStateCtrlRotVel=;`) then the default of `0, 0, 0` is used. Note
 that, as with TWTrapPhysStateCtrlFacing, the first value of the vector is the
 bank, the second is the pitch, and the third is the heading.
-
-### Parameter: TWTrapPhysStateCtrlDebug
-- Type: `boolean`
-- Default: `false`
-
-If this is set to true, debugging messages will be written to the monolog to help
-trace problems with the script. Note that if you set this parameter to true, and
-see no new output in the monolog, double-check that you have twscript loaded!
