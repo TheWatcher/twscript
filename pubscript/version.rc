@@ -27,6 +27,9 @@
 #ifndef AUTHOR_NAME
 #define AUTHOR_NAME	"<your name here>"
 #endif
+#ifndef COPYRIGHT_YEAR
+#define COPYRIGHT_YEAR	"2013"
+#endif
 
 #ifndef WORKSHOP_INVOKED
 #include "windows.h"
@@ -50,7 +53,7 @@ BEGIN
 			VALUE	"FileDescription", SCRIPT_LONGNAME "\0"
 			VALUE	"FileVersion", SCRIPT_VERSTRING "\0"
 			VALUE	"InternalName", SCRIPT_NAME "\0"
-			VALUE	"LegalCopyright", "Copyright (C) 2011 " AUTHOR_NAME "\0"
+			VALUE	"LegalCopyright", "Copyright (C) " COPYRIGHT_YEAR " " AUTHOR_NAME "\0"
 			VALUE	"OriginalFilename", SCRIPT_NAME ".osm" "\0"
 #ifdef PACKAGE_NAME
 			VALUE	"ProductName", PACKAGE_NAME "\0"
@@ -72,4 +75,3 @@ BEGIN
 		VALUE	"Translation", 1033, 1252
 	END
 END
-
