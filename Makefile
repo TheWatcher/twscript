@@ -29,10 +29,6 @@
 ##
 ###############################################################################
 
-.SUFFIXES:
-.SUFFIXES: .o .cpp .rc
-.PRECIOUS: %.o
-
 # Update these with the name of your script file, and the output .osm
 MYSCRIPT  = TWScript
 MYOSM     = twscript.osm
@@ -59,6 +55,7 @@ LD        = g++
 DLLTOOL   = dlltool
 RC        = windres
 PACKER    = 7z
+MAKEDOCS  = $(DOCDIR)/makedocs.pl
 
 DEFINES   = -DWINVER=0x0400 -D_WIN32_WINNT=0x0400 -DWIN32_LEAN_AND_MEAN
 GAMEDEF   = -D_DARKGAME=$(GAME)
@@ -96,6 +93,9 @@ MISC_OBJS = $(BINDIR)/ScriptDef.o $(PUBDIR)/utils.o
 SCR_OBJS  = $(BINDIR)/$(MYSCRIPT).o
 RES_OBJS  = $(BINDIR)/$(MYSCRIPT)_res.o
 
+# Docs
+DOC_FILES = $(DISTDIR)/docs/TWTrapSetSpeed.html $(DISTDIR)/docs/TWTrapPhysStateCtrl.html $(DISTDIR)/docs/DesignNote.html
+
 # Archive file
 PACKFILE = $(MYSCRIPT)-$(SCRIPTVER).7z
 
@@ -124,6 +124,9 @@ $(PUBDIR)/%_res.o: $(PUBDIR)/%.rc
 $(BASEDIR)/%.o: $(BASEDIR)/%.cpp
 	$(CXX) $(CXXFLAGS) $(CXXDEBUG) $(DEFINES) $(GAMEDEF) $(INCLUDES) -o $@ -c $<
 
+$(DISTDIR)/docs/%.html: $(DOCDIR)/%.md
+	$(MAKEDOCS) $< $@
+
 # Targets
 all: $(BINDIR) $(MYOSM)
 
@@ -134,12 +137,8 @@ cleandist:
 	$(RM) $(PACKFILE)
 	rm -rf $(DISTDIR)
 
-dist: all
-	mkdir -p $(DISTDIR)/docs
-	$(DOCDIR)/makedocs.pl README.md $(DISTDIR)/docs/README.html
-	$(DOCDIR)/makedocs.pl $(DOCDIR)/TWTrapSetSpeed.md $(DISTDIR)/docs/TWTrapSetSpeed.html
-	$(DOCDIR)/makedocs.pl $(DOCDIR)/TWTrapPhysStateControl.md $(DISTDIR)/docs/TWTrapPhysStateControl.html
-	$(DOCDIR)/makedocs.pl $(DOCDIR)/DesignNote.md $(DISTDIR)/docs/DesignNote.html
+dist: all $(DISTDIR) $(DOC_FILES)
+	$(MAKEDOCS) README.md $(DISTDIR)/docs/README.html
 	cp $(DOCDIR)/markdown.css $(DISTDIR)/docs/markdown.css
 	cp LICENSE $(DISTDIR)/
 	cp $(MYOSM) $(DISTDIR)/
@@ -162,8 +161,15 @@ $(BINDIR)/ScriptDef.o: ScriptDef.cpp $(MYSCRIPT).h $(BASEDIR)/TWBaseTrap.h $(BAS
 $(BINDIR)/$(MYSCRIPT)s.o: $(MYSCRIPT).cpp $(MYSCRIPT).h $(BASEDIR)/TWBaseTrap.h $(BASEDIR)/TWBaseScript.h $(PUBDIR)/Script.h
 $(BINDIR)/$(MYSCRIPT)_res.o: $(MYSCRIPT).rc $(PUBDIR)/version.rc
 
+$(DISTDIR)/docs/TWTrapSetSpeed.html: $(DOCDIR)/TWTrapSetSpeed.md
+$(DISTDIR)/docs/TWTrapPhysStateCtrl.html: $(DOCDIR)/TWTrapPhysStateCtrl.md
+$(DISTDIR)/docs/DesignNote.html: $(DOCDIR)/DesignNote.md
+
 $(BINDIR):
 	mkdir -p $@
+
+$(DISTDIR):
+	mkdir -p $(DISTDIR)/docs
 
 $(MYOSM): $(SCR_OBJS) $(BASE_OBJS) $(PUB_OBJS) $(MISC_OBJS) $(RES_OBJS)
 	$(LD) $(LDFLAGS) -Wl,--image-base=0x11200000 $(LDDEBUG) $(LIBDIRS) -o $@ $(PUBDIR)/script.def $^ $(SCRIPTLIB) $(LIBS)
