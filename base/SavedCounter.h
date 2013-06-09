@@ -127,10 +127,11 @@ private:
      *  is up to the caller to save the value back into `count` after any further
      *  changes have been made to it.
      *
-     * @param time The current sim time.
+     * @param time     The current sim time.
+     * @param oldcount The count value to apply falloff to.
      * @return The count, with the count falloff applied if needed.
      */
-    int apply_falloff(int time);
+    int apply_falloff(int time, int oldcount);
 
     int  min;             //!< The minimum number of times increase_count() must be called before it returns true
     int  max;             //!< The maximum number of times increase_count() can be called before it returns false

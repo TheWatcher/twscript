@@ -29,30 +29,33 @@ void SavedCounter::init(int curr_time, int min_count, int max_count, int falloff
 
 bool SavedCounter::increment(int time, uint amount)
 {
+    int oldcount = count;
+
     // Let apply_falloff work out what the count should be before incrementing
-    int newcount = apply_falloff(time) + amount;
+    int newcount = apply_falloff(time, oldcount) + amount;
 
     // If there is no minimum, it is zero, so there doesn't need to be a special check
     // for it here; count will *always* be > 0 here.
     bool validcount = newcount >= min && (max ? newcount <= max : 1);
 
-    // Capacitor mode resets the counter when the minimum count is reached...
-    if(capacitor && newcount >= min) {
-        newcount = 0;
-    }
+    if(newcount != oldcount) {
+        // Capacitor mode resets the counter when the minimum count is reached...
+        if(capacitor && newcount >= min) {
+            newcount = 0;
+        }
 
-    // Update the stored variables as they shouldn't need fiddling with now
-    count = newcount;
-    last_time = time;
+        // Update the stored variables as they shouldn't need fiddling with now
+        count = newcount;
+        last_time = time;
+    }
 
     return validcount;
 }
 
 
-int SavedCounter::apply_falloff(int time)
+int SavedCounter::apply_falloff(int time, int tmpcount)
 {
-    int last     = last_time; // Cache the script vars to reduce read overhead...
-    int tmpcount = count;
+    int last = last_time; // Cache the script vars to reduce read overhead...
 
     // Only bother working out the falloff if one is set, there is a count to reduce,
     // and a previous update time is available.
