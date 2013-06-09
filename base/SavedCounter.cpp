@@ -53,21 +53,21 @@ bool SavedCounter::increment(int time, uint amount)
 }
 
 
-int SavedCounter::apply_falloff(int time, int tmpcount)
+int SavedCounter::apply_falloff(int time, int oldcount)
 {
-    int last = last_time; // Cache the script vars to reduce read overhead...
+    int last = last_time; // Cache the script var to reduce read overhead...
 
     // Only bother working out the falloff if one is set, there is a count to reduce,
     // and a previous update time is available.
-    if(falloff && last && tmpcount) {
+    if(falloff && last && oldcount) {
         int removed = (time - last) / falloff;
 
         // If one or more ticks have timed out, update the counter
         if(removed) {
-            tmpcount -= removed;
-            if(tmpcount < 0) tmpcount = 0; // Negative use counts would be be bad!
+            oldcount -= removed;
+            if(oldcount < 0) oldcount = 0; // Negative use counts would be be bad!
         }
     }
 
-    return tmpcount;
+    return oldcount;
 }
