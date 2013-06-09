@@ -25,11 +25,20 @@ your mission's directory inside the Thief2\FMs\ directory, and use FMSel to
 select your mission when editing it. When you distribute your mission you
 can simply zip up your mission directory and distribute that.[^1]
 
+## How to find out which version you have
+
+It's not immediately obvious to the end user which version of the twscript.osm
+you may have installed. Luckily, there is a way to find out: follow the steps
+in [CheckingVersion.html](CheckingVersion.html) if you need to work out which
+version is present.
+
+
 ## Documentation
 
 The documentation for the scripts consists of a number of files in addition
 to this one:
 
+- [Changes.html](Changes.html) documents the changes made at each release.
 - [DesignNote.html](DesignNote.html) describes the way in which the parameters
   for the scripts are specified in Dromed's `Editor -> Design Note` property.
 - [TWBaseTrap.html](TWBaseTrap.html) describes the standard parameters available

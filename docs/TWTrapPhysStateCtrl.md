@@ -26,6 +26,9 @@ the default value shown is used instead. Note that all the parameters are
 optional, and if you do not specify a parameter, the script will attempt to use
 a 'sane' default.
 
+Note that, in addition to the parameters listed here, this script supports the
+parameters described in the [TWBaseTrap.html](TWBaseTrap.html) file.
+
 ### Parameter: TWTrapPhysStateCtrlLocation
 - Type: `float vector`
 - Default: none (location is not changed)

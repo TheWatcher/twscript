@@ -94,7 +94,8 @@ SCR_OBJS  = $(BINDIR)/$(MYSCRIPT).o
 RES_OBJS  = $(BINDIR)/$(MYSCRIPT)_res.o
 
 # Docs
-DOC_FILES = $(DISTDIR)/docs/TWTrapSetSpeed.html $(DISTDIR)/docs/TWTrapPhysStateCtrl.html $(DISTDIR)/docs/DesignNote.html
+DOC_FILES = $(DISTDIR)/docs/TWTrapSetSpeed.html $(DISTDIR)/docs/TWTrapPhysStateCtrl.html $(DISTDIR)/docs/DesignNote.html \
+			$(DISTDIR)/docs/Changes.html $(DISTDIR)/docs/CheckingVersion.html
 
 # Archive file
 PACKFILE = $(MYSCRIPT)-$(SCRIPTVER).7z
@@ -140,6 +141,7 @@ cleandist:
 dist: all $(DISTDIR) $(DOC_FILES)
 	$(MAKEDOCS) README.md $(DISTDIR)/docs/README.html
 	cp $(DOCDIR)/markdown.css $(DISTDIR)/docs/markdown.css
+	cp $(DOCDIR)/resourcer.png $(DISTDIR)/docs/resourcer.png
 	cp LICENSE $(DISTDIR)/
 	cp $(MYOSM) $(DISTDIR)/
 	$(PACKER) $(PACKARGS) $(PACKFILE) $(DISTDIR)
@@ -160,10 +162,6 @@ $(BASEDIR)/SavedCounter.o: $(BASEDIR)/SavedCounter.cpp $(BASEDIR)/SavedCounter.h
 $(BINDIR)/ScriptDef.o: ScriptDef.cpp $(MYSCRIPT).h $(BASEDIR)/TWBaseTrap.h $(BASEDIR)/TWBaseScript.h $(PUBDIR)/ScriptModule.h $(PUBDIR)/genscripts.h
 $(BINDIR)/$(MYSCRIPT)s.o: $(MYSCRIPT).cpp $(MYSCRIPT).h $(BASEDIR)/TWBaseTrap.h $(BASEDIR)/TWBaseScript.h $(PUBDIR)/Script.h
 $(BINDIR)/$(MYSCRIPT)_res.o: $(MYSCRIPT).rc $(PUBDIR)/version.rc
-
-$(DISTDIR)/docs/TWTrapSetSpeed.html: $(DOCDIR)/TWTrapSetSpeed.md
-$(DISTDIR)/docs/TWTrapPhysStateCtrl.html: $(DOCDIR)/TWTrapPhysStateCtrl.md
-$(DISTDIR)/docs/DesignNote.html: $(DOCDIR)/DesignNote.md
 
 $(BINDIR):
 	mkdir -p $@

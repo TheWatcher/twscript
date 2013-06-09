@@ -55,8 +55,11 @@ All parameters are specified using the `Editor -> Design Note` as described
 in the DesignNote document. If a parameter is not specified, the default
 value shown is used instead. Note that while all the parameters are optional,
 and if you do not specify a parameter the script will attempt to use a 'sane'
-default, you probably want to always set at least the `TWTrapSetSpeed`
+default, you probably want to always set at least the `TWTrapSetSpeedSpeed`
 parameter to something.
+
+Note that, in addition to the parameters listed here, this script supports the
+parameters described in the [TWBaseTrap.html](TWBaseTrap.html) file.
 
 ### Parameter: `TWTrapSetSpeedSpeed`
 - Type: `float`
