@@ -22,13 +22,13 @@
  */
 
 #define SCRIPT_VERSION     2,0,0,0
-#define SCRIPT_VERSTRING   "2.0"
+#define SCRIPT_VERSTRING   "2.0a"
 
 #define SCRIPT_NAME        "twscript"
-#define SCRIPT_LONGNAME    "TW Script Thief2 OSM"
+#define SCRIPT_LONGNAME    "TWScript Thief2 OSM"
 #define AUTHOR_NAME        "Chris Page"
 
-#define PACKAGE_NAME       "TW Script"
+#define PACKAGE_NAME       "TWScript"
 #define PACKAGE_VERSTRING  SCRIPT_VERSTRING
 
 #include "pubscript/version.rc"
