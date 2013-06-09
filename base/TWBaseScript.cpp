@@ -340,7 +340,7 @@ void TWBaseScript::get_scriptparam_valuefalloff(char* design_note, const char* p
     // Allow uses to fall off over time
     if(falloff) {
         workstr.FmtStr("%sFalloff", param);
-        *falloff = GetParamInt(design_note, static_cast<const char* >(workstr), 0);
+        *falloff = get_scriptparam_int(design_note, static_cast<const char* >(workstr));
     }
 }
 
