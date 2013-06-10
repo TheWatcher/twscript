@@ -1,6 +1,6 @@
 # TWTrapSetSpeed
 
-**TWTrapSetSpeed** allows mission authors to control the speed setting of `TPath`
+**TWTrapSetSpeed** allows mission authors to control the `speed` setting of `TPath`
 waypoints while a mission is being played. This script lets the editor
 control how fast a vator (a moving terrain object) moves between `TerrPt`s
 dynamically, either using literal speed values or taking speed information out
@@ -112,7 +112,7 @@ match all concrete `TerrPt` objects more than 10 units away from the object
 on which **TWTrapSetSpeed** has been placed. Note that you can modify the
 behaviour of radius searches using `*` and `@`, so `7<@TerrPt` will match
 all concrete objects within 7 units that inherit from TerrPt directly or
-indirectly (the default is to only match objects that injerit directly
+indirectly (the default is to only match objects that inherit directly
 from the named archetype, ie: `7<*TerrPt` and `7<TerrPt` are equivalent)
 
 
