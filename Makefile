@@ -95,7 +95,7 @@ RES_OBJS  = $(BINDIR)/$(MYSCRIPT)_res.o
 
 # Docs
 DOC_FILES = $(DISTDIR)/docs/TWTrapSetSpeed.html $(DISTDIR)/docs/TWTrapPhysStateCtrl.html $(DISTDIR)/docs/DesignNote.html \
-			$(DISTDIR)/docs/Changes.html $(DISTDIR)/docs/CheckingVersion.html
+			$(DISTDIR)/docs/Changes.html $(DISTDIR)/docs/CheckingVersion.html $(DISTDIR)/docs/TWBaseTrap.html
 
 # Archive file
 PACKFILE = $(MYSCRIPT)-$(SCRIPTVER).7z
