@@ -1,10 +1,10 @@
 ## TWBaseTrap
 
 If you have used NVScript you will be familiar with the facilities supported by
-his `NVTrap` base script. I have replicated the features provided by `NVTrap`
-and extended them. All scripts whose names begin with `TWTrap`, or link to this
-document from their documentation page, understand a number of common paramters
-(`[ScriptName]` here is the name of the script as you entered it into the
+the`NVTrap` base script. I have replicated the features provided by `NVTrap`
+and added some new features. All scripts whose names begin with `TWTrap`, or link
+to this document from their documentation page, understand the paramters listed
+below (`[ScriptName]` here is the name of the script as you entered it into the
 `S -> Scripts` property)
 
 ### Parameter: [ScriptName]On
