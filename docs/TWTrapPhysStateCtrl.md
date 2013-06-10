@@ -1,6 +1,6 @@
 # TWTrapPhysStateCtrl
 
-TWTrapPhysStateCtrl provides direct control over the location, orientation,
+**TWTrapPhysStateCtrl** provides direct control over the location, orientation,
 velocity, and rotational velocity of objects in Thief 2. Note that this script
 provides a means to set the physics state values, but the game may ignore these
 values in some situations, and any changes you make will be subsequently subject
@@ -19,9 +19,9 @@ to the marker.
 
 ## Configuration
 
-Parameters are specified using the Editor -> Design Note, please see the
+Parameters are specified using the `Editor -> Design Note`, please see the
 main documentation for more about this.  Parameters supported by
-TWTrapPhysStateCtrl are listed below. If a parameter is not specified,
+**TWTrapPhysStateCtrl** are listed below. If a parameter is not specified,
 the default value shown is used instead. Note that all the parameters are
 optional, and if you do not specify a parameter, the script will attempt to use
 a 'sane' default.
@@ -45,8 +45,8 @@ then the default location of `0, 0, 0` is used.
 Set the orientation of the controlled object(s) the values specified. If this
 parameter is not specified, the orientation of the object(s) is not modified. If you
 specify this parameter, but give it no value (ie: `TWTrapPhysStateCtrlFacing=;`)
-then the default orientation of `0, 0, 0` is used.IMPORTANT NOTE*: the values
-specified for this parameter match the order found in Physics -> Model -> State,
+then the default orientation of `0, 0, 0` is used. **IMPORTANT NOTE**: the values
+specified for this parameter match the order found in `Physics -> Model -> State`,
 so the first value is bank (B), the second is pitch (P), and the third is
 heading (H). This is the opposite of the order most people would expect; if you
 find yourself having problems orienting objects, check that you haven't mixed up
@@ -69,5 +69,5 @@ Set the rotational velocity of the controlled object(s) the values specified. If
 this parameter is not specified, the rotational velocity of the object(s) is not
 modified. If you specify this parameter, but give it no value
 (ie: `TWTrapPhysStateCtrlRotVel=;`) then the default of `0, 0, 0` is used. Note
-that, as with TWTrapPhysStateCtrlFacing, the first value of the vector is the
+that, as with `TWTrapPhysStateCtrlFacing`, the first value of the vector is the
 bank, the second is the pitch, and the third is the heading.
