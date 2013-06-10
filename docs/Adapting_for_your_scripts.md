@@ -132,7 +132,6 @@ want to push your changes back to github, but that's up to you).
 3. Enter the following commands to clone Telliamed's script support libraries:
 
         git clone https://github.com/whoopdedo/lg.git
-        git clone https://github.com/whoopdedo/dh2.git
         git clone https://github.com/whoopdedo/scriptlib.git
 
 4. And this one to clone this project (if you have forked it, clone your
@@ -202,10 +201,8 @@ Now you can start compiling:
 0. Start a MinGW Shell window
 1. Change into the lg directory, eg: `cd /d/thiefscripts/lg`
 2. Run `make`
-3. Change into the dh2 directory, eg: `cd ../dh2`
+3. Change into the scriptlib directory, eg: `cd ../scriptlib`
 4. Run `make`
-5. Change into the scriptlib directory, eg: `cd ../scriptlib`
-6. Run `make`
 
 6. Test compiling TWScript
 --------------------------
