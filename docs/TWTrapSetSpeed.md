@@ -85,11 +85,11 @@ needed, again by prefixing the name with `$`, eg:
 - Type: `boolean`
 - Default: `false`
 
-If `TWTrapSetSpeed` is set to read the speed from a QVar, you
+If `TWTrapSetSpeedSpeed` is set to read the speed from a QVar, you
 can make the script trigger whenever the QVar is changed by setting this to
 true. Note that this will only watch changes to the first QVar specified in
-`TWTrapSetSpeed`: if you set `TWTrapSetSpeed='$speed_var / $speed_div'` then
-changes to `speed_var` will be picked up, but any changes to `speed_div`
+`TWTrapSetSpeedSpeed`: if you set `TWTrapSetSpeedSpeed='$speed_var / $speed_div'`
+then changes to `speed_var` will be picked up, but any changes to `speed_div`
 will not trigger this script.
 
 
