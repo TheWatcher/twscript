@@ -1,8 +1,5 @@
 /** @file
- * This file contains the interface for the base script class. Note that
- * this is heavily based on Tom N Harris' "BaseScript" code, motified to
- * create the framework I want to work from, and incorporating the
- * utility functions that used to be provided in the TWScript class.
+ * This file contains the interface for the base script class.
  *
  * @author Chris Page &lt;chris@starforge.co.uk&gt;
  *
