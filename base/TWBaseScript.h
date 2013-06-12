@@ -24,8 +24,6 @@
 
 #include <lg/config.h>
 #include <lg/objstd.h>
-#include <lg/dynarray.h>
-#include <lg/scrmanagers.h>
 #include <vector>
 #include "Script.h"
 
