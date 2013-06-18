@@ -64,7 +64,19 @@ quest variable in place of a literal value. To do this, prepend the quest
 variable name with `$`. For example, this will use the value specified in
 the quest variable `platform_speed`:
 
-    TWTrapSetSpeed=$platform_speed
+    TWTrapSetSpeedSpeed=$platform_speed
+
+In addition, `integer` and `float` types can have simple mathematical
+operations included in the parameter value if the parameter starts with a
+quest variable. eg:
+
+    TWTrapSetSpeedSpeed=$platform_speed*$speed_mult
+    TWTrapSetSpeedSpeed=$platform_speed/10.0
+    TWTrapSetSpeedSpeed=$platform_speed+$base_speed
+
+Supported operations are addition `+`, multiplication `*`, and division `/`.
+Subtraction is not directly supported, but you can add a negative number
+for the same effect.
 
 Note that, for `float vector` types, each value may be a quest variable:
 
@@ -77,4 +89,4 @@ semicolon, in which case you must quote the string.
 If more than one parameter is specified, semicolons are used to separate
 them, for example:
 
-    TWTrapSetSpeed=5;TWTrapSetSpeedDest='*TerrPt'
+    TWTrapSetSpeedSpeed=5;TWTrapSetSpeedDest='*TerrPt'
