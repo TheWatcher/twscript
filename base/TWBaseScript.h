@@ -27,6 +27,11 @@
 #include <vector>
 #include "Script.h"
 
+/** A replacement for cBaseScript from Public Scripts. This class is a replacement
+ *  for the cBaseScript found in Public Scripts that modifies the way in which
+ *  message handling is performed by the script, and introduces a significant
+ *  number of advanced features for subclasses to take advantage of.
+ */
 class TWBaseScript : public cScript
 {
 public:
