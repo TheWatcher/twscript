@@ -70,9 +70,9 @@ In addition, `integer` and `float` types can have simple mathematical
 operations included in the parameter value if the parameter starts with a
 quest variable. eg:
 
-    TWTrapSetSpeedSpeed=$platform_speed*$speed_mult
-    TWTrapSetSpeedSpeed=$platform_speed/10.0
-    TWTrapSetSpeedSpeed=$platform_speed+$base_speed
+    TWTrapSetSpeedSpeed=$platform_speed * $speed_mult
+    TWTrapSetSpeedSpeed=$platform_speed / 10.0
+    TWTrapSetSpeedSpeed=$platform_speed + $base_speed
 
 Supported operations are addition `+`, multiplication `*`, and division `/`.
 Subtraction is not directly supported, but you can add a negative number

@@ -5,6 +5,17 @@ significant and important changes, it is **not** an exhaustive changelog. If
 you want to see all of the changes in detail, you should look at the git
 commit log.
 
+### 2013-06-18 Version 2.0.2 (Marble Arch)
+
+- Modified simple arithmetic applied to quest vars when processing int and
+  float parameters. Subtraction via explicit '-' is no longer possible; it
+  must be done using addition of a negative number, so `Foo=$qvar+-10` will
+  subtract 10 from the value in the `qvar` quest variable.
+
+- `TWTrapSetSpeedSpeed` now supports the `[intensity]` value, allowing the
+  script to use the intensity set in stimulus messages when set to be
+  activated by such a message.
+
 ### 2013-06-09 Version 2.0 Alpha (Blackfriars)
 
 - Much of the PublicScripts-based framework has been removed, and replaced
