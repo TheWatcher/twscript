@@ -725,7 +725,9 @@ char* TWBaseScript::parse_qvar(const char* qvar, char** lhs, char* op, char **rh
     char *endstr = NULL;
     *op = '\0';
     while(*workstr) {
-        if(*workstr == '+' || *workstr == '-' || *workstr == '*' || *workstr == '/') {
+        // NOTE: '-' is not included here. LarryG encountered problems with using QVar names containing
+        // '-' as this was interpreting it as an operator.
+        if(*workstr == '+' || *workstr == '*' || *workstr == '/') {
             *op = *workstr;
             endstr = workstr - 1; // record the character before the operator, for space trimming
             *workstr = '\0';      // terminate so that lhs can potentially be used 'as is'
