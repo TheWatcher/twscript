@@ -78,7 +78,13 @@ example, `TWTrapSetSpeedSpeed='$speed_var / 10'` will divide the value in
 speed_var by `10`, so if `speed_var` contains `55`, the speed set by the
 script will be `5.5`. You can even specify a QVar as the second operand if
 needed, again by prefixing the name with `$`, eg:
-`TWTrapSetSpeedSpeed='$speed_var / $speed_div'`.
+`TWTrapSetSpeedSpeed='$speed_var / $speed_div'`.  If you have set the `On`
+message for the script to a stimulus message (eg: `TWTrapSetSpeedOn="S-ResetSpeed"`)
+then you can set `TWTrapSetSpeedSpeed=[intensity]` to make the script use
+the intensity value of the stimulus as the speed to set. Note that,
+if you use `TWTrapSetSpeedSpeed=[intensity]` but the script's activation
+message *is not* a stimulus message, the script will print an error message
+to the monolog and use the default speed of 0.
 
 
 ### Parameter: `TWTrapSetSpeedWatchQVar`
