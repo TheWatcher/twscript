@@ -187,7 +187,7 @@ private:
      * @param data       A pointer to a structure containing the speed and other settings.
      * @return Always returns 1.
      */
-    static int set_mterr_speed(ILinkSrv*, ILinkQuery* link_query, IScript* script, void* data);
+    static int set_mterr_speed(ILinkSrv*, ILinkQuery* link_query, IScript* script, void*);
 
 
     /* ------------------------------------------------------------------------
@@ -195,6 +195,7 @@ private:
      */
 
     float    speed;      //!< User-defined speed to set on targets and linked vators.
+    bool     intensity;  //!< If true, the speed is derived from the intensity of a stim message.
     bool     immediate;  //!< If true, vator speed changes are instant.
     cAnsiStr qvar_name;  //!< The name of the QVar to read speed from, may include basic maths.
     cAnsiStr qvar_sub;   //!< The name of the QVar to subscribe to.

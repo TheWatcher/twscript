@@ -61,17 +61,6 @@ TWBaseScript::MsgStatus TWTrapSetSpeed::on_questchange(sQuestMsg* msg, cMultiPar
  *  TWTrapSetSpeed Impmementation - private members
  */
 
-/** A convenience structure used to pass speed and control
- *  data from the TWTrapSetSpeed::OnTurnOn() function
- *  to the link iterator callback.
- */
-struct TWSetSpeedData
-{
-    float speed;     //!< The speed set by the user.
-    bool  immediate; //!< Whether the speed change should be immediate.
-};
-
-
 void TWTrapSetSpeed::init(int time)
 {
     TWBaseTrap::init(time);
@@ -81,6 +70,13 @@ void TWTrapSetSpeed::init(int time)
 
     if(!design_note)
         debug_printf(DL_WARNING, "No Editor -> Design Note. Falling back on defaults.");
+
+    // Check whether the speed should come from a stim message intensity
+    char *speed_data = get_scriptparam_string(design_note, "Speed");
+    if(speed_data) {
+        intensity = (::_stricmp(speed_data, "[intensity]") == 0);
+        g_pMalloc -> Free(speed_data);
+    }
 
     // Get the speed the user has set for this object (which could be a QVar string)
     speed = get_scriptparam_float(design_note, "Speed", 0.0f, qvar_name);
@@ -124,13 +120,14 @@ void TWTrapSetSpeed::init(int time)
     if(debug_enabled()) {
         debug_printf(DL_DEBUG, "Initialised. Initial speed: %.3f", speed);
         debug_printf(DL_DEBUG, "Immediate speed change: %s", immediate ? "enabled" : "disabled");
+        if(intensity)  debug_printf(DL_DEBUG, "Speed will be taken from stim intensity");
         if(qvar_name)  debug_printf(DL_DEBUG, "Speed will be read from QVar: %s", static_cast<const char *>(qvar_name));
         if(set_target) debug_printf(DL_DEBUG, "Targetting: %s", static_cast<const char *>(set_target));
     }
 }
 
 
-void TWTrapSetSpeed::update_speed(sScrMsg* pMsg)
+void TWTrapSetSpeed::update_speed(sScrMsg* msg)
 {
     SInterface<IObjectSystem> obj_sys(g_pScriptManager);
 
@@ -140,17 +137,31 @@ void TWTrapSetSpeed::update_speed(sScrMsg* pMsg)
     // If the user has specified a QVar to use, read that
     if(qvar_name) {
         speed = get_qvar_value(qvar_name, (float)speed);
-    }
 
-    if(debug_enabled())
+        if(debug_enabled()) debug_printf(DL_DEBUG, "Using speed %.3f from %s.", speed, static_cast<const char *>(qvar_name));
+
+    // If using intensity value, try that...
+    } else if(intensity) {
+        // ... but only if the message is actually a stim message!
+        if(!::_stricmp(msg -> GetName(), "sStimMsg")) {
+            speed = static_cast<sStimMsg *>(msg) -> intensity;
+
+            if(debug_enabled()) debug_printf(DL_DEBUG, "Using speed %.3f from stim intensity.", speed);
+        } else {
+            debug_printf(DL_ERROR, "Attempt to use stim message intensity, but received message is of incompatible type '%s'", msg -> GetName());
+        }
+
+    // Otherwise just print out debugging if needed.
+    } else if(debug_enabled()) {
         debug_printf(DL_DEBUG, "Using speed %.3f.", speed);
+    }
 
     // If a target has been parsed, fetch all the objects that match it
     if(set_target) {
         if(debug_enabled())
             debug_printf(DL_DEBUG, "Looking up targets matched by %s.", static_cast<const char *>(set_target));
 
-        std::vector<object>* targets = get_target_objects(static_cast<const char *>(set_target), pMsg);
+        std::vector<object>* targets = get_target_objects(static_cast<const char *>(set_target), msg);
 
         if(!targets -> empty()) {
             // Process the target list, setting the speeds accordingly
@@ -172,13 +183,8 @@ void TWTrapSetSpeed::update_speed(sScrMsg* pMsg)
         delete targets;
     }
 
-    // Copy the speed and immediate setting so it can be made available to the iterator
-    TWSetSpeedData data;
-    data.speed     = speed;
-    data.immediate = immediate;
-
     // And now update any moving terrain objects linked to this one via ScriptParams with data set to "SetSpeed"
-    IterateLinksByData("ScriptParams", ObjId(), 0, "SetSpeed", 9, set_mterr_speed, this, static_cast<void*>(&data));
+    IterateLinksByData("ScriptParams", ObjId(), 0, "SetSpeed", 9, set_mterr_speed, this, NULL);
 }
 
 
@@ -201,9 +207,9 @@ void TWTrapSetSpeed::set_tpath_speed(object obj_id)
 }
 
 
-int TWTrapSetSpeed::set_mterr_speed(ILinkSrv*, ILinkQuery* link_query, IScript* script, void* data)
+int TWTrapSetSpeed::set_mterr_speed(ILinkSrv*, ILinkQuery* link_query, IScript* script, void*)
 {
-    TWSetSpeedData *speed_data = static_cast<TWSetSpeedData *>(data);
+    TWTrapSetSpeed *client = static_cast<TWTrapSetSpeed *>(script);
 
     // Get the scriptparams link - dest should be a moving terrain object
     sLink current_link;
@@ -212,10 +218,10 @@ int TWTrapSetSpeed::set_mterr_speed(ILinkSrv*, ILinkQuery* link_query, IScript* 
     // For readability
     object mterr_obj = current_link.dest;
 
-    if(static_cast<TWTrapSetSpeed *>(script) -> debug_enabled()) {
+    if(client -> debug_enabled()) {
         cAnsiStr mterr_name;
-        static_cast<TWTrapSetSpeed *>(script) -> get_object_namestr(mterr_name, mterr_obj);
-        static_cast<TWTrapSetSpeed *>(script) -> debug_printf(DL_DEBUG, "setting speed %.3f on %s", speed_data -> speed, static_cast<const char *>(mterr_name));
+        client -> get_object_namestr(mterr_name, mterr_obj);
+        client -> debug_printf(DL_DEBUG, "setting speed %.3f on %s", client -> speed, static_cast<const char *>(mterr_name));
     }
 
     // Find out where the moving terrain is headed to
@@ -247,7 +253,7 @@ int TWTrapSetSpeed::set_mterr_speed(ILinkSrv*, ILinkQuery* link_query, IScript* 
             if(direction.MagSquared() > 0.0001) {
                 // The moving terrain is not on top of the terrpt
                 direction.Normalize();
-                direction *= speed_data -> speed;
+                direction *= client -> speed;
             } else {
                 // On top of it, the game should pick this up and move the mterr to a
                 // new path.
@@ -259,7 +265,7 @@ int TWTrapSetSpeed::set_mterr_speed(ILinkSrv*, ILinkQuery* link_query, IScript* 
             // to do with setting the waypoint trigger, so we should be okay to just update the
             // speed here as we're not changing the target waypoint.
             phys_srv -> ControlVelocity(mterr_obj, direction);
-            if(speed_data -> immediate) phys_srv -> SetVelocity(mterr_obj, direction);
+            if(client -> immediate) phys_srv -> SetVelocity(mterr_obj, direction);
         }
     }
 
