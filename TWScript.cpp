@@ -142,14 +142,10 @@ void TWTrapSetSpeed::update_speed(sScrMsg* msg)
 
     // If using intensity value, try that...
     } else if(intensity) {
-        // ... but only if the message is actually a stim message!
-        if(!::_stricmp(msg -> GetName(), "sStimMsg")) {
-            speed = static_cast<sStimMsg *>(msg) -> intensity;
+        debug_printf(DL_ERROR, "Parsing speed from intensity.", msg);
+        speed = static_cast<sStimMsg *>(msg) -> intensity;
 
-            if(debug_enabled()) debug_printf(DL_DEBUG, "Using speed %.3f from stim intensity.", speed);
-        } else {
-            debug_printf(DL_ERROR, "Attempt to use stim message intensity, but received message is of incompatible type '%s'", msg -> GetName());
-        }
+        if(debug_enabled()) debug_printf(DL_DEBUG, "Using speed %.3f from stim intensity.", speed);
 
     // Otherwise just print out debugging if needed.
     } else if(debug_enabled()) {
