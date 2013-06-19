@@ -83,9 +83,8 @@ message for the script to a stimulus message (eg: `TWTrapSetSpeedOn="S-ResetSpee
 then you can set `TWTrapSetSpeedSpeed=[intensity]` to make the script use
 the intensity value of the stimulus as the speed to set. Note that,
 if you use `TWTrapSetSpeedSpeed=[intensity]` but the script's activation
-message *is not* a stimulus message, the script will print an error message
-to the monolog and use the default speed of 0.
-
+message *is not* a stimulus message, the behaviour of the script is
+undefined (ie: you *do not want to do that*!)
 
 ### Parameter: `TWTrapSetSpeedWatchQVar`
 - Type: `boolean`
