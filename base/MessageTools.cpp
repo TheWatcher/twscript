@@ -1,8 +1,15 @@
 
-#include "TWMsgTools.h"
+#include "TWMessageTools.h"
+#include <cstdio>
 
+//  Longest message type: "sDarkGameModeScrMsg" (19 chars)
+// Longest message field: "PrevActionType" (14 chars) in sDoorMsg
+//                        "TransitionType" (14 chars) in sRoomMsg
+//                        "moving_terrain" (14 chars) in sWaypointMsg
+// So, type+field+dot+nul is the minimum space needed, 19+14+1+1 = 35
+const int TWMessageTools::MAX_NAMESIZE = 35;
 
-const char* TWMsgTools::get_message_type(sScrMsg* msg)
+const char* TWMessageTools::get_message_type(sScrMsg* msg)
 {
     /* Okay, seriously, what the fuck. Attempting actual RTTI on msg with typeid(*msg)
      * will crash, I guess due to a corrupt vtable. At least, that's the only thing I
@@ -21,3 +28,46 @@ const char* TWMsgTools::get_message_type(sScrMsg* msg)
     return msg -> persistent_hack -> thunk_GetName();
 #endif
 }
+
+
+bool get_message_field(sMultiParm& dest, sScrMsg* msg, const char* field)
+{
+    // Yes, this is horrible and nasty, but stack allocation is much faster
+    // than heap allocation in a std::string or cAnsiStr, and this mess is
+    // going to be slower than I'd like anyway, so bleegh
+    char namebuffer[MAX_NAMESIZE];
+
+    char *typename = get_message_type(msg);
+    if(typename) {
+        snprintf(namebuffer, MAX_NAMESIZE, "%s.%s", typename, field);
+
+        AccessorIter iter = message_access.find(namebuffer);
+        if(iter != message_access.end()) {
+            return (*iter -> second)(dest, msg);
+        }
+    }
+
+    return false;
+}
+
+
+bool access_msg_from(sMultiParm& dest, sScrMsg* msg)
+{
+    dest = msg -> from;
+
+    return true;
+}
+
+
+bool access_msg_to(sMultiParm& dest, sScrMsg* msg)
+{
+    dest = msg -> to;
+
+    return true;
+}
+
+
+AccessorMap TWMessageTools::message_access = {
+    { "sScrMsg.from", TWMessageTools::access_msg_from },
+    { "sScrMsg.to"  , TWMessageTools::access_msg_to   },
+};
