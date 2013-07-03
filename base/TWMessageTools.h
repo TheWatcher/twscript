@@ -6,7 +6,7 @@
 #include <map>
 #include <cstring>
 
-typedef bool (*MessageAccessProc)(sMultiParm&, sScrMsg*);
+typedef void (*MessageAccessProc)(cMultiParm&, sScrMsg*);
 
 struct char_icmp
 {
@@ -55,10 +55,11 @@ public:
      *         false if the requested field is not available in the message, or
      *         it is of a type that MultiParm can not store.
      */
-    static bool get_message_field(sMultiParm& dest, sScrMsg* msg, const char* field);
+    static bool get_message_field(cMultiParm& dest, sScrMsg* msg, const char* field);
 
 private:
-    static bool access_sim_msg(sMultiParm& dest, sScrMsg* msg, const char* field);
+    static void access_msg_from(cMultiParm& dest, sScrMsg* msg);
+    static void access_msg_to(cMultiParm& dest, sScrMsg* msg);
 
     static AccessorMap message_access;
     static const int   MAX_NAMESIZE;

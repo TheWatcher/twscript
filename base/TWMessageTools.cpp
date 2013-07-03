@@ -30,20 +30,21 @@ const char* TWMessageTools::get_message_type(sScrMsg* msg)
 }
 
 
-bool get_message_field(sMultiParm& dest, sScrMsg* msg, const char* field)
+bool TWMessageTools::get_message_field(cMultiParm& dest, sScrMsg* msg, const char* field)
 {
     // Yes, this is horrible and nasty, but stack allocation is much faster
     // than heap allocation in a std::string or cAnsiStr, and this mess is
     // going to be slower than I'd like anyway, so bleegh
     char namebuffer[MAX_NAMESIZE];
 
-    char *typename = get_message_type(msg);
-    if(typename) {
-        snprintf(namebuffer, MAX_NAMESIZE, "%s.%s", typename, field);
+    const char* mtypename = get_message_type(msg);
+    if(mtypename) {
+        snprintf(namebuffer, MAX_NAMESIZE, "%s.%s", mtypename, field);
 
         AccessorIter iter = message_access.find(namebuffer);
         if(iter != message_access.end()) {
-            return (*iter -> second)(dest, msg);
+            (*iter -> second)(dest, msg);
+            return true;
         }
     }
 
@@ -51,19 +52,15 @@ bool get_message_field(sMultiParm& dest, sScrMsg* msg, const char* field)
 }
 
 
-bool access_msg_from(sMultiParm& dest, sScrMsg* msg)
+void TWMessageTools::access_msg_from(cMultiParm& dest, sScrMsg* msg)
 {
     dest = msg -> from;
-
-    return true;
 }
 
 
-bool access_msg_to(sMultiParm& dest, sScrMsg* msg)
+void TWMessageTools::access_msg_to(cMultiParm& dest, sScrMsg* msg)
 {
     dest = msg -> to;
-
-    return true;
 }
 
 
