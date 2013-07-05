@@ -3,15 +3,39 @@
 #define TWMESSAGETOOLS_H
 
 #include <lg/scrmsgs.h>
-#include <map>
+#include <unordered_map>
 #include <cstring>
+#include <cctype>
 
 typedef void (*MessageAccessProc)(cMultiParm&, sScrMsg*);
 
 struct char_icmp
 {
     bool operator () (const char* a ,const char* b) const {
-        return ::_stricmp(a, b) < 0;
+        while(*a && *b) {
+            if(tolower(*a) != tolower(*b)) return false;
+            ++a;
+            ++b;
+        }
+        return(*a == *b);
+    }
+};
+
+
+struct char_hash
+{
+    /** Hashing operator base on the sdbm algorith, see this URL
+        http://www.cse.yorku.ca/~oz/hash.html for more details.
+    */
+    size_t operator()(const char* str) const {
+        size_t hash = 0;
+        char c;
+
+        while((c = *str++)) {
+            hash = c + (hash << 6) + (hash << 16) - hash;
+        }
+
+        return hash;
     }
 };
 
@@ -22,7 +46,7 @@ struct char_icmp
  *  the code properly, I can't tell if that overhead is prohibitive... and this
  *  will work, so needs must as the devil drives, and all that.
  */
-typedef std::map<const char *, MessageAccessProc, char_icmp> AccessorMap;
+typedef std::unordered_map<const char *, MessageAccessProc, char_hash, char_icmp> AccessorMap;
 typedef AccessorMap::iterator   AccessorIter; //!< Convenience type for AccessorMap iterators
 typedef AccessorMap::value_type AccessorPair; //!< Convenience type for AccessorPair key/value pairs
 

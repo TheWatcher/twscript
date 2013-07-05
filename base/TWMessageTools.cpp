@@ -625,6 +625,14 @@ AccessorMap TWMessageTools::message_access = {
     { "sScrMsg.data2"                  , TWMessageTools::access_msg_data2            },
     { "sScrMsg.data3"                  , TWMessageTools::access_msg_data3            },
 
+    /* Yes, this does duplicate the above 8 field accesses, as do all the following
+     * messages. Why? Well, either the field access setup is duplicated for each
+     * message, or get_message_field() will need special code to detect and handle
+     * accessess to the common fields... which would make for a smaller table, but
+     * would involve a bunch more comparisons, and besides which "special code to detect"
+     * is a phrase is never a phrase I can see without a sinking feeling of dread.
+     * So, duplication it is.
+     */
     { "sSimMsg.from"                   , TWMessageTools::access_msg_from             },
     { "sSimMsg.to"                     , TWMessageTools::access_msg_to               },
     { "sSimMsg.message"                , TWMessageTools::access_msg_message          },
