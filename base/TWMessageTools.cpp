@@ -630,8 +630,7 @@ AccessorMap TWMessageTools::message_access = {
      * message, or get_message_field() will need special code to detect and handle
      * accessess to the common fields... which would make for a smaller table, but
      * would involve a bunch more comparisons, and besides which "special code to detect"
-     * is a phrase is never a phrase I can see without a sinking feeling of dread.
-     * So, duplication it is.
+     * is never a phrase I can see without a sinking feeling of dread. So, duplication it is.
      */
     { "sSimMsg.from"                   , TWMessageTools::access_msg_from             },
     { "sSimMsg.to"                     , TWMessageTools::access_msg_to               },
