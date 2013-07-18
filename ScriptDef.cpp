@@ -59,11 +59,13 @@
  */
 #include "TWBaseScript.h"
 #include "TWBaseTrap.h"
-#include "TWScript.h"
+#include "TWTrapSetSpeed.h"
+#include "TWTrapPhysStateCtrl.h"
 
 #undef TWBASESCRIPT_H
 #undef TWBASETRAP_H
-#undef TWSCRIPT_H
+#undef TWTRAPSETSPEED_H
+#undef TWTRAPPHYSSTATECTRL_H
 
 #if defined(SCR_GENSCRIPTFACTORY)
 

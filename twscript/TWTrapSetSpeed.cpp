@@ -26,9 +26,6 @@ TWBaseScript::MsgStatus TWTrapSetSpeed::on_message(sScrMsg* msg, cMultiParm& rep
         return on_questchange(static_cast<sQuestMsg *>(msg), reply);
     }
 
-    debug_printf(DL_DEBUG, "Got message %s", msg -> message);
-    debug_printf(DL_DEBUG, "Message type: %s", get_message_type(msg));
-
     return result;
 }
 
