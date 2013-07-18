@@ -21,6 +21,7 @@
 
 #include <lg/scrmsgs.h>
 #include <unordered_map>
+#include <map>
 #include <cstring>
 #include <cctype>
 #include "scriptvars.h"
@@ -91,30 +92,30 @@ public:
 
     void Init() {
         if(!g_pScriptManager -> IsScriptDataSet(&m_tag)) {
-            sMultiParm param;
             param.type = kMT_Int;
             param.i = 0;
             g_pScriptManager -> SetScriptData(&m_tag, &param);
         }
     }
 
-    operator const ()
-	{
-		param.type = kMT_Undef;
-		g_pScriptManager->GetScriptData(&m_tag, &param);
-		return reinterpret_cast<_Type>(param.i);
-	}
-	script_handle<_Type>& operator= (_Type hVal)
-	{
-		sMultiParm param;
-		param.type = kMT_Int;
-		param.i = reinterpret_cast<int>(hVal);
-		g_pScriptManager->SetScriptData(&m_tag, &param);
-		return *this;
-	}
+    operator const sMultiParm* ()
+    {
+        param.type = kMT_Undef;
+        g_pScriptManager->GetScriptData(&m_tag, &param);
+
+        return &param;
+    }
+
+    ScriptMultiParm& operator= (const sMultiParm* val)
+    {
+        param = *val;
+        g_pScriptManager->SetScriptData(&m_tag, &param);
+
+        return *this;
+    }
 
 private:
-    sMultiParm param;
+    cMultiParm param;
 
 };
 
