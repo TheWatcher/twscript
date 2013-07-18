@@ -315,7 +315,7 @@ protected:
 
     /** Fetch the value stored in a qvar, potentially applying a simple calculation
      *  to the value set in the QVar. This takes a string of the form
-     *  qvarname([-*+/](value|$qvarname)) and parses out the name, and operation
+     *  qvarname([*+/](value|$qvarname)) and parses out the name, and operation
      *  and value or qvar name if they are present, and returns the value in the
      *  left hand side qvar, potentially modified by the operator and value or
      *  the value in the right hand qvar. For example, if the qvar variable
@@ -334,7 +334,7 @@ protected:
 
     /** Fetch the value stored in a qvar, potentially applying a simple calculation
      *  to the value set in the QVar. This takes a string of the form
-     *  qvarname([-*+/](value|$qvarname)) and parses out the name, and operation
+     *  qvarname([*+/](value|$qvarname)) and parses out the name, and operation
      *  and value or qvar name if they are present, and returns the value in the
      *  left hand side qvar, potentially modified by the operator and value or
      *  the value in the right hand qvar. For example, if the qvar variable
@@ -682,7 +682,7 @@ private:
      */
 
     bool need_fixup;   //!< Does the script need to fix links to the player?
-    bool sim_running;  //!< Is the sum currently running?
+    bool sim_running;  //!< Is the sim currently running?
     bool debug;        //!< Is debugging enabled?
     uint message_time; //!< The sim time stored in the last recieved message
 };
