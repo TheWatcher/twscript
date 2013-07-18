@@ -1,3 +1,20 @@
+/** @file
+ *
+ * @author Chris Page &lt;chris@starforge.co.uk&gt;
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses/.
+ */
 
 #ifndef TWMESSAGETOOLS_H
 #define TWMESSAGETOOLS_H
@@ -6,7 +23,11 @@
 #include <unordered_map>
 #include <cstring>
 #include <cctype>
+#include "scriptvars.h"
 
+/** Function pointer type for message field access functions. All message
+ *  field accessor functions must have this fingerprint.
+ */
 typedef void (*MessageAccessProc)(cMultiParm&, sScrMsg*);
 
 struct char_icmp
@@ -24,20 +45,24 @@ struct char_icmp
 
 struct char_hash
 {
-    /** Hashing operator base on the sdbm algorith, see this URL
-        http://www.cse.yorku.ca/~oz/hash.html for more details.
-    */
+    /** Hashing operator based on the sdbm algorith, see this URL
+     *  http://www.cse.yorku.ca/~oz/hash.html for more details.
+     */
     size_t operator()(const char* str) const {
         size_t hash = 0;
-        char c;
+        int c;
 
-        while((c = *str++)) {
+        /* Note the tolower here is not standard: I've added it to make the
+         * hash case insensitive.
+         */
+        while((c = tolower(*str++))) {
             hash = c + (hash << 6) + (hash << 16) - hash;
         }
 
         return hash;
     }
 };
+
 
 /** A map type for fast lookup of accessor functions for named message types.
  *  I'd *much* rather use std::string as the key, but this will need to be
@@ -51,8 +76,67 @@ typedef AccessorMap::iterator   AccessorIter; //!< Convenience type for Accessor
 typedef AccessorMap::value_type AccessorPair; //!< Convenience type for AccessorPair key/value pairs
 
 
+
+class ScriptMultiParm : public script_var
+{
+public:
+    ScriptMultiParm() : script_var()
+        { /* fnord */ }
+
+    ScriptMultiParm(const char* script_name, const char* var_name) : script_var(script_name, var_name)
+        { /* fnord */ }
+
+    ScriptMultiParm(const char* script_name, const char* var_name, int obj) : script_var(script_name, var_name, obj)
+        { /* fnord */ }
+
+    void Init() {
+        if(!g_pScriptManager -> IsScriptDataSet(&m_tag)) {
+            sMultiParm param;
+            param.type = kMT_Int;
+            param.i = 0;
+            g_pScriptManager -> SetScriptData(&m_tag, &param);
+        }
+    }
+
+    operator const ()
+	{
+		param.type = kMT_Undef;
+		g_pScriptManager->GetScriptData(&m_tag, &param);
+		return reinterpret_cast<_Type>(param.i);
+	}
+	script_handle<_Type>& operator= (_Type hVal)
+	{
+		sMultiParm param;
+		param.type = kMT_Int;
+		param.i = reinterpret_cast<int>(hVal);
+		g_pScriptManager->SetScriptData(&m_tag, &param);
+		return *this;
+	}
+
+private:
+    sMultiParm param;
+
+};
+
+
+typedef std::map<const char *, ScriptMultiParm> PersistentMap;
+
+
 class TWMessageTools
 {
+
+
+
+    /* ------------------------------------------------------------------------
+     *  static member functions and variables.
+     *
+     *  In an ideal world, all these functions (or equivalents) would actually
+     *  be part of the message classes, rather than stuck in here taking a
+     *  message pointer and pulling out data. In fact, an equivalent of
+     *  get_message_type() *is* in sScrMsg... it just doesn't work reliably.
+     *  The rest aren't there at all, and adding them is not really viable, so
+     *  needs must when the Devil vomits into your kettle....
+     */
 public:
     /** Obtain the type of the specified message, regardless of what its actual
      *  name is. This is mostly useful for identifying stim messages reliably,
