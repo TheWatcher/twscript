@@ -43,6 +43,7 @@ DOCDIR    = ./docs
 BINDIR    = ./obj
 PUBDIR    = ./pubscript
 BASEDIR   = ./base
+SCRPTDIR  = ./twscript
 DISTDIR   = ./TWScript-$(SCRIPTVER)
 LGDIR     = ../lg
 SCRLIBDIR = ../ScriptLib
@@ -90,7 +91,7 @@ BASE_OBJS = $(BASEDIR)/TWBaseScript.o $(BASEDIR)/TWBaseTrap.o $(BASEDIR)/SavedCo
 MISC_OBJS = $(BINDIR)/ScriptDef.o $(PUBDIR)/utils.o
 
 # Custom script objects
-SCR_OBJS  = $(BINDIR)/$(MYSCRIPT).o
+SCR_OBJS  = $(SCRPTDIR)/TWTrapSetSpeed.o $(SCRPTDIR)/TWTrapPhysStateCtrl.o
 RES_OBJS  = $(BINDIR)/$(MYSCRIPT)_res.o
 
 # Docs
@@ -123,6 +124,9 @@ $(PUBDIR)/%_res.o: $(PUBDIR)/%.rc
 	$(RC) $(DEFINES) $(GAMEDEF) -o $@ -i $<
 
 $(BASEDIR)/%.o: $(BASEDIR)/%.cpp
+	$(CXX) $(CXXFLAGS) $(CXXDEBUG) $(DEFINES) $(GAMEDEF) $(INCLUDES) -o $@ -c $<
+
+$(SCRPTDIR)/%.o: $(SCRPTDIR)/%.cpp
 	$(CXX) $(CXXFLAGS) $(CXXDEBUG) $(DEFINES) $(GAMEDEF) $(INCLUDES) -o $@ -c $<
 
 $(DISTDIR)/docs/%.html: $(DOCDIR)/%.md
@@ -159,8 +163,10 @@ $(BASEDIR)/TWBaseScript.o: $(BASEDIR)/TWBaseScript.cpp $(BASEDIR)/TWBaseScript.h
 $(BASEDIR)/TWBaseTrap.o: $(BASEDIR)/TWBaseTrap.cpp $(BASEDIR)/TWBaseTrap.h $(BASEDIR)/TWBaseScript.h $(BASEDIR)/SavedCounter.h $(PUBDIR)/Script.h
 $(BASEDIR)/SavedCounter.o: $(BASEDIR)/SavedCounter.cpp $(BASEDIR)/SavedCounter.h
 
+$(SCRPTDIR)/TWTrapSetSpeed.o: TWTrapSetSpeed.cpp TWTrapSetSpeed.h $(BASEDIR)/TWBaseTrap.h $(BASEDIR)/TWBaseScript.h $(PUBDIR)/Script.h
+$(SCRPTDIR)/TWTrapPhysStateCtrl.o: TWTrapPhysStateCtrl.cpp TWTrapPhysStateCtrl.h $(BASEDIR)/TWBaseTrap.h $(BASEDIR)/TWBaseScript.h $(PUBDIR)/Script.h
+
 $(BINDIR)/ScriptDef.o: ScriptDef.cpp $(MYSCRIPT).h $(BASEDIR)/TWBaseTrap.h $(BASEDIR)/TWBaseScript.h $(PUBDIR)/ScriptModule.h $(PUBDIR)/genscripts.h
-$(BINDIR)/$(MYSCRIPT)s.o: $(MYSCRIPT).cpp $(MYSCRIPT).h $(BASEDIR)/TWBaseTrap.h $(BASEDIR)/TWBaseScript.h $(PUBDIR)/Script.h
 $(BINDIR)/$(MYSCRIPT)_res.o: $(MYSCRIPT).rc $(PUBDIR)/version.rc
 
 $(BINDIR):
