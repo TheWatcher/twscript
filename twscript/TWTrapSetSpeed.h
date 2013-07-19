@@ -138,7 +138,7 @@ protected:
     MsgStatus on_message(sScrMsg* msg, cMultiParm& reply);
 
 
-    /** TurnOn message handler, called whenever the script receives a TurnOn message.
+    /** On message handler, called whenever the script receives an on message.
      *
      * @param msg   A pointer to the message received by the object.
      * @param reply A reference to a multiparm variable in which a reply can

@@ -5,59 +5,6 @@
  *  TWTrapSetSpeed Impmementation - protected members
  */
 
-TWBaseScript::MsgStatus TWTrapSetSpeed::on_message(sScrMsg* msg, cMultiParm& reply)
-{
-    // Call the superclass to let it handle any messages it needs to
-    MsgStatus result = TWBaseTrap::on_message(msg, reply);
-    if(result != MS_CONTINUE) return result;
-
-    // Remove the qvar subscription during shutdown
-    if(!::_stricmp(msg -> message, "EndScript")) {
-        if(qvar_sub) {
-            if(debug_enabled())
-                debug_printf(DL_DEBUG, "Removing subscription to '%s'", static_cast<const char *>(qvar_sub));
-
-            SService<IQuestSrv> quest_srv(g_pScriptManager);
-            quest_srv -> UnsubscribeMsg(ObjId(), static_cast<const char *>(qvar_sub));
-        }
-
-    // Handle updates on quest variable change
-    } else if(!::_stricmp(msg -> message, "QuestChange")) {
-        return on_questchange(static_cast<sQuestMsg *>(msg), reply);
-    }
-
-    return result;
-}
-
-
-TWBaseScript::MsgStatus TWTrapSetSpeed::on_onmsg(sScrMsg* msg, cMultiParm& reply)
-{
-    MsgStatus result = TWBaseTrap::on_onmsg(msg, reply);
-
-    if(result == MS_CONTINUE)
-        update_speed(msg);
-
-    return result;
-}
-
-
-TWBaseScript::MsgStatus TWTrapSetSpeed::on_questchange(sQuestMsg* msg, cMultiParm& reply)
-{
-    // Only bother doing speed updates if the quest variable changes
-    if(msg -> m_newValue != msg -> m_oldValue) {
-        update_speed(msg);
-    } else if(debug_enabled()) {
-        debug_printf(DL_DEBUG, "Quest variable %s value has not changed, skipping update.", msg -> m_pName);
-    }
-
-    return MS_CONTINUE;
-}
-
-
-/* =============================================================================
- *  TWTrapSetSpeed Impmementation - private members
- */
-
 void TWTrapSetSpeed::init(int time)
 {
     TWBaseTrap::init(time);
@@ -123,6 +70,59 @@ void TWTrapSetSpeed::init(int time)
     }
 }
 
+
+TWBaseScript::MsgStatus TWTrapSetSpeed::on_message(sScrMsg* msg, cMultiParm& reply)
+{
+    // Call the superclass to let it handle any messages it needs to
+    MsgStatus result = TWBaseTrap::on_message(msg, reply);
+    if(result != MS_CONTINUE) return result;
+
+    // Remove the qvar subscription during shutdown
+    if(!::_stricmp(msg -> message, "EndScript")) {
+        if(qvar_sub) {
+            if(debug_enabled())
+                debug_printf(DL_DEBUG, "Removing subscription to '%s'", static_cast<const char *>(qvar_sub));
+
+            SService<IQuestSrv> quest_srv(g_pScriptManager);
+            quest_srv -> UnsubscribeMsg(ObjId(), static_cast<const char *>(qvar_sub));
+        }
+
+    // Handle updates on quest variable change
+    } else if(!::_stricmp(msg -> message, "QuestChange")) {
+        return on_questchange(static_cast<sQuestMsg *>(msg), reply);
+    }
+
+    return result;
+}
+
+
+TWBaseScript::MsgStatus TWTrapSetSpeed::on_onmsg(sScrMsg* msg, cMultiParm& reply)
+{
+    MsgStatus result = TWBaseTrap::on_onmsg(msg, reply);
+
+    if(result == MS_CONTINUE)
+        update_speed(msg);
+
+    return result;
+}
+
+
+TWBaseScript::MsgStatus TWTrapSetSpeed::on_questchange(sQuestMsg* msg, cMultiParm& reply)
+{
+    // Only bother doing speed updates if the quest variable changes
+    if(msg -> m_newValue != msg -> m_oldValue) {
+        update_speed(msg);
+    } else if(debug_enabled()) {
+        debug_printf(DL_DEBUG, "Quest variable %s value has not changed, skipping update.", msg -> m_pName);
+    }
+
+    return MS_CONTINUE;
+}
+
+
+/* =============================================================================
+ *  TWTrapSetSpeed Impmementation - private members
+ */
 
 void TWTrapSetSpeed::update_speed(sScrMsg* msg)
 {
