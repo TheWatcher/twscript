@@ -25,6 +25,7 @@
 #include <lg/config.h>
 #include <lg/objstd.h>
 #include <vector>
+#include <string>
 #include "Script.h"
 
 /** A replacement for cBaseScript from Public Scripts. This class is a replacement
@@ -297,7 +298,7 @@ protected:
      * @param obj_id The ID of the object to obtain the name and number of. If not
      *               provided, this defaults to the current object ID.
      */
-    void get_object_namestr(cAnsiStr &name, object obj_id);
+    void get_object_namestr(std::string &name, object obj_id);
 
 
     /** Obtain a string containing the current object's name (or archetype name),
@@ -306,7 +307,7 @@ protected:
      *
      * @param name   A reference to a string object to store the name in.
      */
-    void get_object_namestr(cAnsiStr &name);
+    void get_object_namestr(std::string &name);
 
 
     /* ------------------------------------------------------------------------
@@ -364,12 +365,12 @@ protected:
      *                    a parseable value, or it references a non-existent QVar
      *                    (note that qvar_str will contain the QVar name, even if
      *                    the QVar does not exist)
-     * @param qvar_str    A reference to a cAnsiStr to store the quest var name, or
+     * @param qvar_str    A reference to a string to store the quest var name, or
      *                    quest var and simple calculation string.
      * @return The value specified in the string, or the float version of a value
      *         read from the qvar named in the string.
      */
-    float parse_float(const char* param, float def_val, cAnsiStr &qvar_str);
+    float parse_float(const char* param, float def_val, std::string& qvar_str);
 
 
     /** Values that may be returned from the get_scriptparam_countmode() function.
@@ -439,12 +440,12 @@ protected:
      *                    or it references a non-existent QVar (note that qvar_str
      *                    will contain the parameter string even if the QVar does
      *                    not exist)
-     * @param qvar_str    A reference to a cAnsiStr to store the quest var name, or
+     * @param qvar_str    A reference to a string to store the quest var name, or
      *                    quest var and simple calculation string.
      * @return The value specified in the parameter, or the float version of a value
      *         read from the qvar named in the parameter.
      */
-    float get_scriptparam_float(const char* design_note, const char* param, float def_val, cAnsiStr& qvar_str);
+    float get_scriptparam_float(const char* design_note, const char* param, float def_val, std::string& qvar_str);
 
 
     /** Parse an integer parameter from the specified design note. This behaves
@@ -685,6 +686,8 @@ private:
     bool sim_running;  //!< Is the sim currently running?
     bool debug;        //!< Is debugging enabled?
     uint message_time; //!< The sim time stored in the last recieved message
+
+    static const uint NAME_BUFFER_SIZE;
 };
 
 #else // SCR_GENSCRIPTS

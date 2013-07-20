@@ -136,7 +136,7 @@ $(DISTDIR)/docs/%.html: $(DOCDIR)/%.md
 all: $(BINDIR) $(MYOSM)
 
 clean: cleandist
-	$(RM) $(BINDIR)/* $(BASEDIR)/*.o $(PUBDIR)/*.o $(MYOSM)
+	$(RM) $(BINDIR)/* $(BASEDIR)/*.o $(PUBDIR)/*.o $(SCRPTDIR)/*.o $(MYOSM)
 
 cleandist:
 	$(RM) $(PACKFILE)

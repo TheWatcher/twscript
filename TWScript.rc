@@ -21,8 +21,7 @@
  *  along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define SCRIPT_VERSION     2,0,3,0
-#define SCRIPT_VERSTRING   "2.0.3"
+#include "Version.h"
 
 #define SCRIPT_NAME        "twscript"
 #define SCRIPT_LONGNAME    "TWScript Thief2 OSM"

@@ -1,0 +1,7 @@
+#ifndef TWSCRIPT_VERSION_H
+#define TWSCRIPT_VERSION_H
+
+#define SCRIPT_VERSION     2,0,3,0
+#define SCRIPT_VERSTRING   "2.0.3"
+
+#endif

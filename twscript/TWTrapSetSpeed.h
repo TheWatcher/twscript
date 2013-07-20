@@ -28,7 +28,7 @@
 #include <lg/links.h>
 #include <lg/properties.h>
 #include <lg/propdefs.h>
-
+#include <string>
 #include "TWBaseScript.h"
 #include "TWBaseTrap.h"
 
@@ -194,12 +194,12 @@ private:
      *  Variables
      */
 
-    float    speed;      //!< User-defined speed to set on targets and linked vators.
-    bool     intensity;  //!< If true, the speed is derived from the intensity of a stim message.
-    bool     immediate;  //!< If true, vator speed changes are instant.
-    cAnsiStr qvar_name;  //!< The name of the QVar to read speed from, may include basic maths.
-    cAnsiStr qvar_sub;   //!< The name of the QVar to subscribe to.
-    cAnsiStr set_target; //!< The target string set by the user.
+    float       speed;      //!< User-defined speed to set on targets and linked vators.
+    bool        intensity;  //!< If true, the speed is derived from the intensity of a stim message.
+    bool        immediate;  //!< If true, vator speed changes are instant.
+    std::string qvar_name;  //!< The name of the QVar to read speed from, may include basic maths.
+    std::string qvar_sub;   //!< The name of the QVar to subscribe to.
+    std::string set_target; //!< The target string set by the user.
 };
 
 #else // SCR_GENSCRIPTS

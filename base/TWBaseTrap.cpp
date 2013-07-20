@@ -13,8 +13,7 @@ TWBaseScript::MsgStatus TWBaseTrap::on_message(sScrMsg* msg, cMultiParm& reply)
     MsgStatus result = TWBaseScript::on_message(msg, reply);
     if(result != MS_CONTINUE) return result;
 
-    if(!::_stricmp(msg -> message, static_cast<const char *>(turnon_msg))) {
-
+    if(!::_stricmp(msg -> message, turnon_msg.c_str())) {
         if(debug_enabled())
             debug_printf(DL_DEBUG, "Received TurnOn");
 
@@ -31,7 +30,7 @@ TWBaseScript::MsgStatus TWBaseTrap::on_message(sScrMsg* msg, cMultiParm& reply)
         // Get here and one of the counters returned false, so halt further processing.
         return MS_HALT;
 
-    } else if(!::_stricmp(msg -> message, static_cast<const char *>(turnoff_msg))) {
+    } else if(!::_stricmp(msg -> message, turnoff_msg.c_str())) {
 
         if(debug_enabled())
             debug_printf(DL_DEBUG, "Received TurnOff");
@@ -84,7 +83,7 @@ void TWBaseTrap::init(int time)
         }
 
         if(debug_enabled())
-            debug_printf(DL_DEBUG, "Trap initialised with on = '%s', off = '%s'", static_cast<const char *>(turnon_msg), static_cast<const char *>(turnoff_msg));
+            debug_printf(DL_DEBUG, "Trap initialised with on = '%s', off = '%s'", turnon_msg.c_str(), turnoff_msg.c_str());
 
         // Now for use limiting.
         int value, falloff;

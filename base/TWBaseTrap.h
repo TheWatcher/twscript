@@ -26,6 +26,7 @@
 
 #if !SCR_GENSCRIPTS
 
+#include <string>
 #include "TWBaseScript.h"
 #include "SavedCounter.h"
 
@@ -95,8 +96,8 @@ private:
      */
 
     // Message names
-    cAnsiStr turnon_msg;        //!< The name of the message that should tigger the 'TurnOn' action
-    cAnsiStr turnoff_msg;       //!< The name of the message that should tigger the 'TurnOff' action
+    std::string turnon_msg;        //!< The name of the message that should tigger the 'TurnOn' action
+    std::string turnoff_msg;       //!< The name of the message that should tigger the 'TurnOff' action
 
     // Count handling
     SavedCounter count;         //!< Control how many times the script will work

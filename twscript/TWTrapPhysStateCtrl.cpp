@@ -79,11 +79,11 @@ int TWTrapPhysStateCtrl::set_state(ILinkSrv*, ILinkQuery* link_query, IScript* s
     object target_obj = current_link.dest; // For readability
 
     // Names are only needed for debugging, but meh.
-    cAnsiStr target_name;
+    std::string target_name;
     static_cast<TWTrapPhysStateCtrl *>(script) -> get_object_namestr(target_name, target_obj);
 
     if(static_cast<TWTrapPhysStateCtrl *>(script) -> debug_enabled())
-        static_cast<TWTrapPhysStateCtrl *>(script) -> debug_printf(DL_DEBUG, "Setting state of %s", static_cast<const char *>(target_name));
+        static_cast<TWTrapPhysStateCtrl *>(script) -> debug_printf(DL_DEBUG, "Setting state of %s", target_name.c_str());
 
     // Obtain the current location and orientation - both are needed, even if one is being updated,
     // so that teleport will work
@@ -96,14 +96,14 @@ int TWTrapPhysStateCtrl::set_state(ILinkSrv*, ILinkQuery* link_query, IScript* s
     if(state_data -> set_location) {
         position = state_data -> location;
         if(static_cast<TWTrapPhysStateCtrl *>(script) -> debug_enabled())
-            static_cast<TWTrapPhysStateCtrl *>(script) -> debug_printf(DL_DEBUG, "Setting Location of %s to X: %.3f Y: %.3f Z: %.3f", static_cast<const char *>(target_name), position.x, position.y, position.z);
+            static_cast<TWTrapPhysStateCtrl *>(script) -> debug_printf(DL_DEBUG, "Setting Location of %s to X: %.3f Y: %.3f Z: %.3f", target_name.c_str(), position.x, position.y, position.z);
     }
 
     // And the orientation
     if(state_data -> set_facing) {
         facing = state_data -> facing;
         if(static_cast<TWTrapPhysStateCtrl *>(script) -> debug_enabled())
-            static_cast<TWTrapPhysStateCtrl *>(script) -> debug_printf(DL_DEBUG, "Setting Facing of %s to H: %.3f P: %.3f B: %.3f", static_cast<const char *>(target_name), facing.z, facing.y, facing.x);
+            static_cast<TWTrapPhysStateCtrl *>(script) -> debug_printf(DL_DEBUG, "Setting Facing of %s to H: %.3f P: %.3f B: %.3f", target_name.c_str(), facing.z, facing.y, facing.x);
     }
 
     // Move and orient the object
@@ -118,7 +118,7 @@ int TWTrapPhysStateCtrl::set_state(ILinkSrv*, ILinkQuery* link_query, IScript* s
             prop_srv -> Set(target_obj, "PhysState", "Velocity", prop);
 
             if(static_cast<TWTrapPhysStateCtrl *>(script) -> debug_enabled())
-                static_cast<TWTrapPhysStateCtrl *>(script) -> debug_printf(DL_DEBUG, "Setting Velocity of %s to X: %.3f Y: %.3f Z: %.3f", static_cast<const char *>(target_name), state_data -> velocity.x, state_data -> velocity.y, state_data -> velocity.z);
+                static_cast<TWTrapPhysStateCtrl *>(script) -> debug_printf(DL_DEBUG, "Setting Velocity of %s to X: %.3f Y: %.3f Z: %.3f", target_name.c_str(), state_data -> velocity.x, state_data -> velocity.y, state_data -> velocity.z);
         }
 
         if(state_data -> set_rotvel) {
@@ -126,11 +126,11 @@ int TWTrapPhysStateCtrl::set_state(ILinkSrv*, ILinkQuery* link_query, IScript* s
             prop_srv -> Set(target_obj, "PhysState", "Rot Velocity", prop);
 
             if(static_cast<TWTrapPhysStateCtrl *>(script) -> debug_enabled())
-                static_cast<TWTrapPhysStateCtrl *>(script) -> debug_printf(DL_DEBUG, "Setting Rot Velocity of %s to H: %.3f P: %.3f B: %.3f", static_cast<const char *>(target_name), state_data -> rotvel.z, state_data -> rotvel.y, state_data -> rotvel.x);
+                static_cast<TWTrapPhysStateCtrl *>(script) -> debug_printf(DL_DEBUG, "Setting Rot Velocity of %s to H: %.3f P: %.3f B: %.3f", target_name.c_str(), state_data -> rotvel.z, state_data -> rotvel.y, state_data -> rotvel.x);
         }
 
     } else if(static_cast<TWTrapPhysStateCtrl *>(script) -> debug_enabled()) {
-        static_cast<TWTrapPhysStateCtrl *>(script) -> debug_printf(DL_DEBUG, "%s has no PhysState property. This should not happen!", static_cast<const char *>(target_name));
+        static_cast<TWTrapPhysStateCtrl *>(script) -> debug_printf(DL_DEBUG, "%s has no PhysState property. This should not happen!", target_name.c_str());
     }
 
     return 1;

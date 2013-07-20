@@ -13,12 +13,13 @@
 #include <cstdio>
 #include <cstdarg>
 
+#include "Version.h"
 #include "TWBaseScript.h"
 #include "ScriptModule.h"
 #include "ScriptLib.h"
 
 const char* const TWBaseScript::debug_levels[] = {"DEBUG", "WARNING", "ERROR"};
-
+const uint TWBaseScript::NAME_BUFFER_SIZE = 256;
 
 /* ------------------------------------------------------------------------
  *  Public interface exposed to the rest of the game
@@ -150,7 +151,7 @@ bool TWBaseScript::clear_script_data(const char* name, cMultiParm& data)
 void TWBaseScript::debug_printf(TWBaseScript::DebugLevel level, const char* format, ...)
 {
     va_list args;
-    cAnsiStr name;
+    std::string name;
     char buffer[900]; // Temporary buffer, 900 is the limit imposed by MPrint. This is really nasty and needs fixing.
 
     // Need the name of the current object
@@ -162,12 +163,14 @@ void TWBaseScript::debug_printf(TWBaseScript::DebugLevel level, const char* form
     va_end(args);
 
     // And spit out the result to monolog
-	g_pfnMPrintf("%s[%s(%s)]: %s\n", debug_levels[level], Name(), static_cast<const char* >(name), buffer);
+	g_pfnMPrintf("%s[%s(%s)]: %s\n", debug_levels[level], Name(), name.c_str(), buffer);
 }
 
 
-void TWBaseScript::get_object_namestr(cAnsiStr& name, object obj_id)
+void TWBaseScript::get_object_namestr(std::string& name, object obj_id)
 {
+    char namebuffer[NAME_BUFFER_SIZE];
+
     // NOTE: obj_name isn't freed when GetName sets it to non-NULL. As near
     // as I can tell, it doesn't need to, it only needs to be freed when
     // using the version of GetName in ObjectSrv... Probably. Maybe. >.<
@@ -179,7 +182,7 @@ void TWBaseScript::get_object_namestr(cAnsiStr& name, object obj_id)
     // If the object system has returned a name here, the concrete object
     // has been given a name, so use it
     if(obj_name) {
-        name.FmtStr("%s (%d)", obj_name, int(obj_id));
+        snprintf(namebuffer, NAME_BUFFER_SIZE, "%s (%d)", obj_name, int(obj_id));
 
     // Otherwise, the concrete object has no name, get its archetype name
     // if possible and use that instead.
@@ -190,17 +193,19 @@ void TWBaseScript::get_object_namestr(cAnsiStr& name, object obj_id)
 
         // Archetype name found, use it in the string
         if(archetype_name) {
-            name.FmtStr("A %s (%d)", archetype_name, int(obj_id));
+            snprintf(namebuffer, NAME_BUFFER_SIZE, "A %s (%d)", archetype_name, int(obj_id));
 
         // Can't find a name or archetype name (!), so just use the ID
         } else {
-            name.FmtStr("%d", int(obj_id));
+            snprintf(namebuffer, NAME_BUFFER_SIZE, "%d", int(obj_id));
         }
     }
+
+    name = namebuffer;
 }
 
 
-void TWBaseScript::get_object_namestr(cAnsiStr& name)
+void TWBaseScript::get_object_namestr(std::string& name)
 {
     get_object_namestr(name, ObjId());
 }
@@ -243,7 +248,7 @@ int TWBaseScript::get_qvar_value(const char* qvar, int def_val)
             }
         }
 
-        g_pMalloc -> Free(buffer);
+        delete[] buffer;
     }
 
     return value;
@@ -286,7 +291,7 @@ float TWBaseScript::get_qvar_value(const char* qvar, float def_val)
             }
         }
 
-        g_pMalloc -> Free(buffer);
+        delete[] buffer;
     }
 
     return value;
@@ -297,7 +302,7 @@ float TWBaseScript::get_qvar_value(const char* qvar, float def_val)
  *  Design note support
  */
 
-float TWBaseScript::parse_float(const char* param, float def_val, cAnsiStr& qvar_str)
+float TWBaseScript::parse_float(const char* param, float def_val, std::string& qvar_str)
 {
     float result = def_val;
 
@@ -330,7 +335,7 @@ float TWBaseScript::parse_float(const char* param, float def_val, cAnsiStr& qvar
 
 void TWBaseScript::get_scriptparam_valuefalloff(char* design_note, const char* param, int *value, int *falloff)
 {
-    cAnsiStr workstr;
+    std::string workstr = param;
 
     // Get the value
     if(value) {
@@ -339,8 +344,8 @@ void TWBaseScript::get_scriptparam_valuefalloff(char* design_note, const char* p
 
     // Allow uses to fall off over time
     if(falloff) {
-        workstr.FmtStr("%sFalloff", param);
-        *falloff = get_scriptparam_int(design_note, static_cast<const char* >(workstr));
+        workstr += "Falloff";
+        *falloff = get_scriptparam_int(design_note, workstr.c_str());
     }
 }
 
@@ -380,7 +385,7 @@ TWBaseScript::CountMode TWBaseScript::get_scriptparam_countmode(char* design_not
 }
 
 
-float TWBaseScript::get_scriptparam_float(const char* design_note, const char* param, float def_val, cAnsiStr& qvar_str)
+float TWBaseScript::get_scriptparam_float(const char* design_note, const char* param, float def_val, std::string& qvar_str)
 {
     float result = def_val;
 
@@ -429,19 +434,19 @@ int TWBaseScript::get_scriptparam_int(const char *design_note, const char *param
 
 bool TWBaseScript::get_scriptparam_bool(const char *design_note, const char *param, bool def_val)
 {
-    cAnsiStr namestr = Name();
+    std::string namestr = Name();
     namestr += param;
 
-    return GetParamBool(design_note, static_cast<const char* >(namestr), def_val);
+    return GetParamBool(design_note, namestr.c_str(), def_val);
 }
 
 
 char* TWBaseScript::get_scriptparam_string(const char* design_note, const char* param, const char* def_val)
 {
-    cAnsiStr namestr = Name();
+    std::string namestr = Name();
     namestr += param;
 
-    return GetParamString(design_note, static_cast<const char* >(namestr), def_val);
+    return GetParamString(design_note, namestr.c_str(), def_val);
 }
 
 
@@ -454,7 +459,7 @@ bool TWBaseScript::get_scriptparam_floatvec(const char* design_note, const char*
         char* ystr = comma_split(value);              // Getting y is safe...
         char* zstr = ystr ? comma_split(ystr) : NULL; // z needs to be handled more carefully
 
-        cAnsiStr tmp; // This is actually throw-away, needed for parse_float
+        std::string tmp; // This is actually throw-away, needed for parse_float
 
         vect.x = parse_float(value, defx, tmp);
         vect.y = parse_float( ystr, defy, tmp); // Note these are safe even if ystr and zstr are NULL
@@ -547,8 +552,10 @@ void TWBaseScript::init(int time)
     if(design_note) {
         debug = get_scriptparam_bool(design_note, "Debug");
 
-        if(debug_enabled())
+        if(debug_enabled()) {
+            debug_printf(DL_DEBUG, "Attached %s version %s", Name(), SCRIPT_VERSTRING);
             debug_printf(DL_DEBUG, "Script debugging enabled");
+        }
 
         g_pMalloc -> Free(design_note);
     }
@@ -708,7 +715,7 @@ float TWBaseScript::get_qvar(const char* qvar, float def_val)
 
 char* TWBaseScript::parse_qvar(const char* qvar, char** lhs, char* op, char **rhs)
 {
-    char* buffer = static_cast<char* >(g_pMalloc -> Alloc(strlen(qvar) + 1));
+    char* buffer = new char[strlen(qvar) + 1];
     if(!buffer) return NULL;
     strcpy(buffer, qvar);
 

@@ -41,9 +41,11 @@
 class TWTrapAIBreath : public TWBaseTrap
 {
 public:
-    TWTrapAIBreath(const char* name, int object) : TWBaseTrap(name, object), stop_immediately(false), exhale_time(250), particle_arch_name(""), base_rate(0),
-                                                   SCRIPT_VAROBJ(TWTrapAIBreath, in_cold, object),
-                                                   SCRIPT_VAROBJ(TWTrapAIBreath, breath_timer, object)
+    TWTrapAIBreath(const char* name, int object) : TWBaseTrap(name, object), stop_immediately(false), exhale_time(250), particle_arch_name(),
+                                                   base_rate(0), in_cold(0),breath_timer(NULL)
+//                                                   SCRIPT_VAROBJ(TWTrapAIBreath, base_rate, object),
+//                                                   SCRIPT_VAROBJ(TWTrapAIBreath, in_cold, object),
+//                                                   SCRIPT_VAROBJ(TWTrapAIBreath, breath_timer, object)
         { /* fnord */ }
 
 protected:
@@ -97,12 +99,51 @@ protected:
     MsgStatus on_offmsg(sScrMsg* msg, cMultiParm& reply);
 
 private:
+    /** Start the display of the AI's breath. This will check that the tweq
+     *  provided is appropriate and, if it is, the particle group attached to
+     *  the AI showing the breath is activated.
+     *
+     * @param msg   A pointer to the message received by the object.
+     * @param reply A reference to a multiparm variable in which a reply can
+     *              be stored.
+     * @return A status value indicating whether the caller should continue
+     *         processing the message
+     */
     MsgStatus start_breath(sTweqMsg *msg, cMultiParm& reply);
 
+
+    /** Deactivate the breath particle group. This is triggered by a timer
+     *  set when the breath group was activated.
+     *
+     * @param msg   A pointer to the message received by the object.
+     * @param reply A reference to a multiparm variable in which a reply can
+     *              be stored.
+     * @return A status value indicating whether the caller should continue
+     *         processing the message
+     */
     MsgStatus stop_breath(sScrTimerMsg *msg, cMultiParm& reply);
 
+
+    /** Update the breathing rate in response to AI Alertness changes. This
+     *  will modify the breathing rate such that higher alertness levels will
+     *  increase the breathing rate.
+     *
+     * @param msg   A pointer to the message received by the object.
+     * @param reply A reference to a multiparm variable in which a reply can
+     *              be stored.
+     * @return A status value indicating whether the caller should continue
+     *         processing the message
+     */
     MsgStatus set_rate(sAIAlertnessMsg *msg, cMultiParm& reply);
 
+
+    /** Obtain the object ID of the particle group used to show the AI's breath.
+     *  This looks for the first ~ParticleAttachement link to a particle group that
+     *  inherits from particle_arch_name, and returns the ID of the object at the
+     *  end of the link.
+     *
+     * @return The ID of the particle group on success, 0 if not found.
+     */
     int get_breath_particles();
 
     // DesignNote configured options
@@ -111,16 +152,19 @@ private:
     std::string              particle_arch_name;
 
     // Taken from TweqBlink rate
+    //script_int               base_rate;
     int                      base_rate;
 
     // Persistent variables
-    script_int               in_cold;
-    script_handle<tScrTimer> breath_timer;
+    //script_int               in_cold;
+    //script_handle<tScrTimer> breath_timer;
+    int in_cold;
+    tScrTimer breath_timer;
 };
 
 #else // SCR_GENSCRIPTS
 
-GEN_FACTORY("TWTrapAIBreath", "TWBaseScript", TWTrapAIBreath)
+GEN_FACTORY("TWTrapAIBreath", "TWBaseTrap", TWTrapAIBreath)
 
 #endif // SCR_GENSCRIPTS
 
