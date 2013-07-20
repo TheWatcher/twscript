@@ -10,8 +10,10 @@ void TWTrapAIBreath::init(int time)
     TWBaseTrap::init(time);
 
     // Set up persisitent variables
-//    in_cold.Init();
-//    breath_timer.Init();
+    base_rate.Init();
+    in_cold.Init();
+    breath_timer.Init();
+
     // Fetch the contents of the object's design note
     char *design_note = GetObjectParams(ObjId());
 
@@ -51,13 +53,16 @@ void TWTrapAIBreath::init(int time)
     // Make sure a base rate is set, just in case.
     if(!base_rate) {
         debug_printf(DL_WARNING, "No base rate set, falling back on default");
-        base_rate = 2000;
+
+        // Average human at-rest breating rate is 12 to 24 breaths per minute. AIs are usually moving, so the
+        // higher end is more likely as a sane value. 60000 milliseconds / 20 breaths per minute =
+        base_rate = 3000;
     }
 
     if(debug_enabled()) {
         debug_printf(DL_DEBUG, "Initialised on object. Settings:");
         debug_printf(DL_DEBUG, "In cold: %s, stop breath immediately: %s", in_cold ? "yes" : "no", stop_immediately ? "yes" : "no");
-        debug_printf(DL_DEBUG, "Exhale time: %dms, Rest rate: %dms", exhale_time, base_rate);
+        debug_printf(DL_DEBUG, "Exhale time: %dms, Rest rate: %dms", exhale_time, int(base_rate));
         debug_printf(DL_DEBUG, "SFX name: %s", particle_arch_name.c_str());
     }
 }
@@ -65,8 +70,6 @@ void TWTrapAIBreath::init(int time)
 
 TWBaseScript::MsgStatus TWTrapAIBreath::on_message(sScrMsg* msg, cMultiParm& reply)
 {
-    debug_printf(DL_DEBUG, "in on_message(%s): Debug is %d", msg -> message, debug_enabled());
-
     // Call the superclass to let it handle any messages it needs to
     MsgStatus result = TWBaseTrap::on_message(msg, reply);
     if(result != MS_CONTINUE) return result;
@@ -86,18 +89,13 @@ TWBaseScript::MsgStatus TWTrapAIBreath::on_message(sScrMsg* msg, cMultiParm& rep
     }
 
     // TODO: Handle death. Check knockout.
-    debug_printf(DL_DEBUG, "out on_message(%s): Debug is %d", msg -> message, debug_enabled());
-        debug_printf(DL_DEBUG, "In cold: %s, stop breath immediately: %s", in_cold ? "yes" : "no", stop_immediately ? "yes" : "no");
-        debug_printf(DL_DEBUG, "Exhale time: %dms, Rest rate: %dms", exhale_time, base_rate);
-        debug_printf(DL_DEBUG, "SFX name: %s", particle_arch_name.c_str());
-
     return result;
 }
 
 
 TWBaseScript::MsgStatus TWTrapAIBreath::on_onmsg(sScrMsg* msg, cMultiParm& reply)
 {
-    //if(debug_enabled())
+    if(debug_enabled())
         debug_printf(DL_DEBUG, "Received breath on message");
 
     // Mark the AI as being in the cold. The next TweqComplete should make the
@@ -112,7 +110,7 @@ TWBaseScript::MsgStatus TWTrapAIBreath::on_offmsg(sScrMsg* msg, cMultiParm& repl
 {
     SService<IPGroupSrv> SFXSrv(g_pScriptManager);
 
-    //if(debug_enabled())
+    if(debug_enabled())
         debug_printf(DL_DEBUG, "Received breath off message");
 
     // Mark the AI as being in the warm. The timer will stop the breath puff at
@@ -146,13 +144,12 @@ TWBaseScript::MsgStatus TWTrapAIBreath::start_breath(sTweqMsg *msg, cMultiParm& 
     SService<IPropertySrv> PropertySrv(g_pScriptManager);
     SService<IPGroupSrv>   SFXSrv(g_pScriptManager);
 
-//    if(debug_enabled())
-        debug_printf(DL_DEBUG, "Starting breathe out");
-
     // Only process flicker complete messages, and only actually do anything at all
     // if the object is in the cold.
     if(in_cold && msg -> Type == kTweqTypeFlicker && msg -> Op == kTweqOpFrameEvent) {
-        debug_printf(DL_DEBUG, "Doing breathe out");
+        if(debug_enabled())
+            debug_printf(DL_DEBUG, "Doing breathe out");
+
         int turn_off = exhale_time;
 
         cMultiParm rate_param;
@@ -234,9 +231,8 @@ int TWTrapAIBreath::get_breath_particles()
     if(!particle_arch_name.empty()) {
 
         // Attempt to locate the archetype requested
-        object archetype = ObjectSys -> GetObjectNamed(particle_arch_name.c_str());
-        if(ObjectSys -> Exists(archetype)) {
-
+        int archetype = StrToObject(particle_arch_name.c_str());
+        if(archetype) {
             // Is there a particle attach(e)ment to this object?
             true_bool has_attach;
             LinkSrv -> AnyExist(has_attach, LinkToolsSrv -> LinkKindNamed("~ParticleAttachement"), ObjId(), 0);
@@ -252,8 +248,6 @@ int TWTrapAIBreath::get_breath_particles()
                 LinkSrv -> GetAll(links, LinkToolsSrv -> LinkKindNamed("~ParticleAttachement"), ObjId(), 0);
                 while(links.AnyLinksLeft()) {
                     sLink link = links.Get();
-
-                    debug_printf(DL_DEBUG, "Checking %d against %d", link.dest, archetype);
                     ObjectSrv -> InheritsFrom(inherits, link.dest, archetype);
 
                     // Found a link from a concrete instance of the archetype? Return that object.
@@ -262,13 +256,24 @@ int TWTrapAIBreath::get_breath_particles()
                     }
                     links.NextLink();
                 }
+
+                if(debug_enabled())
+                    debug_printf(DL_WARNING, "Object has no link to a particle inheriting from %s", particle_arch_name.c_str());
             }
-        } else { //if(debug_enabled()) {
+        } else if(debug_enabled()) {
             debug_printf(DL_WARNING, "Unable to find particle named '%s'", particle_arch_name.c_str());
         }
     } else {
-        debug_printf(DL_WARNING, "particle_arch_name name is empty?!");
+        debug_printf(DL_ERROR, "particle_arch_name name is empty?!");
     }
 
     return 0;
+}
+
+
+void TWTrapAIBreath::parse_coldrooms(const char *coldstr)
+{
+
+
+
 }

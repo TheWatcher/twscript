@@ -34,6 +34,18 @@
 #include "TWBaseTrap.h"
 
 #include <string>
+#include <map>
+
+/** A map type to make it easier to look up whether the AI has entered a
+ *  room in which its breath should be visible. Maps room IDs to a flag
+ *  indicating coldness (this will generally only ever store true, as
+ *  a room not appearing in the map is assumed to be warm, but it may
+ *  be useful to track warm rooms in future too...
+ */
+typedef std::map<int, bool> ColdRoomMap;
+typedef ColdRoomMap::iterator   ColdRoomIter; //!< Convenience type for ColdRoomMap iterators
+typedef ColdRoomMap::value_type ColdRoomPair; //!< Convenience type for ColdRoomMap key/value pairs
+
 
 /** @class TWTrapAIBreath
  *
@@ -41,11 +53,10 @@
 class TWTrapAIBreath : public TWBaseTrap
 {
 public:
-    TWTrapAIBreath(const char* name, int object) : TWBaseTrap(name, object), stop_immediately(false), exhale_time(250), particle_arch_name(),
-                                                   base_rate(0), in_cold(0),breath_timer(NULL)
-//                                                   SCRIPT_VAROBJ(TWTrapAIBreath, base_rate, object),
-//                                                   SCRIPT_VAROBJ(TWTrapAIBreath, in_cold, object),
-//                                                   SCRIPT_VAROBJ(TWTrapAIBreath, breath_timer, object)
+    TWTrapAIBreath(const char* name, int object) : TWBaseTrap(name, object), stop_immediately(false), exhale_time(250), particle_arch_name(), cold_rooms(),
+                                                   SCRIPT_VAROBJ(TWTrapAIBreath, base_rate, object),
+                                                   SCRIPT_VAROBJ(TWTrapAIBreath, in_cold, object),
+                                                   SCRIPT_VAROBJ(TWTrapAIBreath, breath_timer, object)
         { /* fnord */ }
 
 protected:
@@ -53,7 +64,7 @@ protected:
      *  Initialisation related
      */
 
-    /** Initialise the TWTrapSetSpeed instance. This parses the various
+    /** Initialise the TWTrapAIBreath instance. This parses the various
      *  parameters from the design note, and sets up the script so that
      *  it can be used correctly.
      */
@@ -146,20 +157,27 @@ private:
      */
     int get_breath_particles();
 
+
+    /** Parse the list of cold rooms defined by the Design Note into the cold_rooms
+     *  map for later lookup.
+     *
+     * @param coldstr A string containing the list of cold room names/ids.
+     */
+    void parse_coldrooms(const char* coldstr);
+
+
     // DesignNote configured options
-    bool                     stop_immediately;
-    int                      exhale_time;
-    std::string              particle_arch_name;
+    bool                     stop_immediately;   //!< Stop the particle group immediately on leaving the cold?
+    int                      exhale_time;        //!< How long to leave the particle group active for at a time
+    std::string              particle_arch_name; //!< The name of the particle group archetype to use
+    ColdRoomMap              cold_rooms;         //!< Which rooms are marked as cold?
 
     // Taken from TweqBlink rate
-    //script_int               base_rate;
-    int                      base_rate;
+    script_int               base_rate;          //!< What is the base breathing rate?
 
     // Persistent variables
-    //script_int               in_cold;
-    //script_handle<tScrTimer> breath_timer;
-    int in_cold;
-    tScrTimer breath_timer;
+    script_int               in_cold;            //!< Is the AI in a cold area?
+    script_handle<tScrTimer> breath_timer;       //!< A timer used to deactivate the group after exhale_time
 };
 
 #else // SCR_GENSCRIPTS
