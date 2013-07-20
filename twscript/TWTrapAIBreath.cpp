@@ -1,5 +1,9 @@
+#include <cstring>
 #include "TWTrapAIBreath.h"
 #include "ScriptLib.h"
+
+static char* strtok_r(char *str, const char *delim, char **nextp);
+
 
 /* =============================================================================
  *  TWTrapAIBreath Impmementation - protected members
@@ -34,6 +38,12 @@ void TWTrapAIBreath::init(int time)
         if(sfx_name) {
             particle_arch_name = sfx_name;
             g_pMalloc -> Free(sfx_name);
+        }
+
+        char *cold = get_scriptparam_string(design_note, "ColdRooms", NULL);
+        if(cold) {
+            parse_coldrooms(cold);
+            g_pMalloc -> Free(cold);
         }
 
         g_pMalloc -> Free(design_note);
@@ -85,6 +95,9 @@ TWBaseScript::MsgStatus TWTrapAIBreath::on_message(sScrMsg* msg, cMultiParm& rep
 
     } else if(!::_stricmp(msg -> message, "Alertness")) {
         return set_rate(static_cast<sAIAlertnessMsg*>(msg), reply);
+
+    } else if(!::_stricmp(msg -> message, "ObjRoomTransit")) {
+        return on_objroomtransit(static_cast<sRoomMsg*>(msg), reply);
 
     }
 
@@ -198,6 +211,18 @@ TWBaseScript::MsgStatus TWTrapAIBreath::stop_breath(sScrTimerMsg *msg, cMultiPar
 }
 
 
+TWBaseScript::MsgStatus TWTrapAIBreath::on_objroomtransit(sRoomMsg *msg, cMultiParm& reply)
+{
+    ColdRoomIter iter = cold_rooms.find(msg -> ToObjId);
+
+    if(iter != cold_rooms.end() && iter -> second) {
+        return on_onmsg(msg, reply);
+    }
+
+    return on_offmsg(msg, reply);
+}
+
+
 TWBaseScript::MsgStatus TWTrapAIBreath::set_rate(sAIAlertnessMsg *msg, cMultiParm& reply)
 {
     SService<IPropertySrv> PropertySrv(g_pScriptManager);
@@ -271,9 +296,60 @@ int TWTrapAIBreath::get_breath_particles()
 }
 
 
-void TWTrapAIBreath::parse_coldrooms(const char *coldstr)
+void TWTrapAIBreath::parse_coldrooms(char *coldstr)
 {
+    char *room;
+    char *rest = NULL;
+
+    for(room = ::strtok_r(coldstr, ",", &rest); room; room = ::strtok_r(NULL, ",", &rest)) {
+        int room_id = StrToObject(room);
+        if(room_id) {
+            cold_rooms.insert(ColdRoomPair(room_id, true));
+
+            if(debug_enabled())
+                debug_printf(DL_DEBUG, "Marking room %s (%d) as cold", room, room_id);
+        } else if(debug_enabled()) {
+            debug_printf(DL_WARNING, "Unable to map '%s' to a room id, ignoring", room);
+        }
+    }
+
+}
 
 
+/*
+ * public domain strtok_r() by Charlie Gordon
+ *
+ *   from comp.lang.c  9/14/2007
+ *
+ *      http://groups.google.com/group/comp.lang.c/msg/2ab1ecbb86646684
+ *
+ *     (Declaration that it's public domain):
+ *      http://groups.google.com/group/comp.lang.c/msg/7c7b39328fefab9c
+ */
 
+static char* strtok_r(char *str, const char *delim, char **nextp)
+{
+    char *ret;
+
+    if(str == NULL) {
+        str = *nextp;
+    }
+
+    str += strspn(str, delim);
+
+    if (*str == '\0') {
+        return NULL;
+    }
+
+    ret = str;
+
+    str += strcspn(str, delim);
+
+    if (*str) {
+        *str++ = '\0';
+    }
+
+    *nextp = str;
+
+    return ret;
 }

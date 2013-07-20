@@ -135,6 +135,18 @@ private:
     MsgStatus stop_breath(sScrTimerMsg *msg, cMultiParm& reply);
 
 
+    /** Called when the AI moves from one room to another. May call on_onmsg()
+     *  of on_offmsg() depending on whether the new room is cold.
+     *
+     * @param msg   A pointer to the message received by the object.
+     * @param reply A reference to a multiparm variable in which a reply can
+     *              be stored.
+     * @return A status value indicating whether the caller should continue
+     *         processing the message
+     */
+    MsgStatus on_objroomtransit(sRoomMsg *msg, cMultiParm& reply);
+
+
     /** Update the breathing rate in response to AI Alertness changes. This
      *  will modify the breathing rate such that higher alertness levels will
      *  increase the breathing rate.
@@ -159,11 +171,12 @@ private:
 
 
     /** Parse the list of cold rooms defined by the Design Note into the cold_rooms
-     *  map for later lookup.
+     *  map for later lookup. The cold rooms string should contain a comma separated
+     *  list of room ID numbers or names.
      *
      * @param coldstr A string containing the list of cold room names/ids.
      */
-    void parse_coldrooms(const char* coldstr);
+    void parse_coldrooms(char* coldstr);
 
 
     // DesignNote configured options
