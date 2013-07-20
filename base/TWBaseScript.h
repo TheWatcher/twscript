@@ -47,7 +47,7 @@ public:
      * @param object The ID of the client object to add the script to.
      * @return A new TWBaseScript object.
      */
-    TWBaseScript(const char* name, int object) : cScript(name, object), need_fixup(true), sim_running(false), debug(false), message_time(0)
+    TWBaseScript(const char* name, int object) : cScript(name, object), need_fixup(true), sim_running(false), debug(false), message_time(0), done_init(false)
         { /* fnord */ }
 
 
@@ -686,6 +686,8 @@ private:
     bool sim_running;  //!< Is the sim currently running?
     bool debug;        //!< Is debugging enabled?
     uint message_time; //!< The sim time stored in the last recieved message
+
+    bool done_init;    //!< Has the script run its init?
 
     static const uint NAME_BUFFER_SIZE;
 };

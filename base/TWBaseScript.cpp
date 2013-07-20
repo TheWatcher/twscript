@@ -69,8 +69,9 @@ STDMETHODIMP TWBaseScript::ReceiveMessage(sScrMsg* msg, sMultiParm* reply, eScrT
 TWBaseScript::MsgStatus TWBaseScript::on_message(sScrMsg* msg, cMultiParm& reply)
 {
     // Handle setting up the script from the design note
-    if(!::_stricmp(msg -> message, "BeginScript")) {
+    if(!done_init) {
         init(msg -> time);
+        done_init = true;
     }
 
     return MS_CONTINUE;
