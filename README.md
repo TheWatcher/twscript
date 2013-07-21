@@ -49,13 +49,16 @@ to this one:
 
 Currently available scripts are:
 
-- [TWTrapSetSpeed.html](TWTrapSetSpeed.html)
-- [TWTrapPhysStateCtrl.html](TWTrapPhysStateCtrl.html)
+- [TWTrapAIBreath](TWTrapAIBreath.html)
+- [TWTrapSetSpeed](TWTrapSetSpeed.html)
+- [TWTrapPhysStateCtrl](TWTrapPhysStateCtrl.html)
 
 ## Development information
 
 Currently planned scripts for future versions of TWScript include:
 
+- An AI population script (similar to FireShadowEcology but more flexible)
+  to support respawning AIs and complex behaviours.
 - A `TWTweqSmooth` script to support more flexible ease-in and ease-out on
   joint tweqs.
 - A `TWTriggerRequireMessages` script that will send a `TurnOn` when it has

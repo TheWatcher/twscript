@@ -5,6 +5,13 @@ significant and important changes, it is **not** an exhaustive changelog. If
 you want to see all of the changes in detail, you should look at the git
 commit log.
 
+### 2013-07-21 Version 2.0.4 ()
+
+- Significant changes to the way in which **TWBaseScript** and **TWBaseTrap**
+  handle initialisation, strings, and other settings.
+
+- Added [TWTrapAIBreath](TWTrapAIBreath.html)
+
 ### 2013-06-18 Version 2.0.2 (Marble Arch)
 
 - Modified simple arithmetic applied to quest vars when processing int and
@@ -21,7 +28,7 @@ commit log.
 - Much of the PublicScripts-based framework has been removed, and replaced
   with a new set of classes. This has allowed me to cleanly implement many
   new features, including replicating and extending the 'NVTrap' behaviour
-  controls found in NVScript. Please see the [TWBaseTrap.html](TWBaseTrap.html)
+  controls found in NVScript. Please see the [TWBaseTrap](TWBaseTrap.html)
   file for more information about this.
 
 - TWTrapPhysStateControl has been renamed to TWTrapPhysStateCtrl, because the

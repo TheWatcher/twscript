@@ -32,7 +32,7 @@
 # Update these with the name of your script file, and the output .osm
 MYSCRIPT  = TWScript
 MYOSM     = twscript.osm
-SCRIPTVER = 2.0.3
+SCRIPTVER = 2.0.4
 
 # Change this to `1` for Thief 1, 3 for SS2.
 GAME      = 2
@@ -95,8 +95,8 @@ SCR_OBJS  = $(SCRPTDIR)/TWTrapAIBreath.o $(SCRPTDIR)/TWTrapPhysStateCtrl.o $(SCR
 RES_OBJS  = $(BINDIR)/$(MYSCRIPT)_res.o
 
 # Docs
-DOC_FILES = $(DISTDIR)/docs/TWTrapSetSpeed.html $(DISTDIR)/docs/TWTrapPhysStateCtrl.html $(DISTDIR)/docs/DesignNote.html \
-			$(DISTDIR)/docs/Changes.html $(DISTDIR)/docs/CheckingVersion.html $(DISTDIR)/docs/TWBaseTrap.html
+DOC_FILES = $(DISTDIR)/docs/TWTrapAIBreath.html $(DISTDIR)/docs/TWTrapSetSpeed.html $(DISTDIR)/docs/TWTrapPhysStateCtrl.html \
+	        $(DISTDIR)/docs/DesignNote.html $(DISTDIR)/docs/Changes.html $(DISTDIR)/docs/CheckingVersion.html $(DISTDIR)/docs/TWBaseTrap.html
 
 # Archive file
 PACKFILE = $(MYSCRIPT)-$(SCRIPTVER).7z
