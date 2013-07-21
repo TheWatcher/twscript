@@ -5,7 +5,7 @@ significant and important changes, it is **not** an exhaustive changelog. If
 you want to see all of the changes in detail, you should look at the git
 commit log.
 
-### 2013-07-21 Version 2.0.4 ()
+### 2013-07-21 Version 2.0.4 (Hyde Park Corner)
 
 - Significant changes to the way in which **TWBaseScript** and **TWBaseTrap**
   handle initialisation, strings, and other settings.
