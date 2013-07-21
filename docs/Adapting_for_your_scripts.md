@@ -224,50 +224,23 @@ compiling the TWScript package:
 ---------------------------
 
 If you get here without problems, you are ready to start making your own
-scripts (and your problems are literally just beginning...). The package is
-roughly divided into two bits:
+scripts (and your problems are literally just beginning...).
 
-- pubscript and docs contain files you're not likely to edit: the former
-  contains the Public Scripts base classes and supporting code, while the
-  latter contains documentation (including this file).
-- the main directory contains the files you're going to need to edit: at
-  the least you will need to edit the Makefile and ScriptDef.cpp files.
+Updated instructions here soon.
 
-Assuming that you are developing scripts for T2 (or require no game-specific
-features), the process is:
+8. Important note about member variables
+----------------------------------------
 
-0. Create a .cpp file containing the implementation of your script(s). The
-   twscript package calls this `TWScript.cpp`, but for now imagine that you
-   call your script file `Wibble.cpp` This file will contain nothing out of
-   the ordinary for someone accustomed to c++ coding, just the implementation
-   of member functions.
-1. Create a .h file containing the script class definition and `GEN_FACTORY()`
-   macro. See the ScriptNotes.md file for more information about this, but
-   briefly:
-       - the .h file must have the same base name as the .cpp file, including
-         case. So if you call your .cpp file `Wibble.cpp` you must create a
-         matching `Wibble.h`. If you use a different name for your header,
-         the makefile will not work properly.
-       - Your .h file must contain a guard, and *two preprocessor paths*:
-         when `SCR_GENSCRIPTS` is set to false the class definition should
-         be visible, and when it is true one or more `GEN_FACTORY()` lines,
-         one for each script, should be visible.
-6. Make a copy of `TWScript.rc`, giving it the same base name as your .cpp
-   and .h files (eg: `Wibble.rc`). Edit the contents of the new .rc file to
-   reflect the information about your scripts.
-3. Modify the `MYSCRIPT` variable in the `Makefile` to contain the base name
-   you gave your script .cpp and .h files. So if you have `Wibble.cpp` and
-   `Wibble.h`, you should set `MYSCRIPT = Wibble`
-4. Modify the `MYOSM` variable in the `Makefile` to contain the name you want
-   to give your .osm (be sure to include the `.osm` extension in the name!).
-   This does not have to be the same as the `MYSCRIPT` value, but it should be
-   something that easily identifies the .osm as being made by you.
-5. Modify `ScriptDef.cpp` to replace `#include "TWScript.h"`with an include for
-   your script header (`#include "Wibble.h"` for example) and be sure to
-   `#undef` your header guard with the other `#undef`s (eg: replace
-   `#undef TWSCRIPT_H` with `#undef WIBBLE_H`)
+When writing scripts for the dark engine you should be very careful when using
+'non persistent' member variables to maintain cross-message state (that is,
+storing state that persists between messages in normal member variables rather
+than using the persistent script data store via `set_script_data()`,
+`get_script_data()`, etc). Every time a metaproperty is added to an object, the
+list of scripts attached to the object is replaced: already attached script
+instances are detached and destroyed, and new copies are added in their place.
+This means that, every time a metaprop is added, you will lose any state held
+in member variables.
 
-This should be sufficient to get you a bare-bones script development
-environment. Please see the ScriptNotes.md file for some more information
-about what you should put in your files, and some pointers for where to
-look for documentation.
+Either avoid using member variables to maintain state and use the persistent
+script data store to do it, or ensure that your scripts are able to restore
+their state through other means.
