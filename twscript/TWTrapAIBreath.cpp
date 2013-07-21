@@ -24,12 +24,14 @@ void TWTrapAIBreath::init(int time)
     } else {
         // Should the AI start off in the cold?
         if(!in_cold.Valid()) {
-            debug_printf(DL_DEBUG, "Setting in_cold");
             in_cold = static_cast<int>(get_scriptparam_bool(design_note, "InCold", false));
         }
 
         // Should the breath cloud stop immediately on entering the warm?
         stop_immediately = get_scriptparam_bool(design_note, "Immediate", true);
+
+        // Should the breath cloud stop when knocked out?
+        stop_on_ko = get_scriptparam_bool(design_note, "StopOnKO", false);
 
         // How long, in milliseconds, should the exhale last
         exhale_time = get_scriptparam_int(design_note, "ExhaleTime", 250);
@@ -51,8 +53,6 @@ void TWTrapAIBreath::init(int time)
     }
 
     if(!base_rate.Valid()) {
-        debug_printf(DL_DEBUG, "Setting base_rate");
-
         // Now work out the base rate
         SService<IPropertySrv> PropertySrv(g_pScriptManager);
         if(PropertySrv -> Possessed(ObjId(), "CfgTweqBlink")) {
@@ -240,24 +240,29 @@ TWBaseScript::MsgStatus TWTrapAIBreath::on_aimodechange(sAIModeChangeMsg *msg, c
 
     // If the AI is dead, they can't breathe!
     if(msg -> mode == kAIM_Dead) {
-        // Are they really dead, or just resting?
-        int m_knockedout = StrToObject("M-KnockedOut");
+        // reset the rate: the AI is at rest (either temporarily or permanently!)
+        // so there's no point triggering the tweq more often than needed.
+        set_rate(1);
 
-        if(m_knockedout) {
-            true_bool just_resting;
-            ObjectSrv -> HasMetaProperty(just_resting, ObjId(), m_knockedout);
+        // If stop_on_ko is true, it doesn't matter if the AI is knocked out...
+        if(!stop_on_ko) {
 
-            if(just_resting) {
-                // reset the rate, as the AI is now resting
-                set_rate(1);
+            // Is the AI really dead, or just resting?
+            int m_knockedout = StrToObject("M-KnockedOut");
 
-                if(debug_enabled())
-                    debug_printf(DL_DEBUG, "AI is pining for the fjords.");
+            if(m_knockedout) {
+                true_bool just_resting;
+                ObjectSrv -> HasMetaProperty(just_resting, ObjId(), m_knockedout);
 
-                return MS_CONTINUE;
+                if(just_resting) {
+                    if(debug_enabled())
+                        debug_printf(DL_DEBUG, "AI is pining for the fjords.");
+
+                    return MS_CONTINUE;
+                }
+            } else if(debug_enabled()) {
+                debug_printf(DL_WARNING, "Unable to find knocked-out metaprop, treating AI as slain.");
             }
-        } else if(debug_enabled()) {
-            debug_printf(DL_WARNING, "Unable to find knocked-out metaprop, treating AI as slain.");
         }
 
         return on_slain(msg, reply);
