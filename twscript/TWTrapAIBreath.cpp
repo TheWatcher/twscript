@@ -13,10 +13,8 @@ void TWTrapAIBreath::init(int time)
 {
     TWBaseTrap::init(time);
 
-    // Set up persisitent variables
-    base_rate.Init();
-    in_cold.Init();
-    breath_timer.Init();
+    // AIs generally start off alive, or they wouldn't have this script on them!
+    still_alive.Init(1);
 
     // Fetch the contents of the object's design note
     char *design_note = GetObjectParams(ObjId());
@@ -25,7 +23,10 @@ void TWTrapAIBreath::init(int time)
         debug_printf(DL_WARNING, "No Editor -> Design Note. Falling back on defaults.");
     } else {
         // Should the AI start off in the cold?
-        in_cold = static_cast<int>(get_scriptparam_bool(design_note, "InCold", false));
+        if(!in_cold.Valid()) {
+            debug_printf(DL_DEBUG, "Setting in_cold");
+            in_cold = static_cast<int>(get_scriptparam_bool(design_note, "InCold", false));
+        }
 
         // Should the breath cloud stop immediately on entering the warm?
         stop_immediately = get_scriptparam_bool(design_note, "Immediate", true);
@@ -49,24 +50,28 @@ void TWTrapAIBreath::init(int time)
         g_pMalloc -> Free(design_note);
     }
 
-    // Now work out the base rate
-    SService<IPropertySrv> PropertySrv(g_pScriptManager);
-    if(PropertySrv -> Possessed(ObjId(), "CfgTweqBlink")) {
-        cMultiParm rate_param;
+    if(!base_rate.Valid()) {
+        debug_printf(DL_DEBUG, "Setting base_rate");
 
-        PropertySrv -> Get(rate_param, ObjId(), "CfgTweqBlink", "Rate");
-        base_rate = static_cast<int>(rate_param);
-    } else {
-        debug_printf(DL_WARNING, "CfgTweqBlink missing on object. Script will not function!");
-    }
+        // Now work out the base rate
+        SService<IPropertySrv> PropertySrv(g_pScriptManager);
+        if(PropertySrv -> Possessed(ObjId(), "CfgTweqBlink")) {
+            cMultiParm rate_param;
 
-    // Make sure a base rate is set, just in case.
-    if(!base_rate) {
-        debug_printf(DL_WARNING, "No base rate set, falling back on default");
+            PropertySrv -> Get(rate_param, ObjId(), "CfgTweqBlink", "Rate");
+            base_rate = static_cast<int>(rate_param);
+        } else {
+            debug_printf(DL_WARNING, "CfgTweqBlink missing on object. Script will not function!");
+        }
 
-        // Average human at-rest breating rate is 12 to 24 breaths per minute. AIs are usually moving, so the
-        // higher end is more likely as a sane value. 60000 milliseconds / 20 breaths per minute =
-        base_rate = 3000;
+        // Make sure a base rate is set, just in case.
+        if(!base_rate) {
+            debug_printf(DL_WARNING, "No base rate set, falling back on default");
+
+            // Average human at-rest breating rate is 12 to 24 breaths per minute. AIs are usually moving, so the
+            // higher end is more likely as a sane value. 60000 milliseconds / 20 breaths per minute =
+            base_rate = 3000;
+        }
     }
 
     if(debug_enabled()) {
@@ -84,24 +89,27 @@ TWBaseScript::MsgStatus TWTrapAIBreath::on_message(sScrMsg* msg, cMultiParm& rep
     MsgStatus result = TWBaseTrap::on_message(msg, reply);
     if(result != MS_CONTINUE) return result;
 
-    if(!::_stricmp(msg -> message, "Sim")) {
-        if(static_cast<sSimMsg*>(msg) -> fStarting) init(msg -> time);
-
-    } else if(!::_stricmp(msg -> message, "Timer")) {
+    if(!::_stricmp(msg -> message, "Timer")) {
         return stop_breath(static_cast<sScrTimerMsg*>(msg), reply);
 
     } else if(!::_stricmp(msg -> message, "TweqComplete")) {
         return start_breath(static_cast<sTweqMsg*>(msg), reply);
 
     } else if(!::_stricmp(msg -> message, "Alertness")) {
-        return set_rate(static_cast<sAIAlertnessMsg*>(msg), reply);
+        return on_aialertness(static_cast<sAIAlertnessMsg*>(msg), reply);
 
     } else if(!::_stricmp(msg -> message, "ObjRoomTransit")) {
         return on_objroomtransit(static_cast<sRoomMsg*>(msg), reply);
 
+    } else if(!::_stricmp(msg -> message, "AIModeChange")) {
+        return on_aimodechange(static_cast<sAIModeChangeMsg*>(msg), reply);
+
+    } else if(!::_stricmp(msg -> message, "Slain")) {
+        return on_slain(msg, reply);
+
     }
 
-    // TODO: Handle death. Check knockout.
+
     return result;
 }
 
@@ -121,8 +129,6 @@ TWBaseScript::MsgStatus TWTrapAIBreath::on_onmsg(sScrMsg* msg, cMultiParm& reply
 
 TWBaseScript::MsgStatus TWTrapAIBreath::on_offmsg(sScrMsg* msg, cMultiParm& reply)
 {
-    SService<IPGroupSrv> SFXSrv(g_pScriptManager);
-
     if(debug_enabled())
         debug_printf(DL_DEBUG, "Received breath off message");
 
@@ -132,16 +138,7 @@ TWBaseScript::MsgStatus TWTrapAIBreath::on_offmsg(sScrMsg* msg, cMultiParm& repl
 
     // Halt breath particle immediately on entering the warm?
     if(stop_immediately) {
-
-        // Abort firing of the timed message
-        if(breath_timer) {
-            cancel_timed_message(breath_timer);
-            breath_timer = NULL;
-        }
-
-        // Deactivate the particle group
-        int breath_particles = get_breath_particles();
-        if(breath_particles) SFXSrv -> SetActive(breath_particles, false);
+        abort_breath();
     }
 
     return MS_CONTINUE;
@@ -152,6 +149,25 @@ TWBaseScript::MsgStatus TWTrapAIBreath::on_offmsg(sScrMsg* msg, cMultiParm& repl
  *  TWTrapAIBreath Impmementation - private members
  */
 
+void TWTrapAIBreath::abort_breath(bool cancel_timer)
+{
+    SService<IPGroupSrv> SFXSrv(g_pScriptManager);
+
+    if(debug_enabled())
+        debug_printf(DL_DEBUG, "Deactivating particle group");
+
+    // Abort firing of the timed message
+    if(breath_timer) {
+        if(cancel_timer) cancel_timed_message(breath_timer);
+        breath_timer = NULL;
+    }
+
+    // Deactivate the particle group
+    int breath_particles = get_breath_particles();
+    if(breath_particles) SFXSrv -> SetActive(breath_particles, false);
+}
+
+
 TWBaseScript::MsgStatus TWTrapAIBreath::start_breath(sTweqMsg *msg, cMultiParm& reply)
 {
     SService<IPropertySrv> PropertySrv(g_pScriptManager);
@@ -159,7 +175,7 @@ TWBaseScript::MsgStatus TWTrapAIBreath::start_breath(sTweqMsg *msg, cMultiParm& 
 
     // Only process flicker complete messages, and only actually do anything at all
     // if the object is in the cold.
-    if(in_cold && msg -> Type == kTweqTypeFlicker && msg -> Op == kTweqOpFrameEvent) {
+    if(still_alive && in_cold && msg -> Type == kTweqTypeFlicker && msg -> Op == kTweqOpFrameEvent) {
         if(debug_enabled())
             debug_printf(DL_DEBUG, "Doing breathe out");
 
@@ -199,12 +215,7 @@ TWBaseScript::MsgStatus TWTrapAIBreath::stop_breath(sScrTimerMsg *msg, cMultiPar
 {
     // Only bother doing anything if the timer name is correct.
     if(!::_stricmp(msg -> name, "StopBreath")) {
-        SService<IPGroupSrv> SFXSrv(g_pScriptManager);
-
-        breath_timer = NULL;
-
-        int breath_particles = get_breath_particles();
-        if(breath_particles) SFXSrv -> SetActive(breath_particles, false);
+        abort_breath(false);
     }
 
     return MS_CONTINUE;
@@ -223,14 +234,66 @@ TWBaseScript::MsgStatus TWTrapAIBreath::on_objroomtransit(sRoomMsg *msg, cMultiP
 }
 
 
-TWBaseScript::MsgStatus TWTrapAIBreath::set_rate(sAIAlertnessMsg *msg, cMultiParm& reply)
+TWBaseScript::MsgStatus TWTrapAIBreath::on_aimodechange(sAIModeChangeMsg *msg, cMultiParm& reply)
 {
-    SService<IPropertySrv> PropertySrv(g_pScriptManager);
+    SService<IObjectSrv> ObjectSrv(g_pScriptManager);
 
+    // If the AI is dead, they can't breathe!
+    if(msg -> mode == kAIM_Dead) {
+        // Are they really dead, or just resting?
+        int m_knockedout = StrToObject("M-KnockedOut");
+
+        if(m_knockedout) {
+            true_bool just_resting;
+            ObjectSrv -> HasMetaProperty(just_resting, ObjId(), m_knockedout);
+
+            if(just_resting) {
+                // reset the rate, as the AI is now resting
+                set_rate(1);
+
+                if(debug_enabled())
+                    debug_printf(DL_DEBUG, "AI is pining for the fjords.");
+
+                return MS_CONTINUE;
+            }
+        } else if(debug_enabled()) {
+            debug_printf(DL_WARNING, "Unable to find knocked-out metaprop, treating AI as slain.");
+        }
+
+        return on_slain(msg, reply);
+    }
+
+    return MS_CONTINUE;
+}
+
+
+TWBaseScript::MsgStatus TWTrapAIBreath::on_slain(sScrMsg *msg, cMultiParm& reply)
+{
+    if(debug_enabled())
+        debug_printf(DL_DEBUG, "AI is dead; deactivating breath permanently");
+
+    abort_breath();
+    still_alive = false;
+
+    return MS_CONTINUE;
+}
+
+
+TWBaseScript::MsgStatus TWTrapAIBreath::on_aialertness(sAIAlertnessMsg *msg, cMultiParm& reply)
+{
     // If the AI has its tweq set up, update the rate. Awareness levels are listed in
     // lg/defs.h eAIScriptAlertLevel, with the lowest level at 0 (kNoAlert) and highest
     // at 3 (kHighAlert). As the level will be used as a divisor, it must be 1 to 4.
-    int new_level = msg -> level + 1;
+    set_rate(msg -> level + 1);
+
+    return MS_CONTINUE;
+}
+
+
+void TWTrapAIBreath::set_rate(int new_level)
+{
+    SService<IPropertySrv> PropertySrv(g_pScriptManager);
+
     if(new_level && PropertySrv -> Possessed(ObjId(), "CfgTweqBlink")) {
 
         // POSSIBLE EXPANSION: instead of doing a basic divisor thing here, possibly
@@ -240,8 +303,6 @@ TWBaseScript::MsgStatus TWTrapAIBreath::set_rate(sAIAlertnessMsg *msg, cMultiPar
         PropertySrv -> Set(ObjId(), "CfgTweqBlink", "Rate", new_rate);
         PropertySrv -> Set(ObjId(), "StTweqBlink", "Cur Time", new_rate - 1);
     }
-
-    return MS_CONTINUE;
 }
 
 
@@ -266,7 +327,6 @@ int TWTrapAIBreath::get_breath_particles()
             if(has_attach) {
                 linkset links;
                 true_bool inherits;
-                debug_printf(DL_DEBUG, "Has attachment, looking for correct sfx");
 
                 // Check all the particle attachment links looking for a link from a particle that inherits
                 // from the archetype.

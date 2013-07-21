@@ -56,6 +56,7 @@ public:
     TWTrapAIBreath(const char* name, int object) : TWBaseTrap(name, object), stop_immediately(false), exhale_time(250), particle_arch_name(), cold_rooms(),
                                                    SCRIPT_VAROBJ(TWTrapAIBreath, base_rate, object),
                                                    SCRIPT_VAROBJ(TWTrapAIBreath, in_cold, object),
+                                                   SCRIPT_VAROBJ(TWTrapAIBreath, still_alive, object),
                                                    SCRIPT_VAROBJ(TWTrapAIBreath, breath_timer, object)
         { /* fnord */ }
 
@@ -110,6 +111,14 @@ protected:
     MsgStatus on_offmsg(sScrMsg* msg, cMultiParm& reply);
 
 private:
+    /** Abort the AI breath, deactivates the breth particle group immediately.
+     *
+     * @param cancel_timer If true, and the breath timer is active, this will
+     *                     cancel the timer.
+     */
+    void abort_breath(bool cancel_timer = true);
+
+
     /** Start the display of the AI's breath. This will check that the tweq
      *  provided is appropriate and, if it is, the particle group attached to
      *  the AI showing the breath is activated.
@@ -147,6 +156,30 @@ private:
     MsgStatus on_objroomtransit(sRoomMsg *msg, cMultiParm& reply);
 
 
+    /** Handle changes in the AI's mode. This is primarily needed to stop
+     *  the breath output if the AI is dead, but can be called on knockout.
+     *
+     * @param msg   A pointer to the message received by the object.
+     * @param reply A reference to a multiparm variable in which a reply can
+     *              be stored.
+     * @return A status value indicating whether the caller should continue
+     *         processing the message
+     */
+    MsgStatus on_aimodechange(sAIModeChangeMsg *msg, cMultiParm& reply);
+
+
+    /** Yep, he's not getting any better - deal with dead AIs by stopping
+     *  their breath.
+     *
+     * @param msg   A pointer to the message received by the object.
+     * @param reply A reference to a multiparm variable in which a reply can
+     *              be stored.
+     * @return A status value indicating whether the caller should continue
+     *         processing the message
+     */
+    MsgStatus on_slain(sScrMsg *msg, cMultiParm& reply);
+
+
     /** Update the breathing rate in response to AI Alertness changes. This
      *  will modify the breathing rate such that higher alertness levels will
      *  increase the breathing rate.
@@ -157,7 +190,14 @@ private:
      * @return A status value indicating whether the caller should continue
      *         processing the message
      */
-    MsgStatus set_rate(sAIAlertnessMsg *msg, cMultiParm& reply);
+    MsgStatus on_aialertness(sAIAlertnessMsg *msg, cMultiParm& reply);
+
+
+    /** Update the tweq rate in response to alertness changes.
+     *
+     * @param new_level The new alertness level, must be in the range 1 to 4.
+     */
+    void set_rate(int new_level = 1);
 
 
     /** Obtain the object ID of the particle group used to show the AI's breath.
@@ -190,6 +230,7 @@ private:
 
     // Persistent variables
     script_int               in_cold;            //!< Is the AI in a cold area?
+    script_int               still_alive;        //!< Is the AI alive?
     script_handle<tScrTimer> breath_timer;       //!< A timer used to deactivate the group after exhale_time
 };
 
