@@ -54,36 +54,36 @@ requirements, aesthetics, and mission temperature.
 - Add `SFX -> Particles`
 - Enter the following settings (if using fpuff, copy it from the demo map!):
 
-    Active: not checked  (**This is important! Do not set it active!**)
-    Render Type: Bitmap disk
-    Animation: Launched continually
-    Group motion: Attached to object
-    number of particles: 90
-    size of particle: 0.5
-    bitmap name: fpuff
-    velocity: 0 0 0
-    gravity vector: 0 0
-    alpha: 45
-    fixed-group radius: 1
-    launch period: 0.01
-    group-scale velocity: 1.25
-    bm-disk flags: use lighting, fade-in at birth, grow-in at birth
-    bm-disk birth time: 0.25
-    bm-disk rot: 3 0 1.3
-    bm-disk grow speed: 0.2
-    bm-disk rgb: 245 245 245
+        Active: not checked  (**This is important! Do not set it active!**)
+        Render Type: Bitmap disk
+        Animation: Launched continually
+        Group motion: Attached to object
+        number of particles: 90
+        size of particle: 0.5
+        bitmap name: fpuff
+        velocity: 0 0 0
+        gravity vector: 0 0
+        alpha: 45
+        fixed-group radius: 1
+        launch period: 0.01
+        group-scale velocity: 1.25
+        bm-disk flags: use lighting, fade-in at birth, grow-in at birth
+        bm-disk birth time: 0.25
+        bm-disk rot: 3 0 1.3
+        bm-disk grow speed: 0.2
+        bm-disk rgb: 245 245 245
 
 - Click `OK`
 - Select the `SFX -> Particle Launch Info` parameter, click `Edit`
 - Enter the following settings:
 
-    Launch type: Bounding Box
-    Box min: 0.75 -0.1 0.2
-    Box max: 0.75 0.1 0.2
-    Velocity min: 0 -0.5 -2
-    Velocity max: 3 0.5 2
-    Min time: 0.4
-    Max time: 1.0
+        Launch type: Bounding Box
+        Box min: 0.75 -0.1 0.2
+        Box max: 0.75 0.1 0.2
+        Velocity min: 0 -0.5 -2
+        Velocity max: 3 0.5 2
+        Min time: 0.4
+        Max time: 1.0
 
 - Click `OK`
 - Click `Done`
@@ -106,11 +106,11 @@ these steps as needed, unless you use `Animal` instead of `guard`.
 - Add -> `Tweq -> Flicker`
 - Enter the following settings (see note below about `Rate`):
 
-    Halt: Continue
-    AnimC: [None]
-    MiscC: Scripts
-    CurveC: [None]
-    Rate: 3000
+        Halt: Continue
+        AnimC: [None]
+        MiscC: Scripts
+        CurveC: [None]
+        Rate: 3000
 
 - Click `OK`
 - Select the `FlickerState` parameter, click `Edit`
@@ -121,10 +121,10 @@ these steps as needed, unless you use `Animal` instead of `guard`.
 - Add a ~ParticleAttachement link from `guard` to `AIBreath`
 - Select the new link, set its data to
 
-    Type: Joint
-    vhot #: 0
-    joint: Neck
-    submod #: 0
+        Type: Joint
+        vhot #: 0
+        joint: Neck
+        submod #: 0
 
 - Click `OK` twice
 - Add `Editor -> Design Note`
@@ -195,6 +195,7 @@ rather than wait on a fix for this issue, set this to true.
 ### Parameter: `TWTrapAIBreathExhaleTime`
 - Type: `integer`
 - Default: `250`
+
 The amount of time, in milliseconds, that the AI will exhale for at rest.
 This is the amount of time that the particle group will remain active for
 during every breath cycle. It is hard limited so that you can not set it

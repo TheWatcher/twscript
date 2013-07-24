@@ -84,3 +84,12 @@ div.version {
     margin-top: 1em;
     border-top: 1px solid #CCCCCC;
 }
+
+li p {
+    margin: 0px;
+    padding: 0px;
+}
+
+h3+ul {
+    margin: -10px 0px 0px 0px;
+}

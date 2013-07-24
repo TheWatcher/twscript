@@ -267,11 +267,19 @@ typedef ColdRoomMap::value_type ColdRoomPair; //!< Convenience type for ColdRoom
  * contains a comma!). Note that you must set up concrete rooms for all your
  * designated cold areas.
  *
+ * Parameter: TWTrapAIBreathLinkType
+ *      Type: string
+ *   Default: ~ParticleAttachement
+ * Allows the link type used to attach the paricle group to the AI to be changed
+ * from the default "~ParticleAttachement" to something else (like, for example,
+ * Contains. If you use this parameter, be sure to check the spelling of the
+ * link flavour - you will get errors in the monolog if the link type is
+ * incorrect.
  */
 class TWTrapAIBreath : public TWBaseTrap
 {
 public:
-    TWTrapAIBreath(const char* name, int object) : TWBaseTrap(name, object), stop_immediately(false), stop_on_ko(false), exhale_time(250), particle_arch_name(), cold_rooms(),
+    TWTrapAIBreath(const char* name, int object) : TWBaseTrap(name, object), stop_immediately(false), stop_on_ko(false), exhale_time(250), particle_arch_name(), particle_link_name(), cold_rooms(),
                                                    SCRIPT_VAROBJ(TWTrapAIBreath, base_rate, object),
                                                    SCRIPT_VAROBJ(TWTrapAIBreath, in_cold, object),
                                                    SCRIPT_VAROBJ(TWTrapAIBreath, still_alive, object),
@@ -442,6 +450,7 @@ private:
     bool                     stop_on_ko;         //!< Deactivate the particle group on knockout
     int                      exhale_time;        //!< How long to leave the particle group active for at a time
     std::string              particle_arch_name; //!< The name of the particle group archetype to use
+    std::string              particle_link_name; //!< The link flavour used to link the particles to the AI
     ColdRoomMap              cold_rooms;         //!< Which rooms are marked as cold?
 
     // Taken from TweqBlink rate
