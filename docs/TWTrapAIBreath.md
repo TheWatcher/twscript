@@ -223,3 +223,13 @@ You can specify multiple rooms by separating them with commas, and you can
 use concrete room IDs or concrete room names here (use the ID if the name
 contains a comma!). Note that you must set up concrete rooms for all your
 designated cold areas.
+
+### Parameter: `TWTrapAIBreathLinkType`
+- Type: `string`
+- Default: `~ParticleAttachement`
+
+Allows the link type used to attach the paricle group to the AI to be changed
+from the default `~ParticleAttachement` to something else (like, for example,
+`Contains`. If you use this parameter, be sure to check the spelling of the
+link flavour - you will get errors in the monolog if the link type is
+incorrect.
