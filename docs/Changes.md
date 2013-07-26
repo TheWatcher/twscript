@@ -5,6 +5,14 @@ significant and important changes, it is **not** an exhaustive changelog. If
 you want to see all of the changes in detail, you should look at the git
 commit log.
 
+### 2013-07-26 Version 2.0.6
+
+- If `TWTrapAIBreathStopOnKO` is set to `true`, the [TWTrapAIBreath](TWTrapAIBreath.html)
+  script uses the `IgnorePotion` message sent when an AI is knocked out to
+  stop the breath clouds as soon as the knockout occurs.
+
+- Added extra debugging for AIAwareness changes.
+
 ### 2013-07-24 Version 2.0.5
 
 - Added support for `TWTrapAIBreathLinkType` to [TWTrapAIBreath](TWTrapAIBreath.html)
