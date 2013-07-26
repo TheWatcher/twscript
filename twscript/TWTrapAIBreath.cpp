@@ -113,6 +113,9 @@ TWBaseScript::MsgStatus TWTrapAIBreath::on_message(sScrMsg* msg, cMultiParm& rep
     } else if(!::_stricmp(msg -> message, "Slain")) {
         return on_slain(msg, reply);
 
+    } else if(!::_stricmp(msg -> message, "IgnorePotion")) {
+        return on_ignorepotion(msg, reply);
+
     }
 
 
@@ -240,6 +243,28 @@ TWBaseScript::MsgStatus TWTrapAIBreath::on_objroomtransit(sRoomMsg *msg, cMultiP
 }
 
 
+TWBaseScript::MsgStatus TWTrapAIBreath::on_ignorepotion(sScrMsg *msg, cMultiParm& reply)
+{
+    // reset the rate: the AI is at rest (either temporarily or permanently!)
+    // so there's no point triggering the tweq more often than needed.
+    set_rate(1);
+
+    // If stop_on_ko is true, it doesn't matter if the AI is knocked out, the
+    // particles should be stopped.
+    if(stop_on_ko) {
+        if(debug_enabled())
+            debug_printf(DL_DEBUG, "Treating AI as dead and stopping breath.");
+
+        return on_slain(msg, reply);
+    }
+
+    if(debug_enabled())
+        debug_printf(DL_DEBUG, "AI is pining for the fjords.");
+
+    return MS_CONTINUE;
+}
+
+
 TWBaseScript::MsgStatus TWTrapAIBreath::on_aimodechange(sAIModeChangeMsg *msg, cMultiParm& reply)
 {
     SService<IObjectSrv> ObjectSrv(g_pScriptManager);
@@ -292,6 +317,10 @@ TWBaseScript::MsgStatus TWTrapAIBreath::on_slain(sScrMsg *msg, cMultiParm& reply
 
 TWBaseScript::MsgStatus TWTrapAIBreath::on_aialertness(sAIAlertnessMsg *msg, cMultiParm& reply)
 {
+    if(debug_enabled()) {
+        debug_printf(DL_DEBUG, "AI Alertness changed to %d from %d", msg -> level, msg -> oldLevel);
+    }
+
     // If the AI has its tweq set up, update the rate. Awareness levels are listed in
     // lg/defs.h eAIScriptAlertLevel, with the lowest level at 0 (kNoAlert) and highest
     // at 3 (kHighAlert). As the level will be used as a divisor, it must be 1 to 4.
@@ -310,6 +339,10 @@ void TWTrapAIBreath::set_rate(int new_level)
         // POSSIBLE EXPANSION: instead of doing a basic divisor thing here, possibly
         // allow the user to specify scaling values per alerness level?
         int new_rate = base_rate / new_level;
+
+        if(debug_enabled()) {
+            debug_printf(DL_DEBUG, "New rate is %d", new_rate);
+        }
 
         PropertySrv -> Set(ObjId(), "CfgTweqBlink", "Rate", new_rate);
         PropertySrv -> Set(ObjId(), "StTweqBlink", "Cur Time", new_rate - 1);

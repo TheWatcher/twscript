@@ -382,6 +382,18 @@ private:
     MsgStatus on_objroomtransit(sRoomMsg *msg, cMultiParm& reply);
 
 
+    /** Handle the IgnorePotion message - this is set when the AI gets
+     *  knocked out, so use it as an indicator of knockedoutedness.
+     *
+     * @param msg   A pointer to the message received by the object.
+     * @param reply A reference to a multiparm variable in which a reply can
+     *              be stored.
+     * @return A status value indicating whether the caller should continue
+     *         processing the message
+     */
+    MsgStatus on_ignorepotion(sScrMsg *msg, cMultiParm& reply);
+
+
     /** Handle changes in the AI's mode. This is primarily needed to stop
      *  the breath output if the AI is dead, but can be called on knockout.
      *
