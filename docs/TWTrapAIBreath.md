@@ -104,7 +104,7 @@ these steps as needed, unless you use `Animal` instead of `guard`.
 - Set Script 0 to `TWTrapAIBreath`
 - Click `OK`
 - Add -> `Tweq -> Flicker`
-- Enter the following settings (see note below about `Rate`):
+- Enter the following settings:
 
         Halt: Continue
         AnimC: [None]
@@ -133,21 +133,9 @@ these steps as needed, unless you use `Animal` instead of `guard`.
 - Click `Done`
 - Click `Close`
 
-The rate set in the `Tweq -> Flicker` is the 'base breathing rate' for the
-AI: this is how long, in milliseconds, between one inhale and another. For
-a normal human at rest that's generally about 3 to 5 seconds (3000 to 5000
-milliseconds). As AIs will usually be walking around doing things even 'at
-rest', going for the lower value is probably better, but you should
-experiment to see what feels best for you.
-
 ## Configuration
 
-The base breathing rate for the AI (the breathing rate when the AI is at the
-lowest alertness level, or when knocked out) is taken from the `Rate` setting
-in the `Tweq -> Flicker` set on the AI. This should have been created as part
-of the Initial Setup discussed above.
-
-Remaining params are specified using the Editor -> Design Note, please see the
+The script's params are specified using the Editor -> Design Note, please see the
 main documentation for more about this.  Parameters supported by **TWTrapAIBreath**
 are listed below. If a parameter is not specified, the default value shown is
 used instead. Note that all the parameters are optional, and if you do not
@@ -156,6 +144,29 @@ you probably want to set at least the `TWTrapAIBreathColdRooms` parameter.
 
 Note that, in addition to the parameters listed here, this script supports the
 parameters described in the [TWBaseTrap.html](TWBaseTrap.html) file.
+
+### Parameter: `TWTrapAIBreathRate0`
+- Type: `integer`
+- Default: `3000`
+
+This controls the the base breathing rate, the rate used when the AI is
+at rest (alertness level 0). This is how long, in milliseconds, between one
+inhale and another. For a normal human at rest that's generally about 3 to 5
+seconds (3000 to 5000 milliseconds). As AIs will usually be walking around doing
+things even 'at rest', going for the lower value is probably better, but you
+should experiment to see what feels best for you. The base rate is used to
+calculate the default values for the other three alertness levels (1, 2, and 3).
+
+### Parameter: `TWTrapAIBreathRate1`, `TWTrapAIBreathRate2`, `TWTrapAIBreathRate3`
+- Type: `integer`
+- Default: calculated from `TWTrapAIBreathRate0`
+
+These parameters allow the default values calculated from the base rate to be
+overridden with rates you feel more appropriate to the alertness levels. Rate1
+is used when the AI is at low alertness, Rate2 when the AI is at medium, and
+Rate3 is used when the AI is at high alterness and actively searching, persuing,
+or attacking the player. If the AI is at high alterness but is not actively
+searching, persuing, or attacking then Rate2 is used instead.
 
 ### Parameter: `TWTrapAIBreathInCold`
 - Type: `boolean`

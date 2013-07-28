@@ -5,6 +5,17 @@ significant and important changes, it is **not** an exhaustive changelog. If
 you want to see all of the changes in detail, you should look at the git
 commit log.
 
+### 2013-07-28 Version 2.0.7
+
+- Removed direct use of flicker tweq for base breathing rate in [TWTrapAIBreath](TWTrapAIBreath.html),
+  replaced with `TWTrapAIBreathRate0` for base rate and `TWTrapAIBreathRate1`,
+  `TWTrapAIBreathRate2`, and `TWTrapAIBreathRate3` for editor control over
+  breathing rates at each awareness level.
+
+- [TWTrapAIBreath](TWTrapAIBreath.html) will scale back the breathing rate
+  from Rate3 to Rate2 if an AI on high alertness does not have an `AIInvest`
+  link (ie: it is not currently searching, persuing, or attacking the player).
+
 ### 2013-07-26 Version 2.0.6
 
 - If `TWTrapAIBreathStopOnKO` is set to `true`, the [TWTrapAIBreath](TWTrapAIBreath.html)

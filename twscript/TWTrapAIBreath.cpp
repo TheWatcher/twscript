@@ -16,11 +16,20 @@ void TWTrapAIBreath::init(int time)
     // AIs generally start off alive, or they wouldn't have this script on them!
     still_alive.Init(1);
 
+    // Default the base rate
+    rates[0] = 3000;
+
     // Fetch the contents of the object's design note
     char *design_note = GetObjectParams(ObjId());
 
     if(!design_note) {
         debug_printf(DL_WARNING, "No Editor -> Design Note. Falling back on defaults.");
+
+        // Work out rates based on the base using a simple division
+        for(int level = 1; level < 4; ++level) {
+            rates[level] = rates[0] / level;
+        }
+
     } else {
         // Should the AI start off in the cold?
         if(!in_cold.Valid()) {
@@ -35,6 +44,17 @@ void TWTrapAIBreath::init(int time)
 
         // How long, in milliseconds, should the exhale last
         exhale_time = get_scriptparam_int(design_note, "ExhaleTime", 250);
+
+        // Allow the base rate to be overridden, and recalculated the defaults
+        rates[0] = get_scriptparam_int(design_note, "Rate0", rates[0]);
+        for(int level = 1; level < 4; ++level) {
+            rates[level] = rates[0] / level;
+        }
+
+        // Allow override of the default rates
+        rates[1] = get_scriptparam_int(design_note, "Rate1", rates[1]);
+        rates[2] = get_scriptparam_int(design_note, "Rate2", rates[2]);
+        rates[3] = get_scriptparam_int(design_note, "Rate3", rates[3]);
 
         // Sort out the archetype for the particle
         char *sfx_name = get_scriptparam_string(design_note, "SFX", "AIBreath");
@@ -58,34 +78,31 @@ void TWTrapAIBreath::init(int time)
         g_pMalloc -> Free(design_note);
     }
 
-    if(!base_rate.Valid()) {
-        // Now work out the base rate
-        SService<IPropertySrv> PropertySrv(g_pScriptManager);
-        if(PropertySrv -> Possessed(ObjId(), "CfgTweqBlink")) {
-            cMultiParm rate_param;
-
-            PropertySrv -> Get(rate_param, ObjId(), "CfgTweqBlink", "Rate");
-            base_rate = static_cast<int>(rate_param);
-        } else {
-            debug_printf(DL_WARNING, "CfgTweqBlink missing on object. Script will not function!");
-        }
-
-        // Make sure a base rate is set, just in case.
-        if(!base_rate) {
-            debug_printf(DL_WARNING, "No base rate set, falling back on default");
-
-            // Average human at-rest breating rate is 12 to 24 breaths per minute. AIs are usually moving, so the
-            // higher end is more likely as a sane value. 60000 milliseconds / 20 breaths per minute =
-            base_rate = 3000;
-        }
-    }
-
     if(debug_enabled()) {
         debug_printf(DL_DEBUG, "Initialised on object. Settings:");
         debug_printf(DL_DEBUG, "In cold: %s, stop breath immediately: %s", in_cold ? "yes" : "no", stop_immediately ? "yes" : "no");
-        debug_printf(DL_DEBUG, "Exhale time: %dms, Rest rate: %dms", exhale_time, int(base_rate));
+        debug_printf(DL_DEBUG, "Exhale time: %dms", exhale_time);
+        debug_printf(DL_DEBUG, "Breathing rates (in ms) None: %d, Low: %d, Medium: %d, High: %d", rates[0], rates[1], rates[2], rates[3]);
         debug_printf(DL_DEBUG, "SFX name: %s", particle_arch_name.c_str());
     }
+
+    // Now update the breathing rate based on alertness
+    SService<IAIScrSrv> AISrv(g_pScriptManager);
+    int new_rate = AISrv -> GetAlertLevel(ObjId());
+
+    // The rate gets reset to 0 if the AI is dead or unconscious
+    int knockedout = StrToObject("M-KnockedOut");
+    if(knockedout) {
+        SService<IObjectSrv> ObjectSrv(g_pScriptManager);
+        true_bool just_resting;
+        ObjectSrv -> HasMetaProperty(just_resting, ObjId(), knockedout);
+
+        if(just_resting) new_rate = 0;
+    }
+
+    if(!still_alive) new_rate = 0;
+
+    set_rate(new_rate);
 }
 
 
@@ -225,6 +242,9 @@ TWBaseScript::MsgStatus TWTrapAIBreath::stop_breath(sScrTimerMsg *msg, cMultiPar
     // Only bother doing anything if the timer name is correct.
     if(!::_stricmp(msg -> name, "StopBreath")) {
         abort_breath(false);
+
+        // Check the AI alertness, just in case the rate needs to be lowered
+        check_ai_reallyhigh();
     }
 
     return MS_CONTINUE;
@@ -247,7 +267,7 @@ TWBaseScript::MsgStatus TWTrapAIBreath::on_ignorepotion(sScrMsg *msg, cMultiParm
 {
     // reset the rate: the AI is at rest (either temporarily or permanently!)
     // so there's no point triggering the tweq more often than needed.
-    set_rate(1);
+    set_rate(0);
 
     // If stop_on_ko is true, it doesn't matter if the AI is knocked out, the
     // particles should be stopped.
@@ -273,7 +293,7 @@ TWBaseScript::MsgStatus TWTrapAIBreath::on_aimodechange(sAIModeChangeMsg *msg, c
     if(msg -> mode == kAIM_Dead) {
         // reset the rate: the AI is at rest (either temporarily or permanently!)
         // so there's no point triggering the tweq more often than needed.
-        set_rate(1);
+        set_rate(0);
 
         // If stop_on_ko is true, it doesn't matter if the AI is knocked out...
         if(!stop_on_ko) {
@@ -323,8 +343,8 @@ TWBaseScript::MsgStatus TWTrapAIBreath::on_aialertness(sAIAlertnessMsg *msg, cMu
 
     // If the AI has its tweq set up, update the rate. Awareness levels are listed in
     // lg/defs.h eAIScriptAlertLevel, with the lowest level at 0 (kNoAlert) and highest
-    // at 3 (kHighAlert). As the level will be used as a divisor, it must be 1 to 4.
-    set_rate(msg -> level + 1);
+    // at 3 (kHighAlert).
+    set_rate(msg -> level);
 
     return MS_CONTINUE;
 }
@@ -334,18 +354,57 @@ void TWTrapAIBreath::set_rate(int new_level)
 {
     SService<IPropertySrv> PropertySrv(g_pScriptManager);
 
-    if(new_level && PropertySrv -> Possessed(ObjId(), "CfgTweqBlink")) {
-
-        // POSSIBLE EXPANSION: instead of doing a basic divisor thing here, possibly
-        // allow the user to specify scaling values per alerness level?
-        int new_rate = base_rate / new_level;
+    if(new_level != last_level && new_level >= 0 && new_level <= 3 && PropertySrv -> Possessed(ObjId(), "CfgTweqBlink")) {
+        last_level = new_level;
 
         if(debug_enabled()) {
-            debug_printf(DL_DEBUG, "New rate is %d", new_rate);
+            debug_printf(DL_DEBUG, "New rate is %d", rates[new_level]);
         }
 
-        PropertySrv -> Set(ObjId(), "CfgTweqBlink", "Rate", new_rate);
-        PropertySrv -> Set(ObjId(), "StTweqBlink", "Cur Time", new_rate - 1);
+        PropertySrv -> Set(ObjId(), "CfgTweqBlink", "Rate", rates[new_level]);
+        PropertySrv -> Set(ObjId(), "StTweqBlink", "Cur Time", rates[new_level] - 1);
+    }
+}
+
+
+void TWTrapAIBreath::check_ai_reallyhigh()
+{
+    SService<IAIScrSrv>     AISrv(g_pScriptManager);
+    SService<ILinkSrv>      LinkSrv(g_pScriptManager);
+    SService<ILinkToolsSrv> LinkToolsSrv(g_pScriptManager);
+
+    // First obtain the AI's alertness level
+    eAIScriptAlertLevel level = AISrv -> GetAlertLevel(ObjId());
+
+    // If the AI is on high alert, check whether it has an AIInvest link. If it
+    // does, the AI is on high alert and in search/pursuit/attack mode, otherwise
+    // it has gone back on patrol, but hasn't updated its awareness yet
+    if(level == kHighAlert) {
+
+        // Knocked out AIs can be on high alert, so check for that...
+        int knockedout = StrToObject("M-KnockedOut");
+        if(knockedout) {
+            SService<IObjectSrv> ObjectSrv(g_pScriptManager);
+            true_bool just_resting;
+            ObjectSrv -> HasMetaProperty(just_resting, ObjId(), knockedout);
+
+            // If the AI is not knocked out, check whether it is searching/attacking
+            if(!just_resting) {
+                true_bool has_invest;
+                LinkSrv -> AnyExist(has_invest, LinkToolsSrv -> LinkKindNamed("AIInvest"), ObjId(), 0);
+
+                // AI Doesn't have an invest link? Pretend the AI is a level lower
+                if(!has_invest && (last_level != (level - 1))) {
+                    if(debug_enabled()) {
+                        debug_printf(DL_DEBUG, "AI has no AIInvest link at high alert, downgrading to medium");
+                    }
+
+                    set_rate(level - 1);
+                }
+            } else {
+                set_rate(0);
+            }
+        }
     }
 }
 

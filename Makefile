@@ -32,7 +32,7 @@
 # Update these with the name of your script file, and the output .osm
 MYSCRIPT  = TWScript
 MYOSM     = twscript.osm
-SCRIPTVER = 2.0.6
+SCRIPTVER = 2.0.7
 
 # Change this to `1` for Thief 1, 3 for SS2.
 GAME      = 2

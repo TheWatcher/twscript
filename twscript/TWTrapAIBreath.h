@@ -185,26 +185,34 @@ typedef ColdRoomMap::value_type ColdRoomPair; //!< Convenience type for ColdRoom
  * - Click `Done`
  * - Click `Close`
  *
- * The rate set in the `Tweq -> Flicker` is the 'base breathing rate' for the
- * AI: this is how long, in milliseconds, between one inhale and another. For
- * a normal human at rest that's generally about 3 to 5 seconds (3000 to 5000
- * milliseconds). As AIs will usually be walking around doing things even 'at
- * rest', going for the lower value is probably better, but you should
- * experiment to see what feels best for you.
- *
  * Configuration
  * -------------
  *
- * The base breathing rate for the AI (the breathing rate when the AI is at the
- * lowest alertness level, or when knocked out) is taken from the `Rate` setting
- * in the `Tweq -> Flicker` set on the AI. This should have been created as part
- * of the Initial Setup discussed above.
- *
- * Remaining params are specified using the Editor -> Design Note, please see the
+ * The script params are specified using the Editor -> Design Note, please see the
  * main documentation for more about this.  Parameters supported by TWTrapAIBreath
  * are listed below. If a parameter is not specified, the default value shown is
  * used instead. Note that all the parameters are optional, and if you do not
  * specify a parameter, the script will attempt to use a 'sane' default.
+ *
+ * Parameter: TWTrapAIBreathRate0
+ *      Type: integer
+ *   Default: 3000
+ * This controls the the base breathing rate, the rate used when the AI is
+ * at rest (alertness level 0). This is how long, in milliseconds, between one
+ * inhale and another. For a normal human at rest that's generally about 3 to 5
+ * seconds (3000 to 5000 milliseconds). As AIs will usually be walking around doing
+ * things even 'at rest', going for the lower value is probably better, but you
+ * should experiment to see what feels best for you. The base rate is used to
+ * calculate the default values for the other three alertness levels (1, 2, and 3).
+ *
+ * Parameter: TWTrapAIBreathRate1, TWTrapAIBreathRate2, TWTrapAIBreathRate3
+ *      Type: integer
+ * These parameters allow the default values calculated from the base rate to be
+ * overridden with rates you feel more appropriate to the alertness levels. Rate1
+ * is used when the AI is at low alertness, Rate2 when the AI is at medium, and
+ * Rate3 is used when the AI is at high alterness and actively searching, persuing,
+ * or attacking the player. If the AI is at high alterness but is not actively
+ * searching, persuing, or attacking then Rate2 is used instead.
  *
  * Parameter: TWTrapAIBreathInCold
  *      Type: boolean
@@ -279,8 +287,7 @@ typedef ColdRoomMap::value_type ColdRoomPair; //!< Convenience type for ColdRoom
 class TWTrapAIBreath : public TWBaseTrap
 {
 public:
-    TWTrapAIBreath(const char* name, int object) : TWBaseTrap(name, object), stop_immediately(false), stop_on_ko(false), exhale_time(250), particle_arch_name(), particle_link_name(), cold_rooms(),
-                                                   SCRIPT_VAROBJ(TWTrapAIBreath, base_rate, object),
+    TWTrapAIBreath(const char* name, int object) : TWBaseTrap(name, object), stop_immediately(false), stop_on_ko(false), exhale_time(250), rates{0, 0, 0, 0}, last_level(-1), particle_arch_name(), particle_link_name(), cold_rooms(),
                                                    SCRIPT_VAROBJ(TWTrapAIBreath, in_cold, object),
                                                    SCRIPT_VAROBJ(TWTrapAIBreath, still_alive, object),
                                                    SCRIPT_VAROBJ(TWTrapAIBreath, breath_timer, object)
@@ -438,6 +445,15 @@ private:
     void set_rate(int new_level = 1);
 
 
+    /** Determine whether an AI on high alert is in active search/pursuit/attack
+     *  mode, or really in a high alert patrol. If the AI is not at high alert,
+     *  this does nothing. Similartly, if the AI is at high alert and is actively
+     *  searching, pursuing, or attacking then this does nothing. If the AI as at
+     *  high alert but is on patrol, this reduces the breathing rate to medium.
+     */
+    void check_ai_reallyhigh();
+
+
     /** Obtain the object ID of the particle group used to show the AI's breath.
      *  This looks for the first ~ParticleAttachement link to a particle group that
      *  inherits from particle_arch_name, and returns the ID of the object at the
@@ -461,12 +477,11 @@ private:
     bool                     stop_immediately;   //!< Stop the particle group immediately on leaving the cold?
     bool                     stop_on_ko;         //!< Deactivate the particle group on knockout
     int                      exhale_time;        //!< How long to leave the particle group active for at a time
+    int                      rates[4];           //!< Breathing rates, in millisecods, for each awareness level.
+    int                      last_level;         //!< Which level is currently set?
     std::string              particle_arch_name; //!< The name of the particle group archetype to use
     std::string              particle_link_name; //!< The link flavour used to link the particles to the AI
     ColdRoomMap              cold_rooms;         //!< Which rooms are marked as cold?
-
-    // Taken from TweqBlink rate
-    script_int               base_rate;          //!< What is the base breathing rate?
 
     // Persistent variables
     script_int               in_cold;            //!< Is the AI in a cold area?
