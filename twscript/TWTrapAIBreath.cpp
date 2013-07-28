@@ -394,7 +394,9 @@ void TWTrapAIBreath::check_ai_reallyhigh()
                 LinkSrv -> AnyExist(has_invest, LinkToolsSrv -> LinkKindNamed("AIInvest"), ObjId(), 0);
 
                 // AI Doesn't have an invest link? Pretend the AI is a level lower
-                if(!has_invest && (last_level != (level - 1))) {
+                if(has_invest) {
+                    set_rate(level);
+                } else if(last_level != (level - 1)) {
                     if(debug_enabled()) {
                         debug_printf(DL_DEBUG, "AI has no AIInvest link at high alert, downgrading to medium");
                     }
