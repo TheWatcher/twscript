@@ -37,7 +37,7 @@ STDMETHODIMP TWBaseScript::ReceiveMessage(sScrMsg* msg, sMultiParm* reply, eScrT
     message_time = msg -> time;
     if(!::_stricmp(msg -> message, "Sim"))
     {
-        sim_running = static_cast<sSimMsg *>(msg) -> fStarting;
+        sim_running = static_cast<sSimMsg*>(msg) -> fStarting;
     }
 
     try {
@@ -334,7 +334,7 @@ float TWBaseScript::parse_float(const char* param, float def_val, std::string& q
 }
 
 
-void TWBaseScript::get_scriptparam_valuefalloff(char* design_note, const char* param, int *value, int *falloff)
+void TWBaseScript::get_scriptparam_valuefalloff(char* design_note, const char* param, int* value, int* falloff)
 {
     std::string workstr = param;
 
@@ -402,13 +402,13 @@ float TWBaseScript::get_scriptparam_float(const char* design_note, const char* p
 }
 
 
-int TWBaseScript::get_scriptparam_int(const char *design_note, const char *param, int def_val)
+int TWBaseScript::get_scriptparam_int(const char* design_note, const char* param, int def_val)
 {
     int result = def_val;
-    char *value = get_scriptparam_string(design_note, param);
+    char* value = get_scriptparam_string(design_note, param);
 
     if(value) {
-        char *workptr = value;
+        char* workptr = value;
 
         // Skip any leading whitespace
         while(isspace(*workptr)) {
@@ -433,7 +433,7 @@ int TWBaseScript::get_scriptparam_int(const char *design_note, const char *param
 }
 
 
-bool TWBaseScript::get_scriptparam_bool(const char *design_note, const char *param, bool def_val)
+bool TWBaseScript::get_scriptparam_bool(const char* design_note, const char* param, bool def_val)
 {
     std::string namestr = Name();
     namestr += param;
@@ -499,7 +499,7 @@ int TWBaseScript::get_qvar_namelen(const char* namestr)
  *  Targetting
  */
 
-std::vector<object>* TWBaseScript::get_target_objects(const char* target, sScrMsg *msg)
+std::vector<object>* TWBaseScript::get_target_objects(const char* target, sScrMsg* msg)
 {
     std::vector<object>* matches = new std::vector<object>;
 
@@ -516,6 +516,10 @@ std::vector<object>* TWBaseScript::get_target_objects(const char* target, sScrMs
 
     } else if(!_stricmp(target, "[source]")) {
         matches -> push_back(msg -> from);
+
+    // linked objects
+    } else if(*target == '&') {
+        link_search(matches, &target[1]);
 
     // Archetype search, direct concrete and indirect concrete
     } else if(*target == '*' || *target == '@') {
@@ -548,7 +552,7 @@ std::vector<object>* TWBaseScript::get_target_objects(const char* target, sScrMs
 
 void TWBaseScript::init(int time)
 {
-    char *design_note = GetObjectParams(ObjId());
+    char* design_note = GetObjectParams(ObjId());
 
     if(design_note) {
         debug = get_scriptparam_bool(design_note, "Debug");
@@ -572,7 +576,7 @@ long TWBaseScript::dispatch_message(sScrMsg* msg, sMultiParm* reply)
     // Only bother checking for fixup stuff if it hasn't been done.
     if(need_fixup) {
         // On starting sim, fix any links if possible
-        if(!::_stricmp(msg -> message, "Sim") && static_cast<sSimMsg *>(msg) -> fStarting) {
+        if(!::_stricmp(msg -> message, "Sim") && static_cast<sSimMsg*>(msg) -> fStarting) {
             fixup_player_links();
 
         // Catch and handle the deferred player link fixup if needed
@@ -610,7 +614,7 @@ void TWBaseScript::fixup_player_links(void)
 }
 
 
-void TWBaseScript::archetype_search(std::vector<object> *matches, const char* archetype, bool do_full, bool do_radius, object from_obj, float radius, bool lessthan)
+void TWBaseScript::archetype_search(std::vector<object>* matches, const char* archetype, bool do_full, bool do_radius, object from_obj, float radius, bool lessthan)
 {
     // Get handles to game interfaces here for convenience
     SInterface<IObjectSystem> ObjectSys(g_pScriptManager);
@@ -662,7 +666,13 @@ void TWBaseScript::archetype_search(std::vector<object> *matches, const char* ar
 }
 
 
-bool TWBaseScript::radius_search(const char* target, float *radius, bool *lessthan, const char* *archetype)
+void TWBaseScript::link_search(std::vector<object>* matches, const char* linkdesc)
+{
+
+}
+
+
+bool TWBaseScript::radius_search(const char* target, float* radius, bool* lessthan, const char** archetype)
 {
     char mode = 0; // This gets set to '>' or '<' if a mode is found in the string
     const char* search = target;
@@ -714,13 +724,13 @@ float TWBaseScript::get_qvar(const char* qvar, float def_val)
 }
 
 
-char* TWBaseScript::parse_qvar(const char* qvar, char** lhs, char* op, char **rhs)
+char* TWBaseScript::parse_qvar(const char* qvar, char** lhs, char* op, char** rhs)
 {
     char* buffer = new char[strlen(qvar) + 1];
     if(!buffer) return NULL;
     strcpy(buffer, qvar);
 
-    char *workstr = buffer;
+    char* workstr = buffer;
 
     // skip any leading spaces or $
     while(*workstr && (isspace(*workstr) || *workstr == '$')) {
@@ -730,7 +740,7 @@ char* TWBaseScript::parse_qvar(const char* qvar, char** lhs, char* op, char **rh
     *lhs = workstr;
 
     // Search for an operator
-    char *endstr = NULL;
+    char* endstr = NULL;
     *op = '\0';
     while(*workstr) {
         // NOTE: '-' is not included here. LarryG encountered problems with using QVar names containing

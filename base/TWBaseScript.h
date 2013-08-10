@@ -102,7 +102,7 @@ protected:
     enum MsgStatus {
         MS_CONTINUE = 0, //!< Continue processing, msg hasn't been handled, or has but can be further processed
         MS_HALT,         //!< Indicates that the message has been handled, and needs no further processing
-        MS_ERROR,        //!< An error occured, don't continue processing
+        MS_ERROR,        //!< An error occurred, don't continue processing
     };
 
 
@@ -149,7 +149,7 @@ protected:
 
     /** Send a message to the specified object, and store the result in the
      *  reply parameter. This sends a message and waits for it to be processed
-     *  (so you probably want to avoid indirect recusion...).
+     *  (so you probably want to avoid indirect recursion...).
      *
      * @warning The arguments to this function are in a different order to those
      *          for Telliamed's BaseScript::SendMessage()!
@@ -298,7 +298,7 @@ protected:
      * @param obj_id The ID of the object to obtain the name and number of. If not
      *               provided, this defaults to the current object ID.
      */
-    void get_object_namestr(std::string &name, object obj_id);
+    void get_object_namestr(std::string& name, object obj_id);
 
 
     /** Obtain a string containing the current object's name (or archetype name),
@@ -307,7 +307,7 @@ protected:
      *
      * @param name   A reference to a string object to store the name in.
      */
-    void get_object_namestr(std::string &name);
+    void get_object_namestr(std::string& name);
 
 
     /* ------------------------------------------------------------------------
@@ -414,7 +414,7 @@ protected:
      *                    the int pointed to by this will be set to 0. If
      *                    you do not need to parse a falloff, set this to NULL.
      */
-    void get_scriptparam_valuefalloff(char* design_note, const char* param, int *value = NULL, int *falloff = NULL);
+    void get_scriptparam_valuefalloff(char* design_note, const char* param, int* value = NULL, int* falloff = NULL);
 
 
     /** Read a float parameter from a design note string. If the value specified
@@ -463,7 +463,7 @@ protected:
      * @return The value specified in the parameter, or the int read from the qvar
      *         named in the parameter.
      */
-    int get_scriptparam_int(const char *design_note, const char *param, int def_val = 0);
+    int get_scriptparam_int(const char* design_note, const char* param, int def_val = 0);
 
 
     /** Parse a boolean parameter from the specified design note. This behaves identically
@@ -476,7 +476,7 @@ protected:
      * @param def_val     The default value to use if the parameter does not exist.
      * @return The value specified in the parameter, or the default value.
      */
-    bool get_scriptparam_bool(const char *design_note, const char *param, bool def_val = false);
+    bool get_scriptparam_bool(const char* design_note, const char* param, bool def_val = false);
 
 
     /** Read a string from a design note. This will attempt to locate the first
@@ -546,7 +546,7 @@ protected:
      *  is '[source]' the source object is returned, if targ contains an object
      *  id or name, the id of that object is returned. If targ starts with * then
      *  the remainder of the string is used as an archetype name and all direct
-     *  concrete descendents of that archetype are returned. If targ starts with
+     *  concrete descendants of that archetype are returned. If targ starts with
      *  @ then all concrete descendants (direct and indirect) are returned. If
      *  targ contains a < or > then a radius search is performed.
      *
@@ -556,7 +556,7 @@ protected:
      * @return A vector of object ids the target string matches. The caller must
      *         free this when done with it.
      */
-    std::vector<object>* get_target_objects(const char* targ, sScrMsg *msg = NULL);
+    std::vector<object>* get_target_objects(const char* targ, sScrMsg* msg = NULL);
 
 
 private:
@@ -564,7 +564,7 @@ private:
      *  Message handling
      */
 
-    /** Handle message despatch. This enforces some low-level vital message processing
+    /** Handle message dispatch. This enforces some low-level vital message processing
      *  before passing the message to on_message to actually handle.
      *
      * @param msg   A pointer to the message received by the object.
@@ -611,7 +611,47 @@ private:
      * @param lessthan  If true, objects must fall within the sphere around from_obj,
      *                  if false they must be outside it.
      */
-    void archetype_search(std::vector<object> *matches, const char* archetype, bool do_full = false, bool do_radius = false, object from_obj = 0, float radius = 0.0f, bool lessthan = false);
+    void archetype_search(std::vector<object>* matches, const char* archetype, bool do_full = false, bool do_radius = false, object from_obj = 0, float radius = 0.0f, bool lessthan = false);
+
+
+    /** Generate a list of objects linked to the host object based on the specified
+     *  link definition. This will use the specified link definition to determine
+     *  which links to search for, and adds the link destination objects to the
+     *  specified list. By default, the linkdef is the name of the link flavour to
+     *  search for, if the linkdef is preceded with '?' then one of the possible
+     *  links is chosen at random, and the destination object added to the list.
+     *  If remove_random_link is true, the randomly chosen link is removed after
+     *  the destination object is recorded. If the link flavour is prefixed with
+     *  + then only links to concrete objects are considered, conversely if it is
+     *  prefixed with % then only links to archetypes are considered (if neither
+     *  + or % are specified links to both concrete and archetype objects are
+     *  considered). If the linkdef specifies the flavour "Weighted", the search
+     *  inspects all the ScriptParams links from the host object, and uses the
+     *  integer values set in the link data to determine which random link to
+     *  choose based on the weightings. If a ScriptParams link does not contain
+     *  an integer weight, it defaults to 1. + and % may be used with Weighted
+     *  to select only links to concrete or archetype objects. Finally, the flavour
+     *  may be prefixed with [N], where 'N' is the maximum number of linked objects to
+     *  fetch. If not specified, if random mode is not enabled, all linked are
+     *  returned. If random mode is enabled, or the flavour specified is 'Weighted',
+     *  only a single linked object is selected.
+     *
+     *  For example, this will fetch three random ControlDevice links to concrete
+     *  objects:
+     *
+     *      ?+[3]ControlDevice
+     *
+     *  The order of sigils doesn't matter, so the same could be expressed using
+     *
+     *      [3]?+ControlDevice
+     *
+     * @param matches A pointer to the vector to store object IDs in.
+     * @param linkdef A pointer to a string describing the links to fetch.
+     * @param remove_random_link If set to true, and a random mode has been set
+     *                (either via ? or setting the flavour to "Weighted"), links
+     *                selected are removed.
+     */
+    void link_search(std::vector<object>* matches, const char* linkdef, bool remove_random_link = false)
 
 
     /** Determine whether the specified target string is a radius search, and if so
@@ -627,7 +667,7 @@ private:
      *                  archetype name.
      * @return true if the target string is a radius search, false otherwise.
      */
-    bool radius_search(const char* target, float *radius, bool *lessthan, const char* *archetype);
+    bool radius_search(const char* target, float* radius, bool* lessthan, const char** archetype);
 
 
     /** Fetch the value in the specified QVar if it exists, return the default if it
@@ -637,7 +677,7 @@ private:
      * @param def_val The default value to return if the qvar does not exist.
      * @return The QVar value, or the default specified.
      */
-    int get_qvar(const char *name, int def_val);
+    int get_qvar(const char* name, int def_val);
 
 
     /** Fetch the value in the specified QVar if it exists, return the default if it
@@ -647,7 +687,7 @@ private:
      * @param def_val The default value to return if the qvar does not exist.
      * @return The QVar value, or the default specified.
      */
-    float get_qvar(const char *name, float def_val);
+    float get_qvar(const char* name, float def_val);
 
 
     /** Parse the pieces of a qvar name string, potentially including a simple calculation.
@@ -664,7 +704,7 @@ private:
      * @return A pointer to a buffer containing a processed version of `qvar`. This should
      *         be freed by the called using `g_pMalloc -> Free()`.
      */
-    char* parse_qvar(const char* qvar, char** lhs, char* op, char **rhs);
+    char* parse_qvar(const char* qvar, char** lhs, char* op, char** rhs);
 
 
     /** Split a string at a comma. This locates the first comma in the specified string,
