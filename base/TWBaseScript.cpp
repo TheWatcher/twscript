@@ -666,7 +666,18 @@ void TWBaseScript::archetype_search(std::vector<object>* matches, const char* ar
 }
 
 
-void TWBaseScript::link_search(std::vector<object>* matches, const char* linkdesc)
+void TWBaseScript::link_search(std::vector<object>* matches, const char* linkdef)
+{
+    bool is_random = false, is_weighted = false, ;
+    uint fetch_count = 0;
+    LinkSearchMode mode = LSM_BOTH;
+
+    const char* flavour = link_search_setup(linkdef, &is_random, &is_weighted, &fetch_count, &mode);
+
+}
+
+
+const char* TWBaseScript::link_search_setup(const char *linkdef, bool* is_random, bool* is_weighted, uint* fetch_count, LinkSearchMode* mode)
 {
 
 }

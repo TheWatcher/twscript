@@ -651,7 +651,41 @@ private:
      *                (either via ? or setting the flavour to "Weighted"), links
      *                selected are removed.
      */
-    void link_search(std::vector<object>* matches, const char* linkdef, bool remove_random_link = false)
+    void link_search(std::vector<object>* matches, const char* linkdef, bool remove_random_link = false);
+
+
+    /** An enum used to help keep track of whether the link_search() function should
+     *  be returning concrete object ids, archetype ids, or both.
+     */
+    enum LinkSearchMode {
+        LSM_BOTH,
+        LSM_CONCRETE,
+        LSM_ARCHETYPE
+    };
+
+
+    /** Process any sigils included in the specified linkdef. This will scan the
+     *  specified linkdef for recognised sigils, and set the options for the link
+     *  search appropriately.
+     *
+     * @note Settings are only updated if an appropriate sigil appears in the
+     *       linkdef. The caller must ensure that the settings values are set to
+     *       Sane Default Values before calling this function.
+     *
+     * @param linkdef     A pointer to the string describing the links to fetch.
+     * @param is_random   A pointer to a bool that will be set to true if the linkdef
+     *                    contains the '?' sigil, or the flavour "Weighted".
+     * @param is_weighted A pointer to a bool that will be set to true if the linkdef
+     *                    contains the flavour "Weighted"
+     * @param fetch_count A pointer to an int that will be set to the number of
+     *                    objects to return from link_search.
+     * @param mode        A pointer to a LinkSearchMode variable that will be updated
+     *                    with the selected mode.
+     * @return A pointer to the start of the link flavour specified in linkdef. Note
+     *         that if the linkdef specifies the flavour "Weighted", this will be a
+     *         link to the start of that flavour, it WILL NOT update it to "ScriptParams".
+     */
+    const char* link_search_setup(const char *linkdef, bool* is_random, bool* is_weighted, uint* fetch_count, LinkSearchMode* mode);
 
 
     /** Determine whether the specified target string is a radius search, and if so
