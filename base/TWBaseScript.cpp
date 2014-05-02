@@ -607,7 +607,7 @@ std::vector<TargetObj>* TWBaseScript::get_target_objects(const char* target, sSc
  *  Link Targetting
  */
 
-bool TWBaseScript::link_search(std::vector<TargetObj>* matches, const int from, const char* linkdef, bool remove_random_link)
+bool TWBaseScript::link_search(std::vector<TargetObj>* matches, const int from, const char* linkdef)
 {
     std::vector<LinkScanWorker> links;
     bool is_random = false, is_weighted = false;
@@ -622,62 +622,10 @@ bool TWBaseScript::link_search(std::vector<TargetObj>* matches, const int from, 
         if(fetch_count < 1) fetch_count = is_random ? 1 : links.size();
 
         if(is_random) {
-            select_random_links(matches, links, fetch_count, count, is_weighted, remove_random_link);
+            select_random_links(matches, links, fetch_count, count, is_weighted);
         } else {
             select_links(matches, links, fetch_count);
         }
-    }
-}
-
-
-bool pick_weighted_link(std::vector<LinkScanWorker>& links, uint target, TargetObj& store)
-{
-    std::vector<LinkScanWorker>::iterator it;
-
-    for(it = links.begin(); it < links.end(); it++) {
-        if((*it).cumulative >= target) {
-            store = (*it);
-            return true;
-        }
-    }
-
-    return false;
-}
-
-
-uint TWBaseScript::build_link_weightsums(std::vector<LinkScanWorker>& links)
-{
-    uint accumulator = 0;
-    std::vector<LinkScanWorker>::iterator it;
-
-    for(it = links.begin(); it < links.end(); it++) {
-        accumulator += *it.weight;
-        *it.cumulative = accumulator;
-    }
-
-    return accumulator;
-}
-
-
-void TWBaseScript::select_random_links(std::vector<TargetObj>* matches, std::vector<LinkScanWorker>& links, const unit fetch_count, const unit total_weights, const bool is_weighted, const bool remove_link)
-{
-    int copied = 0;
-    TargetObj newtemp = { 0, 0, remove_link };
-
-
-
-}
-
-
-void TWBaseScript::select_links(std::vector<TargetObj>* matches, std::vector<LinkScanWorker>& links, const unit fetch_count)
-{
-    int copied = 0;
-    TargetObj newtemp = { 0, 0, false };
-    std::vector<LinkScanWorker>::iterator it;
-
-    for(it = links.begin(); it < links.end() && copied < fetch_count; it++, copied++) {
-        newtemp = *it;
-        matches.push_back(newtemp);
     }
 }
 
@@ -799,6 +747,58 @@ uint TWBaseScript::link_scan(const char* flavour, const int from, const bool wei
         return accumulator;
     } else {
         return links.size();
+    }
+}
+
+
+bool pick_weighted_link(std::vector<LinkScanWorker>& links, const uint target, TargetObj& store)
+{
+    std::vector<LinkScanWorker>::iterator it;
+
+    for(it = links.begin(); it < links.end(); it++) {
+        if((*it).cumulative >= target) {
+            store = (*it);
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
+uint TWBaseScript::build_link_weightsums(std::vector<LinkScanWorker>& links)
+{
+    uint accumulator = 0;
+    std::vector<LinkScanWorker>::iterator it;
+
+    for(it = links.begin(); it < links.end(); it++) {
+        accumulator += *it.weight;
+        *it.cumulative = accumulator;
+    }
+
+    return accumulator;
+}
+
+
+void TWBaseScript::select_random_links(std::vector<TargetObj>* matches, std::vector<LinkScanWorker>& links, const unit fetch_count, const unit total_weights, const bool is_weighted)
+{
+    int copied = 0;
+    TargetObj newtemp = { 0, 0, remove_link };
+
+
+
+}
+
+
+void TWBaseScript::select_links(std::vector<TargetObj>* matches, std::vector<LinkScanWorker>& links, const unit fetch_count)
+{
+    int copied = 0;
+    TargetObj newtemp = { 0, 0, false };
+    std::vector<LinkScanWorker>::iterator it;
+
+    for(it = links.begin(); it < links.end() && copied < fetch_count; it++, copied++) {
+        newtemp = *it;
+        matches.push_back(newtemp);
     }
 }
 

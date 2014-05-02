@@ -655,9 +655,10 @@ private:
      *      [3]?ControlDevice
      *
      * @param matches A pointer to the vector to store object IDs in.
+     * @param from    The ID of the object to search for links from.
      * @param linkdef A pointer to a string describing the links to fetch.
      */
-    void link_search(std::vector<TargetObj>* matches, const char* linkdef);
+    void link_search(std::vector<TargetObj>* matches, const int from, const char* linkdef);
 
 
     /** Process any sigils included in the specified linkdef. This will scan the
@@ -694,14 +695,6 @@ private:
     const char* parse_link_count(const char* linkdef, uint* fetch_count);
 
 
-    /** Compute the cumulative weightings for the links in the supplied vector.
-     *
-     * @param links A reference to a vector of links.
-     * @return The sum of all the weights specified in the links
-     */
-    uint build_link_weightsums(std::vector<LinkScanWorker> &links);
-
-
     /** Generate a list of current links of the specified flavour from this object, recording
      *  the link ID and destination, and possibly weighting information if needed and
      *  weighting is enabled.
@@ -714,6 +707,53 @@ private:
      *         not enabled, 0 indicates no matching links found.
      */
     int link_scan(const char *flavour, const int from, const bool weighted, std::vector<LinkScanWorker> &links);
+
+
+    /** Select a link from the specified vector of links such that it has the target
+     *  cumulative weight, or is the closest greater weight.
+     *
+     * @param links  A reference to a list of LinkScanWorker structures containing weighted
+     *               link information. This must be ordered by ascending cumulative weight.
+     * @param target The target weight to fetch in the list.
+     * @param store  A refrence to a TargetObj structure to store the link and object id in.
+     * @return true if an item with the appropriate weight is located, false otherwise.
+     */
+    bool pick_weighted_link(std::vector<LinkScanWorker>& links, const uint target, TargetObj& store);
+
+
+    /** Compute the cumulative weightings for the links in the supplied vector.
+     *
+     * @param links A reference to a vector of links.
+     * @return The sum of all the weights specified in the links
+     */
+    uint build_link_weightsums(std::vector<LinkScanWorker> &links);
+
+
+    /** Choose an appropriate number of links at random from the specified links list.
+     *  This will randomise the list, and then choose the requested number of links
+     *  from it. Note that if fetch_count > 1, this can produce duplicate entries in
+     *  the matches list. The links are chosen *at random*, with no exclusion of
+     *  already selected links!
+     *
+     * @param matches       A pointer to the vector to store object IDs in.
+     * @param links         A reference to a vector of links.
+     * @param fetch_count   The number of links to fetch.
+     * @param total_weights The total of all the weights of the links in the links vector.
+     * @param is_weighted   If true, do a weighted random selection, otherwise all links
+     *                      can be selected equally.
+     */
+    void select_random_links(std::vector<TargetObj>* matches, std::vector<LinkScanWorker>& links, const unit fetch_count, const unit total_weights, const bool is_weighted);
+
+
+    /** Copy the requested number of links from the link worker vector into the TargetObj
+     *  list. Note that, as the links vector is sorted by link id, the chosen links will
+     *  always be the same, given the same links list.
+     *
+     * @param matches       A pointer to the vector to store object IDs in.
+     * @param links         A reference to a vector of links.
+     * @param fetch_count   The number of links to fetch.
+     */
+    void select_links(std::vector<TargetObj>* matches, std::vector<LinkScanWorker>& links, const unit fetch_count);
 
 
     /** Determine whether the specified target string is a radius search, and if so
