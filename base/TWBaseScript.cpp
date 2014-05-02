@@ -12,7 +12,9 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cstdarg>
-#include <algorithm>
+#include <algorithm>    // std::sort and std::shuffle
+#include <random>       // std::default_random_engine
+#include <chrono>       // std::chrono::system_clock
 
 #include "Version.h"
 #include "TWBaseScript.h"
@@ -514,6 +516,10 @@ void TWBaseScript::init(int time)
 
         g_pMalloc -> Free(design_note);
     }
+
+    // Set up randomisation
+    uint seed = std::chrono::system_clock::now().time_since_epoch().count();
+    randomiser.seed(seed);
 }
 
 
@@ -562,7 +568,7 @@ std::vector<TargetObj>* TWBaseScript::get_target_objects(const char* target, sSc
     float radius;
     bool  lessthan;
     const char* archname;
-    TargetObj newtarget = { 0, 0, false };
+    TargetObj newtarget = { 0, 0 };
 
     // Simple target/source selection.
     if(!_stricmp(target, "[me]")) {
@@ -575,7 +581,7 @@ std::vector<TargetObj>* TWBaseScript::get_target_objects(const char* target, sSc
 
     // linked objects
     } else if(*target == '&') {
-        link_search(matches, &target[1]);
+        link_search(matches, ObjId(), &target[1]);
 
     // Archetype search, direct concrete and indirect concrete
     } else if(*target == '*' || *target == '@') {
@@ -596,7 +602,7 @@ std::vector<TargetObj>* TWBaseScript::get_target_objects(const char* target, sSc
 
         newtarget.obj_id = ObjectSys -> GetObjectNamed(target);
         if(newtarget.obj_id)
-            matches -> push_back(newtarget.obj_id);
+            matches -> push_back(newtarget);
     }
 
     return matches;
@@ -607,7 +613,7 @@ std::vector<TargetObj>* TWBaseScript::get_target_objects(const char* target, sSc
  *  Link Targetting
  */
 
-bool TWBaseScript::link_search(std::vector<TargetObj>* matches, const int from, const char* linkdef)
+void TWBaseScript::link_search(std::vector<TargetObj>* matches, const int from, const char* linkdef)
 {
     std::vector<LinkScanWorker> links;
     bool is_random = false, is_weighted = false;
@@ -615,7 +621,7 @@ bool TWBaseScript::link_search(std::vector<TargetObj>* matches, const int from, 
 
     // Parse the link definition, and fetch the list of possible matching links
     const char* flavour = link_search_setup(linkdef, &is_random, &is_weighted, &fetch_count);
-    uint count = link_scan(flavour, from, mode, is_weighted, links);
+    uint count = link_scan(flavour, from, is_weighted, links);
 
     if(count) {
         // If no fetch count has been explicitly set, use the whole size, unless random is set
@@ -706,13 +712,14 @@ uint TWBaseScript::link_scan(const char* flavour, const int from, const bool wei
     // If there is no link flavour, do nothing
     if(!flavour || !*flavour) return 0;
 
+    SService<ILinkToolsSrv> LinkToolsSrv(g_pScriptManager);
+
     uint accumulator = 0;
     long flavourid =  LinkToolsSrv -> LinkKindNamed(flavour);
 
     if(flavourid) {
         // At this point, we need to locate all the linked objects that match the flavour and mode
         SService<ILinkSrv>      LinkSrv(g_pScriptManager);
-        SService<ILinkToolsSrv> LinkToolsSrv(g_pScriptManager);
         linkset matching_links;
         LinkScanWorker temp = { 0, 0, 0, 0 };
 
@@ -772,33 +779,48 @@ uint TWBaseScript::build_link_weightsums(std::vector<LinkScanWorker>& links)
     std::vector<LinkScanWorker>::iterator it;
 
     for(it = links.begin(); it < links.end(); it++) {
-        accumulator += *it.weight;
-        *it.cumulative = accumulator;
+        accumulator += it -> weight;
+        it -> cumulative = accumulator;
     }
 
     return accumulator;
 }
 
 
-void TWBaseScript::select_random_links(std::vector<TargetObj>* matches, std::vector<LinkScanWorker>& links, const unit fetch_count, const unit total_weights, const bool is_weighted)
+void TWBaseScript::select_random_links(std::vector<TargetObj>* matches, std::vector<LinkScanWorker>& links, const uint fetch_count, const uint total_weights, const bool is_weighted)
 {
-    int copied = 0;
-    TargetObj newtemp = { 0, 0, remove_link };
+    // Yay for easy randomisation
+    std::shuffle(links.begin(), links.end(), randomiser);
 
+    // Weighted selection needs cumulative weight information
+    if(is_weighted) build_link_weightsums(links);
 
+    TargetObj chosen;
 
+    // Pick the requested number of links
+    for(uint pass = 0; pass < fetch_count; ++pass) {
+        // Weighted mode needs more work to pick the item
+        if(is_weighted) {
+            pick_weighted_link(links, 1 + (randomiser() % total_weights), chosen);
+        } else {
+            chosen = links[randomiser() % total_weights]; // at this point, total_weights is actually links.size()
+        }
+
+        // Store the chosen item
+        matches -> push_back(chosen);
+    }
 }
 
 
-void TWBaseScript::select_links(std::vector<TargetObj>* matches, std::vector<LinkScanWorker>& links, const unit fetch_count)
+void TWBaseScript::select_links(std::vector<TargetObj>* matches, std::vector<LinkScanWorker>& links, const uint fetch_count)
 {
-    int copied = 0;
-    TargetObj newtemp = { 0, 0, false };
+    uint copied = 0;
+    TargetObj newtemp = { 0, 0 };
     std::vector<LinkScanWorker>::iterator it;
 
     for(it = links.begin(); it < links.end() && copied < fetch_count; it++, copied++) {
         newtemp = *it;
-        matches.push_back(newtemp);
+        matches -> push_back(newtemp);
     }
 }
 
@@ -862,7 +884,7 @@ void TWBaseScript::archetype_search(std::vector<TargetObj>* matches, const char*
         // Ask for the list of matching objects
         SInterface<IObjectQuery> query = TraitMgr -> Query(arch, flags);
         if(query) {
-            TargetObj newtarget = { 0, 0, false };
+            TargetObj newtarget = { 0, 0 };
 
             // Process each object, adding it to the match list if it's concrete.
             for(; !query -> Done(); query -> Next()) {
@@ -896,7 +918,7 @@ void TWBaseScript::archetype_search(std::vector<TargetObj>* matches, const char*
  *  Link inspection
  */
 
-int TWBaseScript::get_linked_object(std::string &arch_name, std::string link_name, int from, int fallback)
+int TWBaseScript::get_linked_object(const std::string& arch_name, const std::string& link_name, const int from, const int fallback)
 {
     SInterface<IObjectSystem> ObjectSys(g_pScriptManager);
     SService<IObjectSrv>      ObjectSrv(g_pScriptManager);

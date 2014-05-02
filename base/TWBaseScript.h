@@ -80,7 +80,7 @@ public:
      * @param object The ID of the client object to add the script to.
      * @return A new TWBaseScript object.
      */
-    TWBaseScript(const char* name, int object) : cScript(name, object), need_fixup(true), sim_running(false), debug(false), message_time(0), done_init(false)
+    TWBaseScript(const char* name, int object) : cScript(name, object), need_fixup(true), sim_running(false), debug(false), message_time(0), done_init(false), randomiser(0)
         { /* fnord */ }
 
 
@@ -706,7 +706,7 @@ private:
      * @return The accumulated weights if weighting is enabled, the number of links if it is
      *         not enabled, 0 indicates no matching links found.
      */
-    int link_scan(const char *flavour, const int from, const bool weighted, std::vector<LinkScanWorker> &links);
+    uint link_scan(const char *flavour, const int from, const bool weighted, std::vector<LinkScanWorker> &links);
 
 
     /** Select a link from the specified vector of links such that it has the target
@@ -742,7 +742,7 @@ private:
      * @param is_weighted   If true, do a weighted random selection, otherwise all links
      *                      can be selected equally.
      */
-    void select_random_links(std::vector<TargetObj>* matches, std::vector<LinkScanWorker>& links, const unit fetch_count, const unit total_weights, const bool is_weighted);
+    void select_random_links(std::vector<TargetObj>* matches, std::vector<LinkScanWorker>& links, const uint fetch_count, const uint total_weights, const bool is_weighted);
 
 
     /** Copy the requested number of links from the link worker vector into the TargetObj
@@ -753,7 +753,7 @@ private:
      * @param links         A reference to a vector of links.
      * @param fetch_count   The number of links to fetch.
      */
-    void select_links(std::vector<TargetObj>* matches, std::vector<LinkScanWorker>& links, const unit fetch_count);
+    void select_links(std::vector<TargetObj>* matches, std::vector<LinkScanWorker>& links, const uint fetch_count);
 
 
     /** Determine whether the specified target string is a radius search, and if so
@@ -797,6 +797,19 @@ private:
      */
     void archetype_search(std::vector<TargetObj>* matches, const char* archetype, bool do_full = false, bool do_radius = false, object from_obj = 0, float radius = 0.0f, bool lessthan = false);
 
+
+    /* ------------------------------------------------------------------------
+     *  Link inspection
+     */
+
+    /**
+     */
+    int get_linked_object(const std::string &arch_name, const std::string& link_name, const int from, const int fallback);
+
+
+    /* ------------------------------------------------------------------------
+     *  qvar related
+     */
 
     /** Fetch the value in the specified QVar if it exists, return the default if it
      *  does not.
@@ -849,13 +862,14 @@ private:
     /* ------------------------------------------------------------------------
      *  Variables
      */
-
     bool need_fixup;   //!< Does the script need to fix links to the player?
     bool sim_running;  //!< Is the sim currently running?
     bool debug;        //!< Is debugging enabled?
     uint message_time; //!< The sim time stored in the last recieved message
 
     bool done_init;    //!< Has the script run its init?
+
+    std::default_random_engine randomiser; //!< a random number generator for... random numbers.
 
     static const uint NAME_BUFFER_SIZE;
 };
