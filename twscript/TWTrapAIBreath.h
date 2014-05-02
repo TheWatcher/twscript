@@ -464,6 +464,11 @@ private:
     int get_breath_particles();
 
 
+    /** Given a archetype name, locate the first descendant of that archetype linked
+     *  to the `from` object by a link of
+    int get_linked_object(std::string &arch_name, std::string link_name, int from, int fallback)
+
+
     /** Parse the list of cold rooms defined by the Design Note into the cold_rooms
      *  map for later lookup. The cold rooms string should contain a comma separated
      *  list of room ID numbers or names.
@@ -480,7 +485,9 @@ private:
     int                      rates[4];           //!< Breathing rates, in millisecods, for each awareness level.
     int                      last_level;         //!< Which level is currently set?
     std::string              particle_arch_name; //!< The name of the particle group archetype to use
-    std::string              particle_link_name; //!< The link flavour used to link the particles to the AI
+    std::string              particle_link_name; //!< The link flavour used to link the particles to the AI (or proxy)
+    std::string              proxy_arch_name;    //!< The name of the particle proxy archetype to use
+    std::string              proxy_link_name;    //!< The link flavour used to link the proxy to the AI
     ColdRoomMap              cold_rooms;         //!< Which rooms are marked as cold?
 
     // Persistent variables

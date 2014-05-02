@@ -155,17 +155,17 @@ void TWTrapSetSpeed::update_speed(sScrMsg* msg)
         if(debug_enabled())
             debug_printf(DL_DEBUG, "Looking up targets matched by %s.", set_target.c_str());
 
-        std::vector<object>* targets = get_target_objects(set_target.c_str(), msg);
+        std::vector<TargetObj>* targets = get_target_objects(set_target.c_str(), msg);
 
         if(!targets -> empty()) {
             // Process the target list, setting the speeds accordingly
-            std::vector<object>::iterator it;
+            std::vector<TargetObj>::iterator it;
             std::string targ_name;
             for(it = targets -> begin() ; it < targets -> end(); it++) {
-                set_tpath_speed(*it);
+                set_tpath_speed(*it.obj_id);
 
                 if(debug_enabled()) {
-                    get_object_namestr(targ_name, *it);
+                    get_object_namestr(targ_name, *it.obj_id);
                     debug_printf(DL_DEBUG, "Setting speed %.3f on %s.", speed, targ_name.c_str());
                 }
             }

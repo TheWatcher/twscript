@@ -28,6 +28,39 @@
 #include <string>
 #include "Script.h"
 
+
+struct LinkScanWorker {
+    int link_id;
+    int dest_id;
+    uint weight;
+    uint cumulative;
+
+    bool operator<(const LinkScanWorker& rhs) const
+    {
+        return link_id < rhs.link_id;
+    }
+};
+
+
+struct TargetObj {
+    int  obj_id;
+    int  link_id;
+
+    bool operator<(const TargetObj& rhs) const
+    {
+        return obj_id < rhs.obj_id;
+    }
+
+    TargetObj& operator=(const LinkScanWorker& rhs)
+    {
+        obj_id = rhs.dest_id;
+        link_id = rhs.link_id;
+
+        return *this;
+    }
+};
+
+
 /** A replacement for cBaseScript from Public Scripts. This class is a replacement
  *  for the cBaseScript found in Public Scripts that modifies the way in which
  *  message handling is performed by the script, and introduces a significant
@@ -556,7 +589,7 @@ protected:
      * @return A vector of object ids the target string matches. The caller must
      *         free this when done with it.
      */
-    std::vector<object>* get_target_objects(const char* targ, sScrMsg* msg = NULL);
+    std::vector<TargetObj>* get_target_objects(const char* targ, sScrMsg* msg = NULL);
 
 
 private:
@@ -588,6 +621,117 @@ private:
     void fixup_player_links(void);
 
 
+    /** Generate a list of objects linked to the host object based on the specified
+     *  link definition. This will use the specified link definition to determine
+     *  which links to search for, and adds the link destination objects to the
+     *  specified list.
+     *
+     *  By default, the linkdef is the name of the link flavour to search for.
+     *
+     *  If the linkdef is preceded with '?' then one or more of the possible links
+     *  is chosen at random, and the destination TargetObj aded to the list.
+     *
+     *  If the linkdef specifies the flavour "Weighted", the search inspects all
+     *  the ScriptParams links from the host object, and uses the integer values
+     *  set in the link data to determine which random link to choose based on
+     *  the weightings. If a ScriptParams link does not contain an integer weight,
+     *  it defaults to 1.
+     *
+     *  Finally, the flavour may be prefixed with [N], where 'N' is the maximum
+     *  number of linked objects to fetch. If the fetch count is not specified,
+     *  and random mode is not enabled, all matching links are returned. If
+     *  random or 'Weighted' mode is enabled, and no fetch count is given, only
+     *  a single linked object is selected. If random or 'Weighted' mode is
+     *  enabled, and a fetch count has been given, then the list of returned
+     *  TargetObjs will contain the requested number of links, randomly selected
+     *  from the possible links, and *repeats may be present in the list*.
+     *
+     *  For example, this will fetch three random ControlDevice linked objects:
+     *
+     *      ?[3]ControlDevice
+     *
+     *  The order of sigils doesn't matter, so the same could be expressed using
+     *
+     *      [3]?ControlDevice
+     *
+     * @param matches A pointer to the vector to store object IDs in.
+     * @param linkdef A pointer to a string describing the links to fetch.
+     */
+    void link_search(std::vector<TargetObj>* matches, const char* linkdef);
+
+
+    /** Process any sigils included in the specified linkdef. This will scan the
+     *  specified linkdef for recognised sigils, and set the options for the link
+     *  search appropriately.
+     *
+     * @note Settings are only updated if an appropriate sigil appears in the
+     *       linkdef. The caller must ensure that the settings values are set to
+     *       Sane Default Values before calling this function.
+     *
+     * @param linkdef     A pointer to the string describing the links to fetch.
+     * @param is_random   A pointer to a bool that will be set to true if the linkdef
+     *                    contains the '?' sigil, or the flavour "Weighted".
+     * @param is_weighted A pointer to a bool that will be set to true if the linkdef
+     *                    contains the flavour "Weighted"
+     * @param fetch_count A pointer to an int that will be set to the number of
+     *                    objects to return from link_search.
+     * @return A pointer to the start of the link flavour specified in linkdef. Note
+     *         that if the linkdef specifies the flavour "Weighted", this will be a
+     *         link to a string containing "ScriptParams" which *should not* be freed.
+     */
+    const char* link_search_setup(const char *linkdef, bool* is_random, bool* is_weighted, uint* fetch_count);
+
+
+    /** Parse the number of linked objects to return from the specified link definition.
+     *  This assumes that the linkdef provided starts pointing to the '[' in the link
+     *  definition. If this is not the case, it returns the pointer as-is.
+     *
+     * @param linkdef     A pointer to the count marker in the linkdef.
+     * @param fetch_count A pointer to the int to update with the link count.
+     * @return A pointer to the ] after the link count, or the first usable character
+     *         after the parsed number if the ] is missing.
+     */
+    const char* parse_link_count(const char* linkdef, uint* fetch_count);
+
+
+    /** Compute the cumulative weightings for the links in the supplied vector.
+     *
+     * @param links A reference to a vector of links.
+     * @return The sum of all the weights specified in the links
+     */
+    uint build_link_weightsums(std::vector<LinkScanWorker> &links);
+
+
+    /** Generate a list of current links of the specified flavour from this object, recording
+     *  the link ID and destination, and possibly weighting information if needed and
+     *  weighting is enabled.
+     *
+     * @param flavour  The link flavour to include in the list.
+     * @param from     The ID of the object to fetch links from.
+     * @param weighted If true, weighting is enabled. `flavour` must be `ScriptParams` or `~ScriptParams`.
+     * @param links    A reference to a vector in which the list of links should be stored.
+     * @return The accumulated weights if weighting is enabled, the number of links if it is
+     *         not enabled, 0 indicates no matching links found.
+     */
+    int link_scan(const char *flavour, const int from, const bool weighted, std::vector<LinkScanWorker> &links);
+
+
+    /** Determine whether the specified target string is a radius search, and if so
+     *  pull out its components. This will take a string like `5.00<Chest` and set
+     *  the radius to 5.0, set the lessthan variable to true, and set the archetype
+     *  string pointer to the start of the archetype name.
+     *
+     * @param target    The target string to check
+     * @param radius    A pointer to a float to store the radius value in.
+     * @param lessthan  A pointer to a bool. If the radius search is a < search
+     *                  this is set to true, otherwise it is set to false.
+     * @param archetype A pointer to a char pointer to set to the start of the
+     *                  archetype name.
+     * @return true if the target string is a radius search, false otherwise.
+     */
+    bool radius_search(const char* target, float* radius, bool* lessthan, const char** archetype);
+
+
     /** Search for concrete objects that are descendants of the specified archetype,
      *  either direct only (if do_full is false), or directly and indirectly. This
      *  can also filter the results based on the distance the concrete objects are
@@ -611,97 +755,7 @@ private:
      * @param lessthan  If true, objects must fall within the sphere around from_obj,
      *                  if false they must be outside it.
      */
-    void archetype_search(std::vector<object>* matches, const char* archetype, bool do_full = false, bool do_radius = false, object from_obj = 0, float radius = 0.0f, bool lessthan = false);
-
-
-    /** Generate a list of objects linked to the host object based on the specified
-     *  link definition. This will use the specified link definition to determine
-     *  which links to search for, and adds the link destination objects to the
-     *  specified list. By default, the linkdef is the name of the link flavour to
-     *  search for, if the linkdef is preceded with '?' then one of the possible
-     *  links is chosen at random, and the destination object added to the list.
-     *  If remove_random_link is true, the randomly chosen link is removed after
-     *  the destination object is recorded. If the link flavour is prefixed with
-     *  + then only links to concrete objects are considered, conversely if it is
-     *  prefixed with % then only links to archetypes are considered (if neither
-     *  + or % are specified links to both concrete and archetype objects are
-     *  considered). If the linkdef specifies the flavour "Weighted", the search
-     *  inspects all the ScriptParams links from the host object, and uses the
-     *  integer values set in the link data to determine which random link to
-     *  choose based on the weightings. If a ScriptParams link does not contain
-     *  an integer weight, it defaults to 1. + and % may be used with Weighted
-     *  to select only links to concrete or archetype objects. Finally, the flavour
-     *  may be prefixed with [N], where 'N' is the maximum number of linked objects to
-     *  fetch. If not specified, if random mode is not enabled, all linked are
-     *  returned. If random mode is enabled, or the flavour specified is 'Weighted',
-     *  only a single linked object is selected.
-     *
-     *  For example, this will fetch three random ControlDevice links to concrete
-     *  objects:
-     *
-     *      ?+[3]ControlDevice
-     *
-     *  The order of sigils doesn't matter, so the same could be expressed using
-     *
-     *      [3]?+ControlDevice
-     *
-     * @param matches A pointer to the vector to store object IDs in.
-     * @param linkdef A pointer to a string describing the links to fetch.
-     * @param remove_random_link If set to true, and a random mode has been set
-     *                (either via ? or setting the flavour to "Weighted"), links
-     *                selected are removed.
-     */
-    void link_search(std::vector<object>* matches, const char* linkdef, bool remove_random_link = false);
-
-
-    /** An enum used to help keep track of whether the link_search() function should
-     *  be returning concrete object ids, archetype ids, or both.
-     */
-    enum LinkSearchMode {
-        LSM_BOTH,
-        LSM_CONCRETE,
-        LSM_ARCHETYPE
-    };
-
-
-    /** Process any sigils included in the specified linkdef. This will scan the
-     *  specified linkdef for recognised sigils, and set the options for the link
-     *  search appropriately.
-     *
-     * @note Settings are only updated if an appropriate sigil appears in the
-     *       linkdef. The caller must ensure that the settings values are set to
-     *       Sane Default Values before calling this function.
-     *
-     * @param linkdef     A pointer to the string describing the links to fetch.
-     * @param is_random   A pointer to a bool that will be set to true if the linkdef
-     *                    contains the '?' sigil, or the flavour "Weighted".
-     * @param is_weighted A pointer to a bool that will be set to true if the linkdef
-     *                    contains the flavour "Weighted"
-     * @param fetch_count A pointer to an int that will be set to the number of
-     *                    objects to return from link_search.
-     * @param mode        A pointer to a LinkSearchMode variable that will be updated
-     *                    with the selected mode.
-     * @return A pointer to the start of the link flavour specified in linkdef. Note
-     *         that if the linkdef specifies the flavour "Weighted", this will be a
-     *         link to the start of that flavour, it WILL NOT update it to "ScriptParams".
-     */
-    const char* link_search_setup(const char *linkdef, bool* is_random, bool* is_weighted, uint* fetch_count, LinkSearchMode* mode);
-
-
-    /** Determine whether the specified target string is a radius search, and if so
-     *  pull out its components. This will take a string like `5.00<Chest` and set
-     *  the radius to 5.0, set the lessthan variable to true, and set the archetype
-     *  string pointer to the start of the archetype name.
-     *
-     * @param target    The target string to check
-     * @param radius    A pointer to a float to store the radius value in.
-     * @param lessthan  A pointer to a bool. If the radius search is a < search
-     *                  this is set to true, otherwise it is set to false.
-     * @param archetype A pointer to a char pointer to set to the start of the
-     *                  archetype name.
-     * @return true if the target string is a radius search, false otherwise.
-     */
-    bool radius_search(const char* target, float* radius, bool* lessthan, const char** archetype);
+    void archetype_search(std::vector<TargetObj>* matches, const char* archetype, bool do_full = false, bool do_radius = false, object from_obj = 0, float radius = 0.0f, bool lessthan = false);
 
 
     /** Fetch the value in the specified QVar if it exists, return the default if it

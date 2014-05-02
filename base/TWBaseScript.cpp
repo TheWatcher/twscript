@@ -12,6 +12,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cstdarg>
+#include <algorithm>
 
 #include "Version.h"
 #include "TWBaseScript.h"
@@ -496,57 +497,6 @@ int TWBaseScript::get_qvar_namelen(const char* namestr)
 
 
 /* ------------------------------------------------------------------------
- *  Targetting
- */
-
-std::vector<object>* TWBaseScript::get_target_objects(const char* target, sScrMsg* msg)
-{
-    std::vector<object>* matches = new std::vector<object>;
-
-    // Make sure target is actually set before doing anything
-    if(!target || *target == '\0') return matches;
-
-    float radius;
-    bool  lessthan;
-    const char* archname;
-
-    // Simple target/source selection.
-    if(!_stricmp(target, "[me]")) {
-        matches -> push_back(msg -> to);
-
-    } else if(!_stricmp(target, "[source]")) {
-        matches -> push_back(msg -> from);
-
-    // linked objects
-    } else if(*target == '&') {
-        link_search(matches, &target[1]);
-
-    // Archetype search, direct concrete and indirect concrete
-    } else if(*target == '*' || *target == '@') {
-        archetype_search(matches, &target[1], *target == '@');
-
-    // Radius archetype search
-    } else if(radius_search(target, &radius, &lessthan, &archname)) {
-        const char* realname = archname;
-        // Jump filter controls if needed...
-        if(*archname == '*' || *archname == '@') ++realname;
-
-        // Default behaviour for radius search is to get all decendants unless * is specified.
-        archetype_search(matches, realname, *archname != '*', true, msg -> to, radius, lessthan);
-
-    // Named destination object
-    } else {
-        SInterface<IObjectSystem> ObjectSys(g_pScriptManager);
-
-        object obj = ObjectSys -> GetObjectNamed(target);
-        if(obj) matches -> push_back(obj);
-    }
-
-    return matches;
-}
-
-
-/* ------------------------------------------------------------------------
  *  Initialisation related
  */
 
@@ -599,89 +549,263 @@ long TWBaseScript::dispatch_message(sScrMsg* msg, sMultiParm* reply)
 
 
 /* ------------------------------------------------------------------------
- *  Miscellaneous stuff
+ *  Targetting
  */
 
-void TWBaseScript::fixup_player_links(void)
+std::vector<TargetObj>* TWBaseScript::get_target_objects(const char* target, sScrMsg* msg)
 {
-    int player = StrToObject("Player");
-    if (player) {
-        ::FixupPlayerLinks(ObjId(), player);
-        need_fixup = false;
+    std::vector<TargetObj>* matches = new std::vector<TargetObj>;
+
+    // Make sure target is actually set before doing anything
+    if(!target || *target == '\0') return matches;
+
+    float radius;
+    bool  lessthan;
+    const char* archname;
+    TargetObj newtarget = { 0, 0, false };
+
+    // Simple target/source selection.
+    if(!_stricmp(target, "[me]")) {
+        newtarget.obj_id = msg -> to;
+        matches -> push_back(newtarget);
+
+    } else if(!_stricmp(target, "[source]")) {
+        newtarget.obj_id = msg -> from;
+        matches -> push_back(newtarget);
+
+    // linked objects
+    } else if(*target == '&') {
+        link_search(matches, &target[1]);
+
+    // Archetype search, direct concrete and indirect concrete
+    } else if(*target == '*' || *target == '@') {
+        archetype_search(matches, &target[1], *target == '@');
+
+    // Radius archetype search
+    } else if(radius_search(target, &radius, &lessthan, &archname)) {
+        const char* realname = archname;
+        // Jump filter controls if needed...
+        if(*archname == '*' || *archname == '@') ++realname;
+
+        // Default behaviour for radius search is to get all decendants unless * is specified.
+        archetype_search(matches, realname, *archname != '*', true, msg -> to, radius, lessthan);
+
+    // Named destination object
     } else {
-        g_pScriptManager -> SetTimedMessage2(ObjId(), "DelayInit", 1, kSTM_OneShot, "FixupPlayerLinks");
+        SInterface<IObjectSystem> ObjectSys(g_pScriptManager);
+
+        newtarget.obj_id = ObjectSys -> GetObjectNamed(target);
+        if(newtarget.obj_id)
+            matches -> push_back(newtarget.obj_id);
     }
+
+    return matches;
 }
 
 
-void TWBaseScript::archetype_search(std::vector<object>* matches, const char* archetype, bool do_full, bool do_radius, object from_obj, float radius, bool lessthan)
+/* ------------------------------------------------------------------------
+ *  Link Targetting
+ */
+
+bool TWBaseScript::link_search(std::vector<TargetObj>* matches, const int from, const char* linkdef, bool remove_random_link)
 {
-    // Get handles to game interfaces here for convenience
-    SInterface<IObjectSystem> ObjectSys(g_pScriptManager);
-	SService<IObjectSrv>      ObjectSrv(g_pScriptManager);
-    SInterface<ITraitManager> TraitMgr(g_pScriptManager);
+    std::vector<LinkScanWorker> links;
+    bool is_random = false, is_weighted = false;
+    uint fetch_count = 0;
 
-    // These are only needed when doing radius searches
-    cScrVec from_pos, to_pos;
-    float   distance;
-    if(do_radius) ObjectSrv -> Position(from_pos, from_obj);
+    // Parse the link definition, and fetch the list of possible matching links
+    const char* flavour = link_search_setup(linkdef, &is_random, &is_weighted, &fetch_count);
+    uint count = link_scan(flavour, from, mode, is_weighted, links);
 
-    // Find the archetype named if possible
-    object arch = ObjectSys -> GetObjectNamed(archetype);
-    if(int(arch) <= 0) {
+    if(count) {
+        // If no fetch count has been explicitly set, use the whole size, unless random is set
+        if(fetch_count < 1) fetch_count = is_random ? 1 : links.size();
 
-        // Build the query flags
-        ulong flags = kTraitQueryChildren;
-        if(do_full) flags |= kTraitQueryFull; // If dofull is on, query direct and indirect descendants
-
-        // Ask for the list of matching objects
-        SInterface<IObjectQuery> query = TraitMgr -> Query(arch, flags);
-        if(query) {
-
-            // Process each object, adding it to the match list if it's concrete.
-            for(; !query -> Done(); query -> Next()) {
-                object obj = query -> Object();
-                if(int(obj) > 0) {
-
-                    // Object is concrete, do we need to check it for distance?
-                    if(do_radius) {
-                        // Get the provisionally matched object's position, and work out how far it
-                        // is from the 'from' object.
-                        ObjectSrv -> Position(to_pos, obj);
-                        distance = (float)from_pos.Distance(to_pos);
-
-                        // If the distance check passes, store the object.
-                        if((lessthan && (distance < radius)) || (!lessthan && (distance > radius))) {
-                            matches -> push_back(obj);
-                        }
-
-                    // No radius check needed, add straight to the list
-                    } else {
-                        matches -> push_back(obj);
-                    }
-                }
-            }
+        if(is_random) {
+            select_random_links(matches, links, fetch_count, count, is_weighted, remove_random_link);
+        } else {
+            select_links(matches, links, fetch_count);
         }
     }
 }
 
 
-void TWBaseScript::link_search(std::vector<object>* matches, const char* linkdef)
+bool pick_weighted_link(std::vector<LinkScanWorker>& links, uint target, TargetObj& store)
 {
-    bool is_random = false, is_weighted = false, ;
-    uint fetch_count = 0;
-    LinkSearchMode mode = LSM_BOTH;
+    std::vector<LinkScanWorker>::iterator it;
 
-    const char* flavour = link_search_setup(linkdef, &is_random, &is_weighted, &fetch_count, &mode);
+    for(it = links.begin(); it < links.end(); it++) {
+        if((*it).cumulative >= target) {
+            store = (*it);
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
+uint TWBaseScript::build_link_weightsums(std::vector<LinkScanWorker>& links)
+{
+    uint accumulator = 0;
+    std::vector<LinkScanWorker>::iterator it;
+
+    for(it = links.begin(); it < links.end(); it++) {
+        accumulator += *it.weight;
+        *it.cumulative = accumulator;
+    }
+
+    return accumulator;
+}
+
+
+void TWBaseScript::select_random_links(std::vector<TargetObj>* matches, std::vector<LinkScanWorker>& links, const unit fetch_count, const unit total_weights, const bool is_weighted, const bool remove_link)
+{
+    int copied = 0;
+    TargetObj newtemp = { 0, 0, remove_link };
+
+
 
 }
 
 
-const char* TWBaseScript::link_search_setup(const char *linkdef, bool* is_random, bool* is_weighted, uint* fetch_count, LinkSearchMode* mode)
+void TWBaseScript::select_links(std::vector<TargetObj>* matches, std::vector<LinkScanWorker>& links, const unit fetch_count)
 {
+    int copied = 0;
+    TargetObj newtemp = { 0, 0, false };
+    std::vector<LinkScanWorker>::iterator it;
 
+    for(it = links.begin(); it < links.end() && copied < fetch_count; it++, copied++) {
+        newtemp = *it;
+        matches.push_back(newtemp);
+    }
 }
 
+
+const char* TWBaseScript::link_search_setup(const char* linkdef, bool* is_random, bool* is_weighted, uint* fetch_count)
+{
+    while(*linkdef) {
+        switch(*linkdef) {
+            // The ? sigil indicates that the link mode should be random
+            case '?': *is_random = true;
+                break;
+
+            // [ indicates the start of a [N] block, probably
+            case '[': linkdef = parse_link_count(linkdef, fetch_count);
+
+                // If the linkdef char is still [, what follows is not a number,
+                // the ++linkdef below will skip the [.
+                break;
+
+            // Not a recognised sigil? Assume that it's the start of a link flavour
+            // name (or "Weighted", in which case enabled weighted random mode)
+            default: if(!strcasecmp(linkdef, "Weighted")) {
+                        *is_weighted = *is_random = true;
+                        return "ScriptParams"; // Weighted mode looks at scriptparams
+                     }
+                     return linkdef;
+                break;
+        }
+        ++linkdef;
+    }
+
+    // Fallback for a horribly broken string is always "ControlDevice"
+    return "ControlDevice";
+}
+
+
+const char* TWBaseScript::parse_link_count(const char* linkdef, uint* fetch_count)
+{
+    // linkdef should be a pointer to a '[' - check to be sure
+    if(*linkdef == '[') {
+        ++linkdef;
+
+        char* endptr;
+        int value = strtol(linkdef, &endptr, 10);
+
+        // Has anything been parsed at all?
+        if(endptr != linkdef) {
+            // A value was parsed, but only positive non-zero values make any sense
+            if(value > 0) {
+                *fetch_count = value;
+            }
+
+            // copy the end pointer so that we can try to find the ]
+            const char *close = endptr;
+
+            // Skip anything up to the ] if possible
+            while(*close && *close != ']')
+                ++close;
+
+            // If the close ] was found, return the pointer to it. If it wasn't,
+            // return the pointer to the last character in the number, as link_search_setup
+            // will immediately ++ this on return.
+            return *close ? close : --endptr;
+        }
+
+        // The data after the [ was not numeric, so return the pointer to the [
+        // so that link_search_setup can skip it.
+        return --linkdef;
+    }
+
+    // Not a number block, why was this even called?
+    return linkdef;
+}
+
+
+uint TWBaseScript::link_scan(const char* flavour, const int from, const bool weighted, std::vector<LinkScanWorker>& links)
+{
+    // If there is no link flavour, do nothing
+    if(!flavour || !*flavour) return 0;
+
+    uint accumulator = 0;
+    long flavourid =  LinkToolsSrv -> LinkKindNamed(flavour);
+
+    if(flavourid) {
+        // At this point, we need to locate all the linked objects that match the flavour and mode
+        SService<ILinkSrv>      LinkSrv(g_pScriptManager);
+        SService<ILinkToolsSrv> LinkToolsSrv(g_pScriptManager);
+        linkset matching_links;
+        LinkScanWorker temp = { 0, 0, 0, 0 };
+
+        // Traverse the list of links that match the selected flavour.
+        LinkSrv -> GetAll(matching_links, flavourid, from, 0);
+        while(matching_links.AnyLinksLeft()) {
+            // Get the common link information
+            temp.link_id = matching_links.Link();
+            temp.dest_id = matching_links.Get().dest;
+
+            // If weighting is enabled, fetch the weighting information from the link.
+            if(weighted) {
+                const char* data = static_cast<const char* >(matching_links.Data());
+
+                temp.weight = strtol(data, NULL, 10);
+                if(temp.weight < 1) temp.weight = 1; // Force positive non-zero weights
+                accumulator += temp.weight;
+            }
+
+            links.push_back(temp);
+
+            matching_links.NextLink();
+        }
+    }
+
+    // Ensure that the list is sorted by link IDs. In theory it already should be, but
+    // this will guarantee it.
+    if(links.size() > 0)
+        std::sort(links.begin(), links.end());
+
+    if(weighted) {
+        return accumulator;
+    } else {
+        return links.size();
+    }
+}
+
+
+/* ------------------------------------------------------------------------
+ *  Search methods
+ */
 
 bool TWBaseScript::radius_search(const char* target, float* radius, bool* lessthan, const char** archetype)
 {
@@ -714,6 +838,123 @@ bool TWBaseScript::radius_search(const char* target, float* radius, bool* lessth
     return true;
 }
 
+
+void TWBaseScript::archetype_search(std::vector<TargetObj>* matches, const char* archetype, bool do_full, bool do_radius, object from_obj, float radius, bool lessthan)
+{
+    // Get handles to game interfaces here for convenience
+    SInterface<IObjectSystem> ObjectSys(g_pScriptManager);
+	SService<IObjectSrv>      ObjectSrv(g_pScriptManager);
+    SInterface<ITraitManager> TraitMgr(g_pScriptManager);
+
+    // These are only needed when doing radius searches
+    cScrVec from_pos, to_pos;
+    float   distance;
+    if(do_radius) ObjectSrv -> Position(from_pos, from_obj);
+
+    // Find the archetype named if possible
+    object arch = ObjectSys -> GetObjectNamed(archetype);
+    if(int(arch) <= 0) {
+
+        // Build the query flags
+        ulong flags = kTraitQueryChildren;
+        if(do_full) flags |= kTraitQueryFull; // If dofull is on, query direct and indirect descendants
+
+        // Ask for the list of matching objects
+        SInterface<IObjectQuery> query = TraitMgr -> Query(arch, flags);
+        if(query) {
+            TargetObj newtarget = { 0, 0, false };
+
+            // Process each object, adding it to the match list if it's concrete.
+            for(; !query -> Done(); query -> Next()) {
+                newtarget.obj_id = query -> Object();
+                if(newtarget.obj_id > 0) {
+
+                    // Object is concrete, do we need to check it for distance?
+                    if(do_radius) {
+                        // Get the provisionally matched object's position, and work out how far it
+                        // is from the 'from' object.
+                        ObjectSrv -> Position(to_pos, newtarget.obj_id);
+                        distance = (float)from_pos.Distance(to_pos);
+
+                        // If the distance check passes, store the object.
+                        if((lessthan && (distance < radius)) || (!lessthan && (distance > radius))) {
+                            matches -> push_back(newtarget);
+                        }
+
+                    // No radius check needed, add straight to the list
+                    } else {
+                        matches -> push_back(newtarget);
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+/* ------------------------------------------------------------------------
+ *  Link inspection
+ */
+
+int TWBaseScript::get_linked_object(std::string &arch_name, std::string link_name, int from, int fallback)
+{
+    SInterface<IObjectSystem> ObjectSys(g_pScriptManager);
+    SService<IObjectSrv>      ObjectSrv(g_pScriptManager);
+    SService<ILinkSrv>        LinkSrv(g_pScriptManager);
+    SService<ILinkToolsSrv>   LinkToolsSrv(g_pScriptManager);
+
+    // Can't do anything if there is no archytype name set
+    if(!arch_name.empty()) {
+
+        // Attempt to locate the archetype requested
+        int archetype = StrToObject(arch_name.c_str());
+        if(archetype) {
+            long flavourid = LinkToolsSrv -> LinkKindNamed(link_name.c_str());
+
+            if(flavourid) {
+                // Is there a particle attach(e)ment to this object?
+                true_bool has_attach;
+                LinkSrv -> AnyExist(has_attach, flavourid, from, 0);
+
+                // Only do anything if there is at least one particle attachment.
+                if(has_attach) {
+                    linkset links;
+                    true_bool inherits;
+
+                    // Check all the particle attachment links looking for a link from a particle that inherits
+                    // from the archetype.
+                    LinkSrv -> GetAll(links, flavourid, from, 0);
+                    while(links.AnyLinksLeft()) {
+                        sLink link = links.Get();
+                        ObjectSrv -> InheritsFrom(inherits, link.dest, archetype);
+
+                        // Found a link from a concrete instance of the archetype? Return that object.
+                        if(inherits) {
+                            return link.dest;
+                        }
+                        links.NextLink();
+                    }
+
+                    if(debug_enabled())
+                        debug_printf(DL_WARNING, "Object has no link to a particle inheriting from %s", arch_name.c_str());
+                }
+            } else {
+                debug_printf(DL_ERROR, "Request for non-existent link flavour %s", link_name.c_str());
+            }
+        } else if(debug_enabled()) {
+            debug_printf(DL_WARNING, "Unable to find particle named '%s'", arch_name.c_str());
+        }
+    } else {
+        debug_printf(DL_ERROR, "arch_name name is empty.");
+    }
+
+    return fallback;
+}
+
+
+/* ------------------------------------------------------------------------
+ *  qvar related
+ */
 
 int TWBaseScript::get_qvar(const char* qvar, int def_val)
 {
@@ -786,6 +1027,22 @@ char* TWBaseScript::parse_qvar(const char* qvar, char** lhs, char* op, char** rh
     }
 
     return buffer;
+}
+
+
+/* ------------------------------------------------------------------------
+ *  Miscellaneous stuff
+ */
+
+void TWBaseScript::fixup_player_links(void)
+{
+    int player = StrToObject("Player");
+    if (player) {
+        ::FixupPlayerLinks(ObjId(), player);
+        need_fixup = false;
+    } else {
+        g_pScriptManager -> SetTimedMessage2(ObjId(), "DelayInit", 1, kSTM_OneShot, "FixupPlayerLinks");
+    }
 }
 
 

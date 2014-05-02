@@ -69,6 +69,19 @@ void TWTrapAIBreath::init(int time)
             g_pMalloc -> Free(link_name);
         }
 
+        // Sort out the archetype for the proxy
+        char *proxy_name = get_scriptparam_string(design_note, "Proxy", "BreathProxy");
+        if(proxy_name) {
+            particle_arch_name = proxy_name;
+            g_pMalloc -> Free(proxy_name);
+        }
+
+        char *proxy_link = get_scriptparam_string(design_note, "ProxyLink", "~DetailAttachement");
+        if(proxy_link) {
+            proxy_link_name = proxy_link;
+            g_pMalloc -> Free(proxy_link);
+        }
+
         char *cold = get_scriptparam_string(design_note, "ColdRooms", NULL);
         if(cold) {
             parse_coldrooms(cold);
@@ -413,57 +426,25 @@ void TWTrapAIBreath::check_ai_reallyhigh()
 
 int TWTrapAIBreath::get_breath_particles()
 {
+    object from = get_breath_proxy(ObjId());
+
+    return get_breath_particlegroup(from);
+}
+
+
+int TWTrapAIBreath::get_breath_proxy(object fallback)
+{
     SInterface<IObjectSystem> ObjectSys(g_pScriptManager);
     SService<IObjectSrv>      ObjectSrv(g_pScriptManager);
     SService<ILinkSrv>        LinkSrv(g_pScriptManager);
     SService<ILinkToolsSrv>   LinkToolsSrv(g_pScriptManager);
 
-    // Can't do anything if there is no archytype name set
-    if(!particle_arch_name.empty()) {
 
-        // Attempt to locate the archetype requested
-        int archetype = StrToObject(particle_arch_name.c_str());
-        if(archetype) {
-            long flavourid = LinkToolsSrv -> LinkKindNamed(particle_link_name.c_str());
+}
 
-            if(flavourid) {
-                // Is there a particle attach(e)ment to this object?
-                true_bool has_attach;
-                LinkSrv -> AnyExist(has_attach, flavourid, ObjId(), 0);
 
-                // Only do anything if there is at least one particle attachment.
-                if(has_attach) {
-                    linkset links;
-                    true_bool inherits;
-
-                    // Check all the particle attachment links looking for a link from a particle that inherits
-                    // from the archetype.
-                    LinkSrv -> GetAll(links, flavourid, ObjId(), 0);
-                    while(links.AnyLinksLeft()) {
-                        sLink link = links.Get();
-                        ObjectSrv -> InheritsFrom(inherits, link.dest, archetype);
-
-                        // Found a link from a concrete instance of the archetype? Return that object.
-                        if(inherits) {
-                            return link.dest;
-                        }
-                        links.NextLink();
-                    }
-
-                    if(debug_enabled())
-                        debug_printf(DL_WARNING, "Object has no link to a particle inheriting from %s", particle_arch_name.c_str());
-                }
-            } else {
-                debug_printf(DL_ERROR, "Request for non-existent link flavour %s", particle_link_name.c_str());
-            }
-        } else if(debug_enabled()) {
-            debug_printf(DL_WARNING, "Unable to find particle named '%s'", particle_arch_name.c_str());
-        }
-    } else {
-        debug_printf(DL_ERROR, "particle_arch_name name is empty?!");
-    }
-
-    return 0;
+int TWTrapAIBreath::get_breath_particlegroup(object from)
+{
 }
 
 
