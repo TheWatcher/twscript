@@ -434,17 +434,13 @@ int TWTrapAIBreath::get_breath_particles()
 
 int TWTrapAIBreath::get_breath_proxy(object fallback)
 {
-    SInterface<IObjectSystem> ObjectSys(g_pScriptManager);
-    SService<IObjectSrv>      ObjectSrv(g_pScriptManager);
-    SService<ILinkSrv>        LinkSrv(g_pScriptManager);
-    SService<ILinkToolsSrv>   LinkToolsSrv(g_pScriptManager);
-
-
+    return get_linked_object(ObjId(), proxy_arch_name, proxy_link_name, fallback);
 }
 
 
 int TWTrapAIBreath::get_breath_particlegroup(object from)
 {
+    return get_linked_object(from, particle_arch_name, particle_link_name);
 }
 
 

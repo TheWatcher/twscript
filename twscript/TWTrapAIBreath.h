@@ -464,10 +464,9 @@ private:
     int get_breath_particles();
 
 
-    /** Given a archetype name, locate the first descendant of that archetype linked
-     *  to the `from` object by a link of
-    int get_linked_object(std::string &arch_name, std::string link_name, int from, int fallback)
+    int get_breath_proxy(object fallback);
 
+    int get_breath_particlegroup(object from);
 
     /** Parse the list of cold rooms defined by the Design Note into the cold_rooms
      *  map for later lookup. The cold rooms string should contain a comma separated
