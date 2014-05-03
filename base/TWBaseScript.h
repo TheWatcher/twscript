@@ -29,12 +29,16 @@
 #include "Script.h"
 
 
+/** POD class used by the link search code to keep track of link information.
+ */
 struct LinkScanWorker {
-    int link_id;
-    int dest_id;
-    uint weight;
-    uint cumulative;
+    int link_id;         //!< The ID of a link from the source object to another
+    int dest_id;         //!< The ID of the object being linked to
+    uint weight;         //!< The link weight (only used when doing weighted link selection)
+    uint cumulative;     //!< The cumulative weight of this link, and earlier links in the list.
 
+    /** Less-than operator to allow sorting by link IDs.
+     */
     bool operator<(const LinkScanWorker& rhs) const
     {
         return link_id < rhs.link_id;
@@ -42,15 +46,21 @@ struct LinkScanWorker {
 };
 
 
+/** POD class used by the targetting functions to keep track of information
+ */
 struct TargetObj {
-    int  obj_id;
-    int  link_id;
+    int  obj_id;   //!< The ID of the target object
+    int  link_id;  //!< The ID of a the link to the object (may be zero, indicating no link)
 
+    /** Less-than operator to allow sorting by object ID.
+     */
     bool operator<(const TargetObj& rhs) const
     {
         return obj_id < rhs.obj_id;
     }
 
+    /** Assignment operator to simplify the process of copying data from a LinkScanWorker
+     */
     TargetObj& operator=(const LinkScanWorker& rhs)
     {
         obj_id = rhs.dest_id;
@@ -592,34 +602,9 @@ protected:
     std::vector<TargetObj>* get_target_objects(const char* targ, sScrMsg* msg = NULL);
 
 
-private:
     /* ------------------------------------------------------------------------
-     *  Message handling
+     *  Link targetting
      */
-
-    /** Handle message dispatch. This enforces some low-level vital message processing
-     *  before passing the message to on_message to actually handle.
-     *
-     * @param msg   A pointer to the message received by the object.
-     * @param reply A reference to a multiparm variable in which a reply can
-     *              be stored.
-     * @return S_OK (zero) if the message has been processed successfully,
-     *         S_FALSE if an error occurred.
-     */
-    long dispatch_message(sScrMsg* msg, sMultiParm* reply);
-
-
-    /* ------------------------------------------------------------------------
-     *  Miscellaneous stuff
-     */
-
-    /** Ensure that links from this script to the PlayerFactory actually go to
-     *  Garrett instead. This is inherited from PublicScripts, I've no idea how
-     *  vital it actually is, and including it is easier than finding out what
-     *  breaks without it, so here it is. Mysterious functions. Yey.
-     */
-    void fixup_player_links(void);
-
 
     /** Generate a list of objects linked to the host object based on the specified
      *  link definition. This will use the specified link definition to determine
@@ -660,6 +645,27 @@ private:
      */
     void link_search(std::vector<TargetObj>* matches, const int from, const char* linkdef);
 
+
+private:
+    /* ------------------------------------------------------------------------
+     *  Message handling
+     */
+
+    /** Handle message dispatch. This enforces some low-level vital message processing
+     *  before passing the message to on_message to actually handle.
+     *
+     * @param msg   A pointer to the message received by the object.
+     * @param reply A reference to a multiparm variable in which a reply can
+     *              be stored.
+     * @return S_OK (zero) if the message has been processed successfully,
+     *         S_FALSE if an error occurred.
+     */
+    long dispatch_message(sScrMsg* msg, sMultiParm* reply);
+
+
+    /* ------------------------------------------------------------------------
+     *  Link targetting
+     */
 
     /** Process any sigils included in the specified linkdef. This will scan the
      *  specified linkdef for recognised sigils, and set the options for the link
@@ -756,6 +762,10 @@ private:
     void select_links(std::vector<TargetObj>* matches, std::vector<LinkScanWorker>& links, const uint fetch_count);
 
 
+    /* ------------------------------------------------------------------------
+     *  Search methods
+     */
+
     /** Determine whether the specified target string is a radius search, and if so
      *  pull out its components. This will take a string like `5.00<Chest` and set
      *  the radius to 5.0, set the lessthan variable to true, and set the archetype
@@ -846,6 +856,18 @@ private:
      *         be freed by the called using `g_pMalloc -> Free()`.
      */
     char* parse_qvar(const char* qvar, char** lhs, char* op, char** rhs);
+
+
+    /* ------------------------------------------------------------------------
+     *  Miscellaneous stuff
+     */
+
+    /** Ensure that links from this script to the PlayerFactory actually go to
+     *  Garrett instead. This is inherited from PublicScripts, I've no idea how
+     *  vital it actually is, and including it is easier than finding out what
+     *  breaks without it, so here it is. Mysterious functions. Yey.
+     */
+    void fixup_player_links(void);
 
 
     /** Split a string at a comma. This locates the first comma in the specified string,
