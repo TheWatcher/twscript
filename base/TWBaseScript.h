@@ -812,9 +812,18 @@ private:
      *  Link inspection
      */
 
-    /**
+    /** Inspect the links with the specified flavour from the 'from' object, and locate the first link to an object
+     *  with either the specified name, or an object that descends from an archetype with the specified name. If an
+     *  appropriate link is found, return the ID of the object at the end of it.
+     *
+     * @param from      The ID of the object to look at links from.
+     * @param obj_name  The name of the object to look for a link to, or the name of an archetype the target object should
+     *                  be a concrete instance of.
+     * @param link_name The name of the link flavour to look for.
+     * @param fallback  An optional default ID to return if no matching object has been located.
+     * @return The target object ID, or the fallback ID if no match has been located.
      */
-    int get_linked_object(const std::string &arch_name, const std::string& link_name, const int from, const int fallback);
+    int get_linked_object(const int from, const std::string& obj_name, const std::string& link_name, const int fallback = 0);
 
 
     /* ------------------------------------------------------------------------
