@@ -162,10 +162,10 @@ void TWTrapSetSpeed::update_speed(sScrMsg* msg)
             std::vector<TargetObj>::iterator it;
             std::string targ_name;
             for(it = targets -> begin() ; it < targets -> end(); it++) {
-                set_tpath_speed(*it.obj_id);
+                set_tpath_speed(it -> obj_id);
 
                 if(debug_enabled()) {
-                    get_object_namestr(targ_name, *it.obj_id);
+                    get_object_namestr(targ_name, it -> obj_id);
                     debug_printf(DL_DEBUG, "Setting speed %.3f on %s.", speed, targ_name.c_str());
                 }
             }

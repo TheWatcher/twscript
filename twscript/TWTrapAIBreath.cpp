@@ -72,7 +72,7 @@ void TWTrapAIBreath::init(int time)
         // Sort out the archetype for the proxy
         char *proxy_name = get_scriptparam_string(design_note, "Proxy", "BreathProxy");
         if(proxy_name) {
-            particle_arch_name = proxy_name;
+            proxy_arch_name = proxy_name;
             g_pMalloc -> Free(proxy_name);
         }
 

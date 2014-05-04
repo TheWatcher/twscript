@@ -13,7 +13,6 @@
 #include <cstdio>
 #include <cstdarg>
 #include <algorithm>    // std::sort and std::shuffle
-#include <random>       // std::default_random_engine
 #include <chrono>       // std::chrono::system_clock
 
 #include "Version.h"
@@ -758,13 +757,13 @@ uint TWBaseScript::link_scan(const char* flavour, const int from, const bool wei
 }
 
 
-bool pick_weighted_link(std::vector<LinkScanWorker>& links, const uint target, TargetObj& store)
+bool TWBaseScript::pick_weighted_link(std::vector<LinkScanWorker>& links, const uint target, TargetObj& store)
 {
     std::vector<LinkScanWorker>::iterator it;
 
     for(it = links.begin(); it < links.end(); it++) {
         if((*it).cumulative >= target) {
-            store = (*it);
+            store = *it;
             return true;
         }
     }
