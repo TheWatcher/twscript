@@ -91,7 +91,7 @@ BASE_OBJS = $(BASEDIR)/TWBaseScript.o $(BASEDIR)/TWBaseTrap.o $(BASEDIR)/SavedCo
 MISC_OBJS = $(BINDIR)/ScriptDef.o $(PUBDIR)/utils.o
 
 # Custom script objects
-SCR_OBJS  = $(SCRPTDIR)/TWTrapAIBreath.o $(SCRPTDIR)/TWTrapPhysStateCtrl.o $(SCRPTDIR)/TWTrapSetSpeed.o
+SCR_OBJS  = $(SCRPTDIR)/TWTrapAIBreath.o $(SCRPTDIR)/TWTrapPhysStateCtrl.o $(SCRPTDIR)/TWTrapSetSpeed.o $(SCRPTDIR)/TWCloudDrift.o
 RES_OBJS  = $(BINDIR)/$(MYSCRIPT)_res.o
 
 # Docs
@@ -166,6 +166,7 @@ $(BASEDIR)/SavedCounter.o: $(BASEDIR)/SavedCounter.cpp $(BASEDIR)/SavedCounter.h
 $(SCRPTDIR)/TWTrapAIBreath.o: $(SCRPTDIR)/TWTrapAIBreath.cpp $(SCRPTDIR)/TWTrapAIBreath.h $(BASEDIR)/TWBaseTrap.h $(BASEDIR)/TWBaseScript.h $(PUBDIR)/Script.h
 $(SCRPTDIR)/TWTrapPhysStateCtrl.o: $(SCRPTDIR)/TWTrapPhysStateCtrl.cpp $(SCRPTDIR)/TWTrapPhysStateCtrl.h $(BASEDIR)/TWBaseTrap.h $(BASEDIR)/TWBaseScript.h $(PUBDIR)/Script.h
 $(SCRPTDIR)/TWTrapSetSpeed.o: $(SCRPTDIR)/TWTrapSetSpeed.cpp $(SCRPTDIR)/TWTrapSetSpeed.h $(BASEDIR)/TWBaseTrap.h $(BASEDIR)/TWBaseScript.h $(PUBDIR)/Script.h
+$(SCRPTDIR)/TWCloudDrift.o: $(SCRPTDIR)/TWCloudDrift.cpp $(SCRPTDIR)/TWCloudDrift.h $(BASEDIR)/TWBaseScript.h $(PUBDIR)/Script.h
 
 $(BINDIR)/ScriptDef.o: ScriptDef.cpp $(SCRPTDIR)/TWTrapSetSpeed.h $(SCRPTDIR)/TWTrapPhysStateCtrl.h $(BASEDIR)/TWBaseTrap.h $(BASEDIR)/TWBaseScript.h $(PUBDIR)/ScriptModule.h $(PUBDIR)/genscripts.h
 $(BINDIR)/$(MYSCRIPT)_res.o: $(MYSCRIPT).rc $(PUBDIR)/version.rc
