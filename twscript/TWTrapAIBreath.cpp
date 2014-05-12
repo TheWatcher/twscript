@@ -6,7 +6,7 @@ static char* strtok_r(char *str, const char *delim, char **nextp);
 
 
 /* =============================================================================
- *  TWTrapAIBreath Impmementation - protected members
+ *  TWTrapAIBreath Implementation - protected members
  */
 
 void TWTrapAIBreath::init(int time)
@@ -185,7 +185,7 @@ TWBaseScript::MsgStatus TWTrapAIBreath::on_offmsg(sScrMsg* msg, cMultiParm& repl
 
 
 /* =============================================================================
- *  TWTrapAIBreath Impmementation - private members
+ *  TWTrapAIBreath Implementation - private members
  */
 
 void TWTrapAIBreath::abort_breath(bool cancel_timer)
