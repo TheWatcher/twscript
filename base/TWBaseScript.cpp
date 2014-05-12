@@ -471,6 +471,10 @@ bool TWBaseScript::get_scriptparam_floatvec(const char* design_note, const char*
         parsed = true;
 
         g_pMalloc -> Free(value);
+    } else {
+        vect.x = defx;
+        vect.y = defy;
+        vect.z = defz;
     }
 
     return parsed;
