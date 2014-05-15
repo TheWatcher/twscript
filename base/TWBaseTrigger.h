@@ -45,9 +45,12 @@ public:
      * @return A new TWBaseTrigger object.
      */
     TWBaseTrigger(const char* name, int object) : TWBaseScript(name, object),
-                                                  turnon_msg("TurnOn"), turnoff_msg("TurnOff"), dest_str("&ControlDevice"),
+                                                  messages { "TurnOff", "TurnOn" }, isstim { false, false }, stimob { 0, 0 }, intensity { 0.0f, 0.0f },
+                                                  dest_str("&ControlDevice"),
+                                                  remove_links(false),
                                                   fail_chance(0),
-                                                  count(name, object), count_mode(CM_BOTH)
+                                                  count(name, object), count_mode(CM_BOTH),
+                                                  uni_dist(0, 100)
         { /* fnord */ }
 
 protected:
@@ -86,16 +89,16 @@ protected:
      *
      * @return true if the message was sent, false otherwise.
      */
-    bool send_on_message()
-        { return send_trigger_message(true); }
+    bool send_on_message(sScrMsg* msg)
+        { return send_trigger_message(true, msg); }
 
 
     /** Send the defined 'Off' message to the target objects.
      *
      * @return true if the message was sent, false otherwise.
      */
-    bool send_off_message()
-        { return send_trigger_message(false); }
+    bool send_off_message(sScrMsg* msg)
+        { return send_trigger_message(false, msg); }
 
 
 private:
@@ -111,7 +114,18 @@ private:
      *                otherwise it will send the 'off' message.
      * @return true if the message was sent, false otherwise.
      */
-    bool send_trigger_message(bool send_on);
+    bool send_trigger_message(bool send_on, sScrMsg* msg);
+
+
+    /* ------------------------------------------------------------------------
+     *  Miscellaneous
+     */
+
+    /** Determine whether the specified message is actually a stimulus request, and
+     *  if so attempt to set up the settings based on the message.
+     *
+     */
+    bool check_stimulus_message(char *message, int *obj, float *intensity);
 
 
     /* ------------------------------------------------------------------------
@@ -119,11 +133,17 @@ private:
      */
 
     // Message names
-    std::string turnon_msg;  //!< The name of the message that should be sent as a 'turnon'
-    std::string turnoff_msg; //!< The name of the message that should be sent as a 'turnoff'
+    std::string messages[2];  //!< The name of the message that should be sent as a 'turnon' or 'turnoff'
+
+    // Stimulus for on/off
+    bool  isstim[2];         //!< Is the turnon message a stimulus rather than a message?
+    int   stimob[2];         //!< The stimulus object to use on turnon.
+    float intensity[2];      //!< The stimulus intensity to use.
 
     // Destination setting
     std::string dest_str;    //!< Where should messages be sent?
+
+    bool remove_links;       //!< Remove links after sending messages?
 
     // Full of fail?
     int fail_chance;         //!< percentage chance of the trigger failing.
@@ -132,6 +152,8 @@ private:
     SavedCounter count;      //!< Control how many times the script will work
     CountMode    count_mode; //!< What counts as 'working'?
 
+    // Randomness
+    std::uniform_int_distribution<int> uni_dist;   //!< a uniform distribution for fail checking.
 };
 
 #else // SCR_GENSCRIPTS

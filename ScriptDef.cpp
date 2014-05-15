@@ -59,6 +59,7 @@
  */
 #include "TWBaseScript.h"
 #include "TWBaseTrap.h"
+#include "TWBaseTrigger.h"
 
 #include "TWTrapAIBreath.h"
 #include "TWTrapPhysStateCtrl.h"
@@ -67,6 +68,7 @@
 
 #undef TWBASESCRIPT_H
 #undef TWBASETRAP_H
+#undef TWBASETRIGGER_H
 
 #undef TWTRAPAIBREATH_H
 #undef TWTRAPPHYSSTATECTRL_H

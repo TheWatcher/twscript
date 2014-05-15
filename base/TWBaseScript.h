@@ -91,7 +91,7 @@ public:
      * @param object The ID of the client object to add the script to.
      * @return A new TWBaseScript object.
      */
-    TWBaseScript(const char* name, int object) : cScript(name, object), need_fixup(true), sim_running(false), debug(false), message_time(0), done_init(false), randomiser(0)
+    TWBaseScript(const char* name, int object) : cScript(name, object), randomiser(0), need_fixup(true), sim_running(false), debug(false), message_time(0), done_init(false)
         { /* fnord */ }
 
 
@@ -665,6 +665,11 @@ protected:
     int get_linked_object(const int from, const std::string& obj_name, const std::string& link_name, const int fallback = 0);
 
 
+    /* ------------------------------------------------------------------------
+     *  Variables
+     */
+    std::default_random_engine randomiser; //!< a random number generator for... random numbers.
+
 private:
     /* ------------------------------------------------------------------------
      *  Message handling
@@ -900,8 +905,6 @@ private:
     uint message_time; //!< The sim time stored in the last recieved message
 
     bool done_init;    //!< Has the script run its init?
-
-    std::default_random_engine randomiser; //!< a random number generator for... random numbers.
 
     static const uint NAME_BUFFER_SIZE;
 };
