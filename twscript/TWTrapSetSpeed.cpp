@@ -161,7 +161,7 @@ void TWTrapSetSpeed::update_speed(sScrMsg* msg)
             // Process the target list, setting the speeds accordingly
             std::vector<TargetObj>::iterator it;
             std::string targ_name;
-            for(it = targets -> begin() ; it < targets -> end(); it++) {
+            for(it = targets -> begin() ; it != targets -> end(); it++) {
                 set_tpath_speed(it -> obj_id);
 
                 if(debug_enabled()) {
