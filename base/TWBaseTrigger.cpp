@@ -140,6 +140,11 @@ bool TWBaseTrigger::send_trigger_message(bool send_on, sScrMsg* msg)
 
     CountMode mode = (send_on ? CM_TURNON : CM_TURNOFF);
     if(count.increment(msg -> time, (count_mode & mode) ? 1 : 0)) {
+        if(debug_enabled()) {
+            int max, counted = count.get_counts(NULL, &max);
+            debug_printf(DL_WARNING, "Count passed (%d of %d), doing trigger", counted, max);
+        }
+
         targets = get_target_objects(dest_str.c_str(), msg);
 
         if(!targets -> empty()) {
@@ -185,6 +190,9 @@ bool TWBaseTrigger::send_trigger_message(bool send_on, sScrMsg* msg)
 
         // Indicate messages have been sent
         return true;
+    } else if(debug_enabled()) {
+        int max, counted = count.get_counts(NULL, &max);
+        debug_printf(DL_WARNING, "Count exceeded (%d of %d), ignoring trigger", counted, max);
     }
 
     return false;
