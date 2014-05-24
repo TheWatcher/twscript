@@ -65,6 +65,7 @@
 #include "TWTrapPhysStateCtrl.h"
 #include "TWTrapSetSpeed.h"
 #include "TWCloudDrift.h"
+#include "TWTriggerVisible.h"
 
 #undef TWBASESCRIPT_H
 #undef TWBASETRAP_H
@@ -74,6 +75,7 @@
 #undef TWTRAPPHYSSTATECTRL_H
 #undef TWTRAPSETSPEED_H
 #undef TWCLOUDDRIFT_H
+#undef TWTRIGGERVISIBLE_H
 
 #if defined(SCR_GENSCRIPTFACTORY)
 
