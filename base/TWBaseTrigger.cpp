@@ -144,7 +144,7 @@ bool TWBaseTrigger::send_trigger_message(bool send_on, sScrMsg* msg)
 
         if(!targets -> empty()) {
             std::vector<TargetObj>::iterator it;
-            SInterface<IActReactSrv> ar_srv(g_pScriptManager);
+            SService<IActReactSrv> ar_srv(g_pScriptManager);
 
             // Convert the bool to an index into the various arrays
             int send = (send_on ? 1 : 0);
