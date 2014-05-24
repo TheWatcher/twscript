@@ -28,6 +28,7 @@ void TWBaseTrigger::init(int time)
 {
     TWBaseScript::init(time);
 
+    int value = 0, falloff = 0;
     char *msg;
     char *design_note = GetObjectParams(ObjId());
 
@@ -47,6 +48,7 @@ void TWBaseTrigger::init(int time)
             g_pMalloc -> Free(msg);
         }
 
+        // And where the messages should go
         if((msg = get_scriptparam_string(design_note, "TDest", "&ControlDevice")) != NULL) {
             dest_str = msg;
             g_pMalloc -> Free(msg);
@@ -54,31 +56,29 @@ void TWBaseTrigger::init(int time)
 
         remove_links = get_scriptparam_bool(design_note, "KillLinks");
 
-        if(debug_enabled()) {
-            debug_printf(DL_DEBUG, "Trigger initialised with on = '%s', off = '%s', dest = '%s'.\nChosen links will%s be deleted.", messages[1].c_str(), messages[0].c_str(), dest_str.c_str(), (remove_links ? "" : " not"));
-            debug_printf(DL_DEBUG, "On is%s a stimulus", (isstim[1] ? "" : " not"));
-            if(isstim[1]) debug_printf(DL_DEBUG, "    Stim object: %d, Intensity: %.3f", stimob[1], intensity[1]);
-
-            debug_printf(DL_DEBUG, "Off is%s a stimulus", (isstim[0] ? "" : " not"));
-            if(isstim[0]) debug_printf(DL_DEBUG, "    Stim object: %d, Intensity: %.3f", stimob[0], intensity[0]);
-        }
-
+        // Allow triggers to fail
         fail_chance = get_scriptparam_int(design_note, "FailChance", 0);
-        if(debug_enabled())
-            debug_printf(DL_DEBUG, "Chance of failure is %d%%%s", fail_chance, (fail_chance ? "" : " (will always trigger)"));
 
         // Now for use limiting.
-        int value, falloff;
         get_scriptparam_valuefalloff(design_note, "Count", &value, &falloff);
         count.init(time, 0, value, falloff);
 
         // Handle modes
         count_mode = get_scriptparam_countmode(design_note, "CountOnly");
 
-        if(debug_enabled())
-            debug_printf(DL_DEBUG, "Count is %d%s with a falloff of %d milliseconds, count mode is %d", value, (value ? "" : " (no use limit)"), falloff, static_cast<int>(count_mode));
-
         g_pMalloc -> Free(design_note);
+    }
+
+    if(debug_enabled()) {
+        debug_printf(DL_DEBUG, "Trigger initialised with on = '%s', off = '%s', dest = '%s'.\nChosen links will%s be deleted.", messages[1].c_str(), messages[0].c_str(), dest_str.c_str(), (remove_links ? "" : " not"));
+        debug_printf(DL_DEBUG, "On is%s a stimulus", (isstim[1] ? "" : " not"));
+        if(isstim[1]) debug_printf(DL_DEBUG, "    Stim object: %d, Intensity: %.3f", stimob[1], intensity[1]);
+
+        debug_printf(DL_DEBUG, "Off is%s a stimulus", (isstim[0] ? "" : " not"));
+        if(isstim[0]) debug_printf(DL_DEBUG, "    Stim object: %d, Intensity: %.3f", stimob[0], intensity[0]);
+
+        debug_printf(DL_DEBUG, "Chance of failure is %d%%%s", fail_chance, (fail_chance ? "" : " (will always trigger)"));
+        debug_printf(DL_DEBUG, "Count is %d%s with a falloff of %d milliseconds, count mode is %d", value, (value ? "" : " (no use limit)"), falloff, static_cast<int>(count_mode));
     }
 }
 
@@ -152,15 +152,32 @@ bool TWBaseTrigger::send_trigger_message(bool send_on, sScrMsg* msg)
             for(it = targets -> begin(); it != targets -> end(); it++) {
                 // If sending a stim instead of a message, do that...
                 if(isstim[send]) {
+                    if(debug_enabled()) {
+                        std::string objname, stimname;
+                        get_object_namestr(objname, it -> obj_id);
+                        get_object_namestr(stimname, stimob[send]);
+
+                        debug_printf(DL_DEBUG, "Stimulating %s with %s, intensity %.3f", objname.c_str(), stimname.c_str(), intensity[send]);
+                    }
+
                     ar_srv -> Stimulate(it -> obj_id, stimob[send], intensity[send], ObjId());
 
                 // otherwise, send the message to the target
                 } else {
+                    if(debug_enabled()) {
+                        std::string objname;
+                        get_object_namestr(objname, it -> obj_id);
+
+                        debug_printf(DL_DEBUG, "Sending %s to %s", messages[send].c_str(), objname.c_str());
+                    }
+
                     post_message(it -> obj_id, messages[send].c_str());
 
                     // TODO: Handle link delete
                 }
             }
+        } else if(debug_enabled()) {
+            debug_printf(DL_WARNING, "No targets found for trigger");
         }
 
         // No longer need the target list
