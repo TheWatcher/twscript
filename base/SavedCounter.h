@@ -121,6 +121,18 @@ public:
     void set_falloff(int newfalloff)
         { falloff = newfalloff; }
 
+
+    /** Fetch the current counts.
+     *
+     * @return The current count value.
+     */
+    int get_counts(int *minval = NULL, int *maxval = NULL)
+        {
+            if(minval) *minval = min;
+            if(maxval) *maxval = max;
+            return count;
+        }
+
 private:
     /** Apply the falloff to the current count (if it is set) and return the updated
      *  counter value. Note that this does not update the `count` member variable: it
