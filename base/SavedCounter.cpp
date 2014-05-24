@@ -66,6 +66,8 @@ int SavedCounter::apply_falloff(int time, int oldcount)
         if(removed) {
             oldcount -= removed;
             if(oldcount < 0) oldcount = 0; // Negative use counts would be be bad!
+
+            last_time = time; // Made a change, so record that.
         }
     }
 
