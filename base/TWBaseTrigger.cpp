@@ -29,6 +29,7 @@ void TWBaseTrigger::init(int time)
     TWBaseScript::init(time);
 
     int value = 0, falloff = 0;
+    bool limit = false;
     char *msg;
     char *design_note = GetObjectParams(ObjId());
 
@@ -60,8 +61,8 @@ void TWBaseTrigger::init(int time)
         fail_chance = get_scriptparam_int(design_note, "FailChance", 0);
 
         // Now for use limiting.
-        get_scriptparam_valuefalloff(design_note, "Count", &value, &falloff);
-        count.init(time, 0, value, falloff);
+        get_scriptparam_valuefalloff(design_note, "Count", &value, &falloff, &limit);
+        count.init(time, 0, value, falloff, false, limit);
 
         // Handle modes
         count_mode = get_scriptparam_countmode(design_note, "CountOnly");
@@ -78,7 +79,7 @@ void TWBaseTrigger::init(int time)
         if(isstim[0]) debug_printf(DL_DEBUG, "    Stim object: %d, Intensity: %.3f", stimob[0], intensity[0]);
 
         debug_printf(DL_DEBUG, "Chance of failure is %d%%%s", fail_chance, (fail_chance ? "" : " (will always trigger)"));
-        debug_printf(DL_DEBUG, "Count is %d%s with a falloff of %d milliseconds, count mode is %d", value, (value ? "" : " (no use limit)"), falloff, static_cast<int>(count_mode));
+        debug_printf(DL_DEBUG, "Count is %d%s with a falloff of %d milliseconds, count mode is %d, limit is %s", value, (value ? "" : " (no use limit)"), falloff, static_cast<int>(count_mode), (limit ? "on" : "off"));
     }
 }
 

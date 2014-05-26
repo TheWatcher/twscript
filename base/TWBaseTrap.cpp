@@ -87,8 +87,9 @@ void TWBaseTrap::init(int time)
 
         // Now for use limiting.
         int value, falloff;
-        get_scriptparam_valuefalloff(design_note, "Count", &value, &falloff);
-        count.init(time, 0, value, falloff);
+        bool limit;
+        get_scriptparam_valuefalloff(design_note, "Count", &value, &falloff, &limit);
+        count.init(time, 0, value, falloff, false, limit);
 
         // Handle modes
         count_mode = get_scriptparam_countmode(design_note, "CountOnly");
@@ -98,13 +99,13 @@ void TWBaseTrap::init(int time)
 
         // Now deal with capacitors
         get_scriptparam_valuefalloff(design_note, "OnCapacitor", &value, &falloff);
-        on_capacitor.init(time, value, 0, falloff);
+        on_capacitor.init(time, value, 0, falloff, true);
 
         if(debug_enabled())
             debug_printf(DL_DEBUG, "OnCapacitor is %d%s with a falloff of %d milliseconds", value, (value > 1 ? "" : " (every turnon fires)"), falloff);
 
         get_scriptparam_valuefalloff(design_note, "OffCapacitor", &value, &falloff);
-        off_capacitor.init(time, value, 0, falloff);
+        off_capacitor.init(time, value, 0, falloff, true);
 
         if(debug_enabled())
             debug_printf(DL_DEBUG, "OffCapacitor is %d%s with a falloff of %d milliseconds", value, (value > 1 ? "" : " (every turnoff fires)"), falloff);

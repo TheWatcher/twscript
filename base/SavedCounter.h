@@ -63,8 +63,11 @@ public:
      * @param falloff_ms The time it takes for one count to time out.
      * @param cap_mode   Operate in capacitor mode. If this is true, and min_count is
      *                   set, as soon as the counter reaches the minimum it will reset.
+     * @param limit_mode Operate in limit mode. If this is true, any attempt to increment
+     *                   the counter beyond max_count + 1 will be ignored. If cap_mode is
+     *                   set, this is ignored.
      */
-    void init(int curr_time, int min_count = 0, int max_count = 0, int falloff_ms = 0, bool cap_mode = false);
+    void init(int curr_time, int min_count = 0, int max_count = 0, int falloff_ms = 0, bool cap_mode = false, bool limit_mode = false);
 
 
     /** This will increment the counter and return true if the count - after the
@@ -148,6 +151,7 @@ private:
     int  min;             //!< The minimum number of times increase_count() must be called before it returns true
     int  max;             //!< The maximum number of times increase_count() can be called before it returns false
     bool capacitor;       //!< If true, and min is set, the counter works in capacitor mode.
+    bool limit;           //!< If true, capacitor is off, and max is set, the counter works in limit mode.
     int  falloff;         //!< The time in milliseconds it takes for the count to decrease by 1.
     script_int count;     //!< The current count
     script_int last_time; //!< The sim time at which the count was last updated

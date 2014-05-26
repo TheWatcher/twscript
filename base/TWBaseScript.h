@@ -426,6 +426,7 @@ protected:
         CM_BOTH         //!< Count both TurnOn and TurnOff
     };
 
+
     /** Attempt to parse the count mode out of the specified design note.
      *  This handle situations where the user has set the CountOnly
      *  parameter to 0, 1, 2, 3, None, On, Off, or Both. Because it is
@@ -457,8 +458,12 @@ protected:
      *                    in. If no value has been specified for the param,
      *                    the int pointed to by this will be set to 0. If
      *                    you do not need to parse a falloff, set this to NULL.
+     * @param limit       A pointer to a bool to store the limit flag in. If no
+     *                    value has been set for the param, the bool will be
+     *                    set to zero. If you do not need to parse the limit
+     *                    flag, set this to NULL.
      */
-    void get_scriptparam_valuefalloff(char* design_note, const char* param, int* value = NULL, int* falloff = NULL);
+    void get_scriptparam_valuefalloff(char* design_note, const char* param, int* value = NULL, int* falloff = NULL, bool* limit = NULL);
 
 
     /** Read a float parameter from a design note string. If the value specified

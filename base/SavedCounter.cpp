@@ -1,7 +1,7 @@
 
 #include "SavedCounter.h"
 
-void SavedCounter::init(int curr_time, int min_count, int max_count, int falloff_ms, bool cap_mode)
+void SavedCounter::init(int curr_time, int min_count, int max_count, int falloff_ms, bool cap_mode, bool limit_mode)
 {
     // Get the persistent variables initialised if needed
     count.Init(0);
@@ -23,6 +23,7 @@ void SavedCounter::init(int curr_time, int min_count, int max_count, int falloff
     min = min_count;
     max = max_count;
     capacitor = cap_mode && (min > 1); // capacitor mode is pointless without a min setting over 1.
+    limit = limit_mode && max && !capacitor; // limit mode is pointless if capacitor mode is set, or there's no max.
     falloff = falloff_ms;
 }
 
@@ -33,6 +34,9 @@ bool SavedCounter::increment(int time, uint amount)
 
     // Let apply_falloff work out what the count should be before incrementing
     int newcount = apply_falloff(time, oldcount) + amount;
+
+    // If limit mode is enabled, force at most max + 1 for the new value.
+    if(limit && max && (newcount > max)) newcount = max + 1;
 
     // If there is no minimum, it is zero, so there doesn't need to be a special check
     // for it here; count will *always* be > 0 here.

@@ -336,7 +336,7 @@ float TWBaseScript::parse_float(const char* param, float def_val, std::string& q
 }
 
 
-void TWBaseScript::get_scriptparam_valuefalloff(char* design_note, const char* param, int* value, int* falloff)
+void TWBaseScript::get_scriptparam_valuefalloff(char* design_note, const char* param, int* value, int* falloff, bool* limit)
 {
     std::string workstr = param;
 
@@ -349,6 +349,13 @@ void TWBaseScript::get_scriptparam_valuefalloff(char* design_note, const char* p
     if(falloff) {
         workstr += "Falloff";
         *falloff = get_scriptparam_int(design_note, workstr.c_str());
+    }
+
+    // And allow counting to be limited
+    if(limit) {
+        workstr = param;
+        workstr += "Limit";
+        *limit = get_scriptparam_bool(design_note, workstr.c_str());
     }
 }
 
