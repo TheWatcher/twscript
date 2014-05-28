@@ -82,10 +82,30 @@ protected:
     virtual MsgStatus on_message(sScrMsg* msg, cMultiParm& reply);
 
 
+    /** Handle 'turn on' messages received by the script. This is invoked when
+     *  the script receives the message it interprets as a 'turn on' instruction
+     *  (TurnOn by default).
+     *
+     * @param msg   A pointer to the message received by the object.
+     * @param reply A reference to a multiparm variable in which a reply can
+     *              be stored.
+     * @return A status value indicating whether the caller should continue
+     *         processing the message
+     */
     virtual MsgStatus on_onmsg(sScrMsg* msg, cMultiParm& reply)
         { return MS_CONTINUE; }
 
 
+    /** Handle 'turn off' messages received by the script. This is invoked when
+     *  the script receives the message it interprets as a 'turn off' instruction
+     *  (TurnOff by default).
+     *
+     * @param msg   A pointer to the message received by the object.
+     * @param reply A reference to a multiparm variable in which a reply can
+     *              be stored.
+     * @return A status value indicating whether the caller should continue
+     *         processing the message
+     */
     virtual MsgStatus on_offmsg(sScrMsg* msg, cMultiParm& reply)
         { return MS_CONTINUE; }
 
