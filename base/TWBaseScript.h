@@ -597,7 +597,9 @@ protected:
      *  the remainder of the string is used as an archetype name and all direct
      *  concrete descendants of that archetype are returned. If targ starts with
      *  @ then all concrete descendants (direct and indirect) are returned. If
-     *  targ contains a < or > then a radius search is performed.
+     *  targ contains a < or > then a radius search is performed. If the target
+     *  starts with '&' it is considered to be a link search, in which case the
+     *  remainder of the target string should be a linksearch definition.
      *
      * @param targ The target description string
      * @param msg  A pointer to a script message containing the to and from objects.
@@ -621,6 +623,11 @@ protected:
      *
      *  If the linkdef is preceded with '?' then one or more of the possible links
      *  is chosen at random, and the destination TargetObj aded to the list.
+     *
+     *  If the linkdef is preceded with '%', only links to archetype objects will
+     *  be included in the results. Conversely, if the linkdef is preceded by '#'
+     *  only links to concrete objects will be included. If neither sigil is set,
+     *  the default is to include links to both archetypes and concrete objects.
      *
      *  If the linkdef specifies the flavour "Weighted", the search inspects all
      *  the ScriptParams links from the host object, and uses the integer values
@@ -696,6 +703,14 @@ private:
      *  Link targetting
      */
 
+    /** Enum used to control link selection in searches.
+     */
+    enum LinkMode {
+        LM_ARCHETYPE = 1, //!< Only include links to archetypes in results
+        LM_CONCRETE,      //!< Only include links to concrete objects
+        LM_BOTH           //!< Include links to both
+    };
+
     /** Process any sigils included in the specified linkdef. This will scan the
      *  specified linkdef for recognised sigils, and set the options for the link
      *  search appropriately.
@@ -711,11 +726,13 @@ private:
      *                    contains the flavour "Weighted"
      * @param fetch_count A pointer to an int that will be set to the number of
      *                    objects to return from link_search.
+     * @param mode        A pointer to a LinkMode to store the link selection mode in.
+     *                    If a mode is not set in the string, this is set to LM_BOTH.
      * @return A pointer to the start of the link flavour specified in linkdef. Note
      *         that if the linkdef specifies the flavour "Weighted", this will be a
      *         link to a string containing "ScriptParams" which *should not* be freed.
      */
-    const char* link_search_setup(const char *linkdef, bool* is_random, bool* is_weighted, uint* fetch_count);
+    const char* link_search_setup(const char *linkdef, bool* is_random, bool* is_weighted, uint* fetch_count, LinkMode *mode);
 
 
     /** Parse the number of linked objects to return from the specified link definition.
@@ -737,11 +754,12 @@ private:
      * @param flavour  The link flavour to include in the list.
      * @param from     The ID of the object to fetch links from.
      * @param weighted If true, weighting is enabled. `flavour` must be `ScriptParams` or `~ScriptParams`.
+     * @param mode     The link selection mode.
      * @param links    A reference to a vector in which the list of links should be stored.
      * @return The accumulated weights if weighting is enabled, the number of links if it is
      *         not enabled, 0 indicates no matching links found.
      */
-    uint link_scan(const char *flavour, const int from, const bool weighted, std::vector<LinkScanWorker> &links);
+    uint link_scan(const char *flavour, const int from, const bool weighted, const LinkMode mode, std::vector<LinkScanWorker> &links);
 
 
     /** Select a link from the specified vector of links such that it has the target

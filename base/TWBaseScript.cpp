@@ -628,10 +628,11 @@ void TWBaseScript::link_search(std::vector<TargetObj>* matches, const int from, 
     std::vector<LinkScanWorker> links;
     bool is_random = false, is_weighted = false;
     uint fetch_count = 0;
+    LinkMode mode = LM_BOTH;
 
     // Parse the link definition, and fetch the list of possible matching links
-    const char* flavour = link_search_setup(linkdef, &is_random, &is_weighted, &fetch_count);
-    uint count = link_scan(flavour, from, is_weighted, links);
+    const char* flavour = link_search_setup(linkdef, &is_random, &is_weighted, &fetch_count, &mode);
+    uint count = link_scan(flavour, from, is_weighted, mode, links);
 
     if(count) {
         // If no fetch count has been explicitly set, use the whole size, unless random is set
@@ -646,7 +647,7 @@ void TWBaseScript::link_search(std::vector<TargetObj>* matches, const int from, 
 }
 
 
-const char* TWBaseScript::link_search_setup(const char* linkdef, bool* is_random, bool* is_weighted, uint* fetch_count)
+const char* TWBaseScript::link_search_setup(const char* linkdef, bool* is_random, bool* is_weighted, uint* fetch_count, LinkMode *mode)
 {
     while(*linkdef) {
         switch(*linkdef) {
@@ -659,6 +660,12 @@ const char* TWBaseScript::link_search_setup(const char* linkdef, bool* is_random
 
                 // If the linkdef char is still [, what follows is not a number,
                 // the ++linkdef below will skip the [.
+                break;
+
+            case '%': *mode = LM_ARCHETYPE;
+                break;
+
+            case '#': *mode = LM_CONCRETE;
                 break;
 
             // Not a recognised sigil? Assume that it's the start of a link flavour
@@ -717,7 +724,7 @@ const char* TWBaseScript::parse_link_count(const char* linkdef, uint* fetch_coun
 }
 
 
-uint TWBaseScript::link_scan(const char* flavour, const int from, const bool weighted, std::vector<LinkScanWorker>& links)
+uint TWBaseScript::link_scan(const char* flavour, const int from, const bool weighted, LinkMode mode, std::vector<LinkScanWorker>& links)
 {
     // If there is no link flavour, do nothing
     if(!flavour || !*flavour) return 0;
@@ -737,19 +744,25 @@ uint TWBaseScript::link_scan(const char* flavour, const int from, const bool wei
         LinkSrv -> GetAll(matching_links, flavourid, from, 0);
         while(matching_links.AnyLinksLeft()) {
             // Get the common link information
+            temp.weight  = 1;
             temp.link_id = matching_links.Link();
             temp.dest_id = matching_links.Get().dest;
 
-            // If weighting is enabled, fetch the weighting information from the link.
-            if(weighted) {
-                const char* data = static_cast<const char* >(matching_links.Data());
+            if(mode == LM_BOTH ||                            // If linkmode is both, let through any destination
+               (temp.dest_id < 0 && mode == LM_ARCHETYPE) || // Otherwisse, only let through archetypes or concrete if set
+               (temp.dest_id > 0 && mode == LM_CONCRETE)) {
 
-                temp.weight = strtol(data, NULL, 10);
-                if(temp.weight < 1) temp.weight = 1; // Force positive non-zero weights
-                accumulator += temp.weight;
+                // If weighting is enabled, fetch the weighting information from the link.
+                if(weighted) {
+                    const char* data = static_cast<const char* >(matching_links.Data());
+
+                    temp.weight = strtol(data, NULL, 10);
+                    if(temp.weight < 1) temp.weight = 1; // Force positive non-zero weights
+                    accumulator += temp.weight;
+                }
+
+                links.push_back(temp);
             }
-
-            links.push_back(temp);
 
             matching_links.NextLink();
         }
