@@ -626,20 +626,23 @@ std::vector<TargetObj>* TWBaseScript::get_target_objects(const char* target, sSc
 void TWBaseScript::link_search(std::vector<TargetObj>* matches, const int from, const char* linkdef)
 {
     std::vector<LinkScanWorker> links;
-    bool is_random = false, is_weighted = false;
+    bool is_random = false, is_weighted = false, fetch_all = false;;
     uint fetch_count = 0;
     LinkMode mode = LM_BOTH;
 
     // Parse the link definition, and fetch the list of possible matching links
-    const char* flavour = link_search_setup(linkdef, &is_random, &is_weighted, &fetch_count, &mode);
+    const char* flavour = link_search_setup(linkdef, &is_random, &is_weighted, &fetch_count, &fetch_all, &mode);
     uint count = link_scan(flavour, from, is_weighted, mode, links);
 
     if(count) {
         // If no fetch count has been explicitly set, use the whole size, unless random is set
         if(fetch_count < 1) fetch_count = is_random ? 1 : links.size();
 
+        // if fetch_all has been set, set the count to the link count even in random mode
+        if(fetch_all) fetch_count = links.size();
+
         if(is_random) {
-            select_random_links(matches, links, fetch_count, count, is_weighted);
+            select_random_links(matches, links, fetch_count, fetch_all, count, is_weighted);
         } else {
             select_links(matches, links, fetch_count);
         }
@@ -647,12 +650,16 @@ void TWBaseScript::link_search(std::vector<TargetObj>* matches, const int from, 
 }
 
 
-const char* TWBaseScript::link_search_setup(const char* linkdef, bool* is_random, bool* is_weighted, uint* fetch_count, LinkMode *mode)
+const char* TWBaseScript::link_search_setup(const char* linkdef, bool* is_random, bool* is_weighted, uint* fetch_count, bool *fetch_all, LinkMode *mode)
 {
     while(*linkdef) {
         switch(*linkdef) {
             // The ? sigil indicates that the link mode should be random
             case '?': *is_random = true;
+                break;
+
+            // The ! sigil indicates that all links should be returned
+            case '!': *fetch_all = true;
                 break;
 
             // [ indicates the start of a [N] block, probably
@@ -672,6 +679,7 @@ const char* TWBaseScript::link_search_setup(const char* linkdef, bool* is_random
             // name (or "Weighted", in which case enabled weighted random mode)
             default: if(!strcasecmp(linkdef, "Weighted")) {
                         *is_weighted = *is_random = true;
+                        *fetch_all = false; // Can't use fetch_all mode for weighted random
                         return "ScriptParams"; // Weighted mode looks at scriptparams
                      }
                      return linkdef;
@@ -810,27 +818,32 @@ uint TWBaseScript::build_link_weightsums(std::vector<LinkScanWorker>& links)
 }
 
 
-void TWBaseScript::select_random_links(std::vector<TargetObj>* matches, std::vector<LinkScanWorker>& links, const uint fetch_count, const uint total_weights, const bool is_weighted)
+void TWBaseScript::select_random_links(std::vector<TargetObj>* matches, std::vector<LinkScanWorker>& links, const uint fetch_count, const bool fetch_all, const uint total_weights, const bool is_weighted)
 {
     // Yay for easy randomisation
     std::shuffle(links.begin(), links.end(), randomiser);
 
-    // Weighted selection needs cumulative weight information
-    if(is_weighted) build_link_weightsums(links);
+    if(fetch_all && !is_weighted) {
+        select_links(matches, links, links.size());
 
-    TargetObj chosen;
+    } else {
+        // Weighted selection needs cumulative weight information
+        if(is_weighted) build_link_weightsums(links);
 
-    // Pick the requested number of links
-    for(uint pass = 0; pass < fetch_count; ++pass) {
-        // Weighted mode needs more work to pick the item
-        if(is_weighted) {
-            pick_weighted_link(links, 1 + (randomiser() % total_weights), chosen);
-        } else {
-            chosen = links[randomiser() % total_weights]; // at this point, total_weights is actually links.size()
-        }
+        TargetObj chosen;
 
-        // Store the chosen item
+        // Pick the requested number of links
+        for(uint pass = 0; pass < fetch_count; ++pass) {
+            // Weighted mode needs more work to pick the item
+            if(is_weighted) {
+                pick_weighted_link(links, 1 + (randomiser() % total_weights), chosen);
+            } else {
+                chosen = links[randomiser() % total_weights]; // at this point, total_weights is actually links.size()
+            }
+
+            // Store the chosen item
         matches -> push_back(chosen);
+        }
     }
 }
 

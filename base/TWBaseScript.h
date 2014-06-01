@@ -624,6 +624,11 @@ protected:
      *  If the linkdef is preceded with '?' then one or more of the possible links
      *  is chosen at random, and the destination TargetObj aded to the list.
      *
+     *  If the linkdef contains !, all links that match the linkdef are returned
+     *  (and any count in [] will be ignored). Note that this is ignored if
+     *  Weighted mode is enabled. If this is specified, and random mode has been
+     *  enabled, the links are returned in a random order.
+     *
      *  If the linkdef is preceded with '%', only links to archetype objects will
      *  be included in the results. Conversely, if the linkdef is preceded by '#'
      *  only links to concrete objects will be included. If neither sigil is set,
@@ -651,6 +656,10 @@ protected:
      *  The order of sigils doesn't matter, so the same could be expressed using
      *
      *      [3]?ControlDevice
+     *
+     *  This will fetch all ScriptParam linked concrete objects in a random order:
+     *
+     *      #?!ControlDevice
      *
      * @param matches A pointer to the vector to store object IDs in.
      * @param from    The ID of the object to search for links from.
@@ -726,13 +735,15 @@ private:
      *                    contains the flavour "Weighted"
      * @param fetch_count A pointer to an int that will be set to the number of
      *                    objects to return from link_search.
+     * @param fetch_all   A pointer to a book that will be set to true if the linkdef
+     *                    contains the '!' sigil.
      * @param mode        A pointer to a LinkMode to store the link selection mode in.
      *                    If a mode is not set in the string, this is set to LM_BOTH.
      * @return A pointer to the start of the link flavour specified in linkdef. Note
      *         that if the linkdef specifies the flavour "Weighted", this will be a
      *         link to a string containing "ScriptParams" which *should not* be freed.
      */
-    const char* link_search_setup(const char *linkdef, bool* is_random, bool* is_weighted, uint* fetch_count, LinkMode *mode);
+    const char* link_search_setup(const char *linkdef, bool* is_random, bool* is_weighted, uint* fetch_count, bool *fetch_all, LinkMode *mode);
 
 
     /** Parse the number of linked objects to return from the specified link definition.
@@ -791,11 +802,12 @@ private:
      * @param matches       A pointer to the vector to store object IDs in.
      * @param links         A reference to a vector of links.
      * @param fetch_count   The number of links to fetch.
+     * @param fetch_all     Fetch all the links in a random order?
      * @param total_weights The total of all the weights of the links in the links vector.
      * @param is_weighted   If true, do a weighted random selection, otherwise all links
      *                      can be selected equally.
      */
-    void select_random_links(std::vector<TargetObj>* matches, std::vector<LinkScanWorker>& links, const uint fetch_count, const uint total_weights, const bool is_weighted);
+    void select_random_links(std::vector<TargetObj>* matches, std::vector<LinkScanWorker>& links, const uint fetch_count, const bool fetch_all, const uint total_weights, const bool is_weighted);
 
 
     /** Copy the requested number of links from the link worker vector into the TargetObj
