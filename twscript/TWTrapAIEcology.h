@@ -51,7 +51,7 @@
 class TWTrapAIEcology : public TWBaseTrap
 {
 public:
-    TWTrapAIEcology(const char* name, int object) : TWBaseTrap(name, object), refresh(500), poplimit(1),
+    TWTrapAIEcology(const char* name, int object) : TWBaseTrap(name, object), refresh(500), poplimit(1), allow_visible_spawn(false),
                                                     archetype_link("%Weighted"),
                                                     spawnpoint_link("#Weighted"),
                                                     SCRIPT_VAROBJ(TWTrapAIEcology, enabled, object),
@@ -124,32 +124,113 @@ protected:
     MsgStatus on_timer(sScrTimerMsg* msg, cMultiParm& reply);
 
 private:
+    /** Enable the spawn timer. This starts a timer that will, when it fires, result in
+     *  a spawn attempt by the ecology. If the immediate parameter is true, this will
+     *  ignore the configured timer rate and start a 100ms timer - this is intended to
+     *  be used as part of init() to ensure that the first spawn happens soon after init
+     *  rather than a potentially multi-minute delay.
+     *
+     * @param immediate If true, the timer is set to go off in 100ms, otherwise the
+     *                  configured spawn rate is used for the timer.
+     */
     void start_timer(bool immediate = false);
 
 
+    /** Disable the spawn timer, cancelling any currently pending timer.
+     */
     void stop_timer(void);
 
-    /**
+
+    /** Determine whether a spawn is needed, and if one is attempt to spawn an AI at
+     *  a spawn point. The exact behaviour of this function depends somewhat on the
+     *  link definitions used for the archetype and spawn point queries, but it is
+     *  capable of spawning a randomly chosen AI at a randomly chosen spawn point,
+     *  choosing the spawn point that is not visible unless allow_visible_spawn is
+     *  enabled.
+     *
+     * @param msg A pointer to the message that triggered this spawn (needed for
+     *            certain linkdef types.
      */
     void attempt_spawn(sScrMsg* msg);
 
 
+    /** Determine whether enough AIs are currently spawned by this ecology, or whether
+     *  we MUST BUILD ADDITIONAL PYLONS.
+     *
+     * @return true if a spawn is needed, false if not.
+     */
     bool spawn_needed(void);
 
 
+    /** Locate the object ID of the archetype to spawn at the selected spawn point.
+     *  This will return an archetype, which will hopefully be an AI (it doesn't
+     *  actually verify that the selected archetype is an AI, so you could potentially
+     *  use it to spawn other things... no idea how well that'd work in practice though.)
+     *
+     * @param msg A pointer to the message that triggered this spawn (needed for
+     *            certain linkdef types.
+     * @return An archetype ID on success, 0 if the archetype link def doesn't actually
+     *         match any archetypes somehow.
+     */
     int select_archetype(sScrMsg *msg);
 
 
+    /** Locate a spawn point to spawn the AI at. This will try to locate a concrete object
+     *  to use as the reference location to spawn an AI at. If allow_visible_spawn is false,
+     *  this will try to find a spawn point that is not on screen - if there are no off-screen
+     *  spawn pointes, or the spawn point link definition does not match any concrete objects,
+     *  this will return 0.
+     *
+     * @param msg A pointer to the message that triggered this spawn (needed for
+     *            certain linkdef types.
+     * @return The ID of the concrete object to spawn the AI at, or 0 if no suitable concrete
+     *         objects can be located.
+     */
     int select_spawnpoint(sScrMsg *msg);
 
 
+    /** Attempt to spawn the AI with the specific archetype ID at the specified spawn point object.
+     *  This will create the AI at the spawnpoint (potentially including any offset from the object
+     *  if needed), and it will duplicate any AIWatchObj links on the spawn point onto the new AI.
+     *
+     * @param archetype  The ID of the archetype to spawn.
+     * @param spawnpoint The ID of the object to use as the reference point for the spawn.
+     */
     void spawn_ai(int archetype, int spawnpoint);
 
 
+    /** Duplicate any AIWatchObj links on the src object onto the destination.
+     *
+     * @param src  The object to copy the AIWatchObj links from.
+     * @param dest The object to copy the AIWatchObj links to.
+     */
     void copy_spawn_aiwatch(object src, object dest);
 
-    int refresh;  //!< How frequently should the ecology be updated?
-    int poplimit; //!< How many AIs should this ecology allow?
+
+    /** Determine whether the spawn point object is visible. This will return the provided
+     *  object ID if the object is not visible, otherwise it will return 0.
+     *
+     * @param target The ID of the object to check the visibility of.
+     * @return The object ID if the object is not visible, otherwise 0.
+     */
+    int check_spawn_visibility(int target);
+
+
+    /** Obtain the location and facing rotation to spawn the AI at based on the specified spawn
+     *  point. This will use the spawn point's x,y,z as the location, potentially adjusted by a
+     *  TWTrapAIEcologySpawnOffset, and the spawn point's heading for the facing direction (pitch
+     *  and bank are both hard-forced to zero to prevent problems with AIs behaving incorrectly
+     *  when P or B are non-zero.)
+     *
+     * @param spawnpoint The ID of the spawn point object.
+     * @param location   A reference to a vector to store the spawn location in.
+     * @param facing     A reference to a vector to store the spawn rotation in.
+     */
+    void get_spawn_location(int spawnpoint, cScrVec& location, cScrVec& facing);
+
+    int  refresh;                          //!< How frequently should the ecology be updated?
+    int  poplimit;                         //!< How many AIs should this ecology allow?
+    bool allow_visible_spawn;              //!< Should spawns be allowed to happen on-screen?
 
     std::string archetype_link;            //!< The string to use as a linkdef when searching for the archetype to spawn.
     std::string spawnpoint_link;           //!< The string to use as a linkdef when searching for spawn points.
