@@ -59,7 +59,7 @@ PACKER    = 7z
 MAKEDOCS  = $(DOCDIR)/makedocs.pl
 
 DEFINES   = -DWINVER=0x0400 -D_WIN32_WINNT=0x0400 -DWIN32_LEAN_AND_MEAN
-GAMEDEF   = -D_DARKGAME=$(GAME)
+GAMEDEF   = -D_DARKGAME=$(GAME) -D_NEWDARK
 
 ifdef DEBUG
 DEFINES  := $(DEFINES) -DDEBUG
@@ -92,7 +92,7 @@ MISC_OBJS = $(BINDIR)/ScriptDef.o $(PUBDIR)/utils.o
 
 # Custom script objects
 SCR_OBJS  = $(SCRPTDIR)/TWTrapAIBreath.o $(SCRPTDIR)/TWTrapPhysStateCtrl.o $(SCRPTDIR)/TWTrapSetSpeed.o $(SCRPTDIR)/TWTrapAIEcology.o \
-	        $(SCRPTDIR)/TWCloudDrift.o\
+	        $(SCRPTDIR)/TWCloudDrift.o $(SCRPTDIR)/TWTestOnscreen.o \
             $(SCRPTDIR)/TWTriggerVisible.o
 RES_OBJS  = $(BINDIR)/$(MYSCRIPT)_res.o
 
@@ -171,6 +171,7 @@ $(SCRPTDIR)/TWTrapPhysStateCtrl.o: $(SCRPTDIR)/TWTrapPhysStateCtrl.cpp $(SCRPTDI
 $(SCRPTDIR)/TWTrapSetSpeed.o: $(SCRPTDIR)/TWTrapSetSpeed.cpp $(SCRPTDIR)/TWTrapSetSpeed.h $(BASEDIR)/TWBaseTrap.h $(BASEDIR)/TWBaseScript.h $(PUBDIR)/Script.h
 $(SCRPTDIR)/TWTrapAIEcology.o: $(SCRPTDIR)/TWTrapAIEcology.cpp $(SCRPTDIR)/TWTrapAIEcology.h $(BASEDIR)/TWBaseTrap.h $(BASEDIR)/TWBaseScript.h $(PUBDIR)/Script.h
 $(SCRPTDIR)/TWCloudDrift.o: $(SCRPTDIR)/TWCloudDrift.cpp $(SCRPTDIR)/TWCloudDrift.h $(BASEDIR)/TWBaseScript.h $(PUBDIR)/Script.h
+$(SCRPTDIR)/TWTestOnscreen.o: $(SCRPTDIR)/TWTestOnscreen.cpp $(SCRPTDIR)/TWTestOnscreen.h $(BASEDIR)/TWBaseScript.h $(PUBDIR)/Script.h
 $(SCRPTDIR)/TWTriggerVisible.o: $(SCRPTDIR)/TWTriggerVisible.cpp $(SCRPTDIR)/TWTriggerVisible.h $(BASEDIR)/TWBaseTrigger.h $(PUBDIR)/Script.h
 
 $(BINDIR)/ScriptDef.o: ScriptDef.cpp $(SCRPTDIR)/TWTrapSetSpeed.h $(SCRPTDIR)/TWTrapPhysStateCtrl.h $(BASEDIR)/TWBaseTrap.h $(BASEDIR)/TWBaseScript.h $(PUBDIR)/ScriptModule.h $(PUBDIR)/genscripts.h
