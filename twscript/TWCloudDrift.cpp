@@ -57,12 +57,12 @@ void TWCloudDrift::init(int time)
                 // Dump the settings for reference
                 if(debug_enabled()) {
                     debug_printf(DL_DEBUG, "Initialised on object. Settings:");
-                    debug_printf(DL_DEBUG, "Initial location: (%.3f, %.3f, %.3f)\n", location -> x, location -> y, location -> z);
-                    debug_printf(DL_DEBUG, "Drift amount: (%.3f, %.3f, %.3f)\n"    , driftrange.x * 2.0, driftrange.y * 2.0, driftrange.z * 2.0);
-                    debug_printf(DL_DEBUG, "Minimum rate: (%.3f, %.3f, %.3f)\n"    , minrates.x , minrates.y , minrates.z);
-                    debug_printf(DL_DEBUG, "Maximum rate: (%.3f, %.3f, %.3f)\n"    , maxrates.x , maxrates.y , maxrates.z);
-                    debug_printf(DL_DEBUG, "Update mode: %d\n", factormode);
-                    debug_printf(DL_DEBUG, "Update rate: %d\n", refresh);
+                    debug_printf(DL_DEBUG, "Initial location: (%.3f, %.3f, %.3f)", location -> x, location -> y, location -> z);
+                    debug_printf(DL_DEBUG, "Drift amount: (%.3f, %.3f, %.3f)"    , driftrange.x * 2.0, driftrange.y * 2.0, driftrange.z * 2.0);
+                    debug_printf(DL_DEBUG, "Minimum rate: (%.3f, %.3f, %.3f)"    , minrates.x , minrates.y , minrates.z);
+                    debug_printf(DL_DEBUG, "Maximum rate: (%.3f, %.3f, %.3f)"    , maxrates.x , maxrates.y , maxrates.z);
+                    debug_printf(DL_DEBUG, "Update mode: %d", factormode);
+                    debug_printf(DL_DEBUG, "Update rate: %d", refresh);
                 }
 
                 // Check the velocities and start the refresh timer.
