@@ -52,8 +52,8 @@ class TWTrapAIEcology : public TWBaseTrap
 {
 public:
     TWTrapAIEcology(const char* name, int object) : TWBaseTrap(name, object), refresh(500), poplimit(1), allow_visible_spawn(false),
-                                                    archetype_link("%Weighted"),
-                                                    spawnpoint_link("#Weighted"),
+                                                    archetype_link("&%Weighted"),
+                                                    spawnpoint_link("&!#ScriptParams"),
                                                     SCRIPT_VAROBJ(TWTrapAIEcology, enabled, object),
                                                     SCRIPT_VAROBJ(TWTrapAIEcology, update_timer, object)
         { /* fnord */ }
@@ -227,6 +227,15 @@ private:
      * @param facing     A reference to a vector to store the spawn rotation in.
      */
     void get_spawn_location(int spawnpoint, cScrVec& location, cScrVec& facing);
+
+
+    /** Build links between the AI and the ecology for firer counting, and copy any
+     *  AIWatchObj links from the spawn point to the AI.
+     *
+     * @param combined The combined IDs of the AI and the spawn point. The lower 16
+     *                 bits are the spawnpoint ID, the upper 16 are the spawn object ID.
+     */
+    void fixup_links(int combined);
 
     int  refresh;                          //!< How frequently should the ecology be updated?
     int  poplimit;                         //!< How many AIs should this ecology allow?

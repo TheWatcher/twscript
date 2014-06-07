@@ -36,12 +36,32 @@ void TWTrapAIEcology::init(int time)
         starton = get_scriptparam_bool(design_note, "StartOn", false);
         enabled.Init(starton ? 1 : 0);
 
+        char *archetype_def = get_scriptparam_string(design_note, "AILink", "&%Weighted");
+        if(archetype_def) {
+            archetype_link = archetype_def;
+            g_pMalloc -> Free(archetype_def);
+        }
+
+        char *spawnpoint_def = get_scriptparam_string(design_note, "SpawnLink", "&#Weighted");
+        if(spawnpoint_def) {
+            spawnpoint_link = spawnpoint_def;
+            g_pMalloc -> Free(spawnpoint_def);
+        }
+
         g_pMalloc -> Free(design_note);
     }
 
     // If the ecology is active, start it going
     if(int(enabled)) {
         start_timer(true);
+    }
+
+    if(debug_enabled()) {
+        debug_printf(DL_DEBUG, "Initialised on object. Settings:");
+        debug_printf(DL_DEBUG, "Population %d at refresh rate %d", poplimit, refresh);
+        debug_printf(DL_DEBUG, "Start enabled is %s", starton ? "true" : "false");
+        debug_printf(DL_DEBUG, "Archetype linkdef is '%s'", archetype_link.c_str());
+        debug_printf(DL_DEBUG, "Spawn point linkdef is '%s'", spawnpoint_link.c_str());
     }
 }
 
@@ -110,6 +130,10 @@ TWBaseScript::MsgStatus TWTrapAIEcology::on_timer(sScrTimerMsg* msg, cMultiParm&
     if(!::_stricmp(msg -> name, "CheckPop")) {
         attempt_spawn(msg);
         start_timer();
+
+    // Fix the links between the spawn point and AI
+    } else if(!::_stricmp(msg -> name, "FixLinks")) {
+        fixup_links(msg -> data);
     }
 
     return MS_CONTINUE;
@@ -171,6 +195,9 @@ bool TWTrapAIEcology::spawn_needed(void)
         /* fnord */
     }
 
+    if(debug_enabled())
+        debug_printf(DL_DEBUG, "Got %d spawned AIs (limit is %d)", count, poplimit);
+
     // Less links than there can be spawned? If so, spawn is needed.
     return count < poplimit;
 }
@@ -187,6 +214,9 @@ int TWTrapAIEcology::select_archetype(sScrMsg *msg)
     // Traverse the list looking for the first matched archetype.
     for(it = archetype -> begin(); it != archetype -> end() && target >= 0; it++) {
         target = it -> obj_id;
+        if(debug_enabled()) {
+            debug_printf(DL_DEBUG, "Checking obj %d", it -> obj_id);
+        }
     }
 
     delete archetype;
@@ -207,6 +237,9 @@ int TWTrapAIEcology::select_spawnpoint(sScrMsg *msg)
     // Traverse the list looking for the first matched concrete.
     for(it = concrete -> begin(); it != concrete -> end() && target <= 0; it++) {
         target = it -> obj_id;
+        if(debug_enabled()) {
+            debug_printf(DL_DEBUG, "Checking obj %d", it -> obj_id);
+        }
 
         // We may need to reject the concrete if it is in view.
         if(target > 0) target = check_spawn_visibility(target);
@@ -222,8 +255,6 @@ int TWTrapAIEcology::select_spawnpoint(sScrMsg *msg)
 void TWTrapAIEcology::spawn_ai(int archetype, int spawnpoint)
 {
     SService<IObjectSrv>    obj_srv(g_pScriptManager);
-	SService<ILinkSrv>      link_srv(g_pScriptManager);
-	SService<ILinkToolsSrv> link_tools(g_pScriptManager);
     SService<ISoundScrSrv>  snd_srv(g_pScriptManager);
 
     if(debug_enabled()) {
@@ -236,20 +267,26 @@ void TWTrapAIEcology::spawn_ai(int archetype, int spawnpoint)
     object spawn;
     obj_srv -> BeginCreate(spawn, archetype);
     if(spawn) {
+        if(debug_enabled())
+            debug_printf(DL_WARNING, "BeginCreate spawned instance of archetype %d as object %d", archetype, spawn);
+
         cScrVec spawn_rot, spawn_pos;
-        get_spawn_location(spawnpoint, spawn_rot, spawn_pos);
+        get_spawn_location(spawnpoint, spawn_pos, spawn_rot);
+
+        if(debug_enabled())
+            debug_printf(DL_WARNING, "Moving object to %.3f, %.3f, %.3f facing %.3f,%.3f,%.3f", spawn_pos.x, spawn_pos.y, spawn_pos.z, spawn_rot.x, spawn_rot.y, spawn_rot.z);
 
         // Move the AI into position
         obj_srv -> Teleport(spawn, spawn_pos, spawn_rot, 0);
 
-        // Establish a link between the AI and the ecology controller
-        link firer;
-        link_srv -> Create(firer, link_tools -> LinkKindNamed("Firer"), spawn, ObjId());
-
-        // Duplicate any AIWatch links on the spawn point
-        copy_spawn_aiwatch(spawnpoint, spawn);
-
         obj_srv -> EndCreate(spawn);
+
+        // Okay, this is horrible, but we need to pass both the spawn point and object id via a timed message that
+        // only supports one parameter. Luckily, there's an upper limit of 8192 concrete object ids, and we're
+        // dealing with a 32 bit int as the message parameter, so we can pack the two ids into one int, and still
+        // have a safety margin by using 16 bits for each ID.
+        int combined = (spawn << 16) | spawnpoint;
+        set_timed_message("FixLinks", 100, kSTM_OneShot, combined);
 
         // Play a sound at the spawn point, maybe
         true_bool played;
@@ -270,7 +307,7 @@ void TWTrapAIEcology::copy_spawn_aiwatch(object src, object dest)
 {
     linkset links;
     SService<ILinkSrv>      link_srv(g_pScriptManager);
-    SService<ILinkManager>  link_mgr(g_pScriptManager);
+    SInterface<ILinkManager>  link_mgr(g_pScriptManager);
 	SService<ILinkToolsSrv> link_tools(g_pScriptManager);
 
     link_srv -> GetAll(links, link_tools -> LinkKindNamed("AIWatchObj"), src, 0);
@@ -304,14 +341,15 @@ int TWTrapAIEcology::check_spawn_visibility(int target)
         SService<IPropertySrv> prop_srv(g_pScriptManager);
 
         // Does it have a Render Type? If so, check what the render type is
-        if(prop_srv -> Possessed(ObjId(), "RenderType")) {
+        if(prop_srv -> Possessed(target, "RenderType")) {
             cMultiParm prop;
-            prop_srv -> Get(prop, ObjId(), "RenderType", NULL);
+            prop_srv -> Get(prop, target, "RenderType", NULL);
 
             int mode = static_cast<int>(prop);
             // mode 0 is "Normal", mode 1 is "Unlit". Anything else will screw up vis check
+
             if(mode != 0 && mode != 2) {
-                debug_printf(DL_WARNING, "Render Type is not 'Normal' or 'Unlit': visibility check will fail");
+                debug_printf(DL_WARNING, "Render Type %d is not 'Normal' or 'Unlit': visibility check will fail", mode);
             }
         } else {
             debug_printf(DL_WARNING, "Attempt to check visibility with no Render Type property: visibility check will fail");
@@ -348,4 +386,26 @@ void TWTrapAIEcology::get_spawn_location(int spawnpoint, cScrVec& location, cScr
 
         g_pMalloc -> Free(design_note);
     }
+}
+
+
+void TWTrapAIEcology::fixup_links(int combined)
+{
+	SService<ILinkSrv>      link_srv(g_pScriptManager);
+	SService<ILinkToolsSrv> link_tools(g_pScriptManager);
+
+    int spawnpoint = combined & 0xFFFF;
+    int spawned    = combined >> 16;
+
+    if(debug_enabled())
+        debug_printf(DL_DEBUG, "Fixing up links on object %d (spawned from %d, ecology %d)", spawned, spawnpoint, ObjId());
+
+    // Establish a link between the AI and the ecology controller
+    link firer;
+    link_srv -> Create(firer, link_tools -> LinkKindNamed("Firer"), spawned, ObjId());
+    if(debug_enabled() && !firer)
+        debug_printf(DL_WARNING, "Failed to create Firer link between %d and %d", spawned, ObjId());
+
+    // Duplicate any AIWatch links on the spawn point
+    copy_spawn_aiwatch(spawnpoint, spawned);
 }
