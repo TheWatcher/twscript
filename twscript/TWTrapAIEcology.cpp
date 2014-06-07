@@ -109,6 +109,7 @@ TWBaseScript::MsgStatus TWTrapAIEcology::on_timer(sScrTimerMsg* msg, cMultiParm&
     // Only bother doing anything if the timer name is correct.
     if(!::_stricmp(msg -> name, "CheckPop")) {
         attempt_spawn(msg);
+        start_timer();
     }
 
     return MS_CONTINUE;
@@ -148,7 +149,7 @@ void TWTrapAIEcology::attempt_spawn(sScrMsg *msg)
             spawn_ai(archetype, spawnpoint);
 
         } else if(debug_enabled()) {
-            debug_printf(DL_WARNING, "Failed to locate an spawn point to spawn at");
+            debug_printf(DL_WARNING, "Failed to locate an spawn point to spawn the AI at");
         }
 
     } else if(debug_enabled()) {
@@ -206,6 +207,9 @@ int TWTrapAIEcology::select_spawnpoint(sScrMsg *msg)
     // Traverse the list looking for the first matched concrete.
     for(it = concrete -> begin(); it != concrete -> end() && target <= 0; it++) {
         target = it -> obj_id;
+
+        // We may need to reject the concrete if it is in view.
+        if(target > 0) target = check_spawn_visibility(target);
     }
 
     delete concrete;
@@ -232,8 +236,11 @@ void TWTrapAIEcology::spawn_ai(int archetype, int spawnpoint)
     object spawn;
     obj_srv -> BeginCreate(spawn, archetype);
     if(spawn) {
+        cScrVec spawn_rot, spawn_pos;
+        get_spawn_location(spawnpoint, spawn_rot, spawn_pos);
+
         // Move the AI into position
-        obj_srv -> Teleport(spawn, cScrVec::Zero, cScrVec::Zero, spawnpoint);
+        obj_srv -> Teleport(spawn, spawn_pos, spawn_rot, 0);
 
         // Establish a link between the AI and the ecology controller
         link firer;
@@ -270,6 +277,8 @@ void TWTrapAIEcology::copy_spawn_aiwatch(object src, object dest)
     for(; links.AnyLinksLeft(); links.NextLink()) {
 		sLink link = links.Get();
 
+        // Create a new link from the destination to the link dest of the correct flavour,
+        // and copy any data it may have.
         long lcopy = link_mgr -> Add(dest, link.dest, link.flavor);
         if(lcopy) {
             void *data = links.Data();
@@ -277,5 +286,66 @@ void TWTrapAIEcology::copy_spawn_aiwatch(object src, object dest)
                 link_mgr -> SetData(lcopy, data);
             }
         }
+    }
+}
+
+
+int TWTrapAIEcology::check_spawn_visibility(int target)
+{
+    true_bool onscreen;
+    SService<IObjectSrv> obj_srv(g_pScriptManager);
+
+    // If spawns can happen in view, this function is a NOP basically.
+    if(allow_visible_spawn) return target;
+
+    // When debugging is on, explicitly check that the object does not have
+    // Render Type: Not Rendered set
+    if(debug_enabled()) {
+        SService<IPropertySrv> prop_srv(g_pScriptManager);
+
+        // Does it have a Render Type? If so, check what the render type is
+        if(prop_srv -> Possessed(ObjId(), "RenderType")) {
+            cMultiParm prop;
+            prop_srv -> Get(prop, ObjId(), "RenderType", NULL);
+
+            int mode = static_cast<int>(prop);
+            // mode 0 is "Normal", mode 1 is "Unlit". Anything else will screw up vis check
+            if(mode != 0 && mode != 2) {
+                debug_printf(DL_WARNING, "Render Type is not 'Normal' or 'Unlit': visibility check will fail");
+            }
+        } else {
+            debug_printf(DL_WARNING, "Attempt to check visibility with no Render Type property: visibility check will fail");
+        }
+    }
+
+    // Otherwise, determine whether the target was rendered this frame
+    obj_srv -> RenderedThisFrame(onscreen, target);
+
+    // Only return the target id if it was not rendered.
+    return onscreen ? 0 : target;
+}
+
+
+void TWTrapAIEcology::get_spawn_location(int spawnpoint, cScrVec& location, cScrVec& facing)
+{
+    SService<IObjectSrv> obj_srv(g_pScriptManager);
+
+    obj_srv -> Position(location, spawnpoint);
+    obj_srv -> Facing(facing, spawnpoint);
+
+    // zero the pitch and bank, as having those non-zero can screw up AIs
+    facing.y = facing.z = 0;
+
+    // Does the spawn point have an offset set?
+    char *design_note = GetObjectParams(spawnpoint);
+    if(design_note) {
+        cScrVec offset;
+        get_scriptparam_floatvec(design_note, "SpawnOffset", offset);
+
+        // offset will be filled with zeros if no offset has been set, so this is safe even if
+        // no offset has actually been specified by the user.
+        location += offset;
+
+        g_pMalloc -> Free(design_note);
     }
 }
