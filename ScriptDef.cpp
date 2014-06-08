@@ -70,6 +70,7 @@
 #include "TWTestOnscreen.h"
 
 #include "TWTriggerVisible.h"
+#include "TWTriggerAIEcologyDespawn.h"
 
 #undef TWBASESCRIPT_H
 #undef TWBASETRAP_H
@@ -84,6 +85,7 @@
 #undef TWTESTONSCREEN_H
 
 #undef TWTRIGGERVISIBLE_H
+#undef TWTRIGGERAIECOLOGYDESPAWN_H
 
 #if defined(SCR_GENSCRIPTFACTORY)
 

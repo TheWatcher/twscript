@@ -93,7 +93,7 @@ MISC_OBJS = $(BINDIR)/ScriptDef.o $(PUBDIR)/utils.o
 # Custom script objects
 SCR_OBJS  = $(SCRPTDIR)/TWTrapAIBreath.o $(SCRPTDIR)/TWTrapPhysStateCtrl.o $(SCRPTDIR)/TWTrapSetSpeed.o $(SCRPTDIR)/TWTrapAIEcology.o \
 	        $(SCRPTDIR)/TWCloudDrift.o $(SCRPTDIR)/TWTestOnscreen.o \
-            $(SCRPTDIR)/TWTriggerVisible.o
+            $(SCRPTDIR)/TWTriggerVisible.o $(SCRPTDIR)/TWTriggerAIEcologyDespawn.o
 RES_OBJS  = $(BINDIR)/$(MYSCRIPT)_res.o
 
 # Docs
@@ -173,6 +173,7 @@ $(SCRPTDIR)/TWTrapAIEcology.o: $(SCRPTDIR)/TWTrapAIEcology.cpp $(SCRPTDIR)/TWTra
 $(SCRPTDIR)/TWCloudDrift.o: $(SCRPTDIR)/TWCloudDrift.cpp $(SCRPTDIR)/TWCloudDrift.h $(BASEDIR)/TWBaseScript.h $(PUBDIR)/Script.h
 $(SCRPTDIR)/TWTestOnscreen.o: $(SCRPTDIR)/TWTestOnscreen.cpp $(SCRPTDIR)/TWTestOnscreen.h $(BASEDIR)/TWBaseScript.h $(PUBDIR)/Script.h
 $(SCRPTDIR)/TWTriggerVisible.o: $(SCRPTDIR)/TWTriggerVisible.cpp $(SCRPTDIR)/TWTriggerVisible.h $(BASEDIR)/TWBaseTrigger.h $(PUBDIR)/Script.h
+$(SCRPTDIR)/TWTriggerAIEcologyDespawn.o: $(SCRPTDIR)/TWTriggerAIEcologyDespawn.cpp $(SCRPTDIR)/TWTriggerAIEcologyDespawn.h $(BASEDIR)/TWBaseTrigger.h $(PUBDIR)/Script.h
 
 $(BINDIR)/ScriptDef.o: ScriptDef.cpp $(SCRPTDIR)/TWTrapSetSpeed.h $(SCRPTDIR)/TWTrapPhysStateCtrl.h $(BASEDIR)/TWBaseTrap.h $(BASEDIR)/TWBaseScript.h $(PUBDIR)/ScriptModule.h $(PUBDIR)/genscripts.h
 $(BINDIR)/$(MYSCRIPT)_res.o: $(MYSCRIPT).rc $(PUBDIR)/version.rc
