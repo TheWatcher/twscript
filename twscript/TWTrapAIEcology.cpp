@@ -15,6 +15,9 @@ void TWTrapAIEcology::init(int time)
 
     bool starton = false;
 
+    // Make sure the population count is set up correctly
+    population.Init(0);
+
     // Fetch the contents of the object's design note
     char *design_note = GetObjectParams(ObjId());
 
@@ -78,6 +81,8 @@ TWBaseScript::MsgStatus TWTrapAIEcology::on_message(sScrMsg* msg, cMultiParm& re
 
     if(!::_stricmp(msg -> message, "Timer")) {
         return on_timer(static_cast<sScrTimerMsg*>(msg), reply);
+    } else if(!::_stricmp(msg -> message, "Despawned")) {
+        return on_despawn(msg, reply);
     }
 
     return result;
@@ -140,6 +145,17 @@ TWBaseScript::MsgStatus TWTrapAIEcology::on_timer(sScrTimerMsg* msg, cMultiParm&
 }
 
 
+TWBaseScript::MsgStatus TWTrapAIEcology::on_despawn(sScrMsg* msg, cMultiParm& reply)
+{
+    population = population - 1;
+
+    if(debug_enabled())
+        debug_printf(DL_DEBUG, "AI despawned, population is now %d spawned AIs (limit is %d)", int(population), poplimit);
+
+    return MS_CONTINUE;
+}
+
+
 /* =============================================================================
  *  TWTrapAIEcology Impmementation - private members
  */
@@ -173,7 +189,7 @@ void TWTrapAIEcology::attempt_spawn(sScrMsg *msg)
             spawn_ai(archetype, spawnpoint);
 
         } else if(debug_enabled()) {
-            debug_printf(DL_WARNING, "Failed to locate an spawn point to spawn the AI at");
+            debug_printf(DL_WARNING, "Failed to locate a usable spawn point");
         }
 
     } else if(debug_enabled()) {
@@ -184,22 +200,11 @@ void TWTrapAIEcology::attempt_spawn(sScrMsg *msg)
 
 bool TWTrapAIEcology::spawn_needed(void)
 {
-    linkset links;
-    SService<ILinkSrv>      link_srv(g_pScriptManager);
-	SService<ILinkToolsSrv> link_tools(g_pScriptManager);
-
-    int count = 0;
-    link_srv -> GetAll(links, link_tools -> LinkKindNamed("~Firer"), ObjId(), 0);
-    // Ugh, there should be a better way to do this.
-    for(; links.AnyLinksLeft(); ++count, links.NextLink()) {
-        /* fnord */
-    }
-
     if(debug_enabled())
-        debug_printf(DL_DEBUG, "Got %d spawned AIs (limit is %d)", count, poplimit);
+        debug_printf(DL_DEBUG, "Got %d spawned AIs (limit is %d)", int(population), poplimit);
 
-    // Less links than there can be spawned? If so, spawn is needed.
-    return count < poplimit;
+    // Less spawned than there may be spawned? If so, spawn is needed.
+    return population < poplimit;
 }
 
 
@@ -268,18 +273,23 @@ void TWTrapAIEcology::spawn_ai(int archetype, int spawnpoint)
     obj_srv -> BeginCreate(spawn, archetype);
     if(spawn) {
         if(debug_enabled())
-            debug_printf(DL_WARNING, "BeginCreate spawned instance of archetype %d as object %d", archetype, spawn);
+            debug_printf(DL_DEBUG, "BeginCreate spawned instance of archetype %d as object %d", archetype, spawn);
 
         cScrVec spawn_rot, spawn_pos;
         get_spawn_location(spawnpoint, spawn_pos, spawn_rot);
 
         if(debug_enabled())
-            debug_printf(DL_WARNING, "Moving object to %.3f, %.3f, %.3f facing %.3f,%.3f,%.3f", spawn_pos.x, spawn_pos.y, spawn_pos.z, spawn_rot.x, spawn_rot.y, spawn_rot.z);
+            debug_printf(DL_DEBUG, "Moving object to %.3f, %.3f, %.3f facing %.3f,%.3f,%.3f", spawn_pos.x, spawn_pos.y, spawn_pos.z, spawn_rot.x, spawn_rot.y, spawn_rot.z);
 
         // Move the AI into position
         obj_srv -> Teleport(spawn, spawn_pos, spawn_rot, 0);
 
+        SetObjectParamInt(spawn, "EcologyID", ObjId());
+        SetObjectParamInt(spawn, "SpawnpointID", spawnpoint);
+
         obj_srv -> EndCreate(spawn);
+
+        population = population + 1;
 
         // Okay, this is horrible, but we need to pass both the spawn point and object id via a timed message that
         // only supports one parameter. Luckily, there's an upper limit of 8192 concrete object ids, and we're
@@ -399,12 +409,6 @@ void TWTrapAIEcology::fixup_links(int combined)
 
     if(debug_enabled())
         debug_printf(DL_DEBUG, "Fixing up links on object %d (spawned from %d, ecology %d)", spawned, spawnpoint, ObjId());
-
-    // Establish a link between the AI and the ecology controller
-    link firer;
-    link_srv -> Create(firer, link_tools -> LinkKindNamed("Firer"), spawned, ObjId());
-    if(debug_enabled() && !firer)
-        debug_printf(DL_WARNING, "Failed to create Firer link between %d and %d", spawned, ObjId());
 
     // Duplicate any AIWatch links on the spawn point
     copy_spawn_aiwatch(spawnpoint, spawned);

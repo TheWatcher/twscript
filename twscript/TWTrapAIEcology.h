@@ -55,6 +55,7 @@ public:
                                                     archetype_link("&%Weighted"),
                                                     spawnpoint_link("&!#ScriptParams"),
                                                     SCRIPT_VAROBJ(TWTrapAIEcology, enabled, object),
+                                                    SCRIPT_VAROBJ(TWTrapAIEcology, population, object),
                                                     SCRIPT_VAROBJ(TWTrapAIEcology, update_timer, object)
         { /* fnord */ }
 
@@ -122,6 +123,9 @@ protected:
      *         processing the message
      */
     MsgStatus on_timer(sScrTimerMsg* msg, cMultiParm& reply);
+
+
+    MsgStatus on_despawn(sScrMsg* msg, cMultiParm& reply);
 
 private:
     /** Enable the spawn timer. This starts a timer that will, when it fires, result in
@@ -245,6 +249,7 @@ private:
     std::string spawnpoint_link;           //!< The string to use as a linkdef when searching for spawn points.
 
     script_int               enabled;      //!< Is the ecology enabled?
+    script_int               population;   //!< The number of currently spawned AIs
     script_handle<tScrTimer> update_timer; //!< A timer used to update the ecology.
 };
 
