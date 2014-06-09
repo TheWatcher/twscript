@@ -1,7 +1,7 @@
 #ifndef TWSCRIPT_VERSION_H
 #define TWSCRIPT_VERSION_H
 
-#define SCRIPT_VERSION     2,0,7,0
-#define SCRIPT_VERSTRING   "2.0.7"
+#define SCRIPT_VERSION     2,0,8,0
+#define SCRIPT_VERSTRING   "2.0.8"
 
 #endif
