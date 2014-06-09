@@ -71,6 +71,7 @@
 
 #include "TWTriggerVisible.h"
 #include "TWTriggerAIEcologyDespawn.h"
+#include "TWTriggerAIEcologyFireShadow.h"
 
 #undef TWBASESCRIPT_H
 #undef TWBASETRAP_H
@@ -86,6 +87,7 @@
 
 #undef TWTRIGGERVISIBLE_H
 #undef TWTRIGGERAIECOLOGYDESPAWN_H
+#undef TWTRIGGERAIECOLOGYFIRESHADOW_H
 
 #if defined(SCR_GENSCRIPTFACTORY)
 
