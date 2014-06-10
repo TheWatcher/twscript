@@ -17,19 +17,6 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 
-/* Basic requirements:
- *
- * Maintain count of number of AIs currently spawned (based on links?)
- * Respawn one AI every X seconds
- * Link to AI archetypes via scriptparams, weighted by param data.
- * Multiple spawn points linked to the script by script params links?
- * Respawn via a randomly chosen spawn point, weighted by script param data
- *
- * AIs need to have a script on them that optionally despawns them
- *    Respawn in place? (scriptparam link with "RespawnMe" in data?)
- *
- */
-
 #ifndef TWTRAPAIECOLOGY_H
 #define TWTRAPAIECOLOGY_H
 
@@ -47,6 +34,19 @@
 
 /** @class TWTrapAIEcology
  *
+ * TWTrapAIEcology allows a
+ *
+ * Configuration
+ * -------------
+ * Parameters are specified using the Editor -> Design Note, please see the
+ * main documentation for more about this.  Parameters supported by TWTrapSetSpeed
+ * are listed below. If a parameter is not specified, the default value shown is
+ * used instead. Note that all the parameters are optional, and if you do not
+ * specify a parameter, the script will attempt to use a 'sane' default.
+ *
+ * Parameter:
+ *      Type:
+ *   Default:
  */
 class TWTrapAIEcology : public TWBaseTrap
 {
@@ -125,6 +125,15 @@ protected:
     MsgStatus on_timer(sScrTimerMsg* msg, cMultiParm& reply);
 
 
+    /** AI despawn message handler, called whenever the script receives a "Despawned"
+     *  message from an AI it has spawned.
+     *
+     * @param msg   A pointer to the message received by the object.
+     * @param reply A reference to a multiparm variable in which a reply can
+     *              be stored.
+     * @return A status value indicating whether the caller should continue
+     *         processing the message
+     */
     MsgStatus on_despawn(sScrMsg* msg, cMultiParm& reply);
 
 private:

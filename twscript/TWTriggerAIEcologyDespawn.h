@@ -17,10 +17,6 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 
-/*
- *
- */
-
 #ifndef TWTRIGGERAIECOLOGYDESPAWN_H
 #define TWTRIGGERAIECOLOGYDESPAWN_H
 
@@ -97,10 +93,16 @@ protected:
     MsgStatus on_slain(sSlayMsg* msg, cMultiParm& reply);
 
 private:
+    /** Determine whether the AI was visible during the last frame, if not delete
+     *  the AI from the world and notify the ecology that spawned the AI that
+     *  it should decrease its population count.
+     *
+     * @param msg   A pointer to the message received by the object.
+     * @return true if the AI was despawned, false if it was not.
+     */
     bool attempt_despawn(sScrMsg *msg);
 
     int  refresh;                          //!< How frequently should the despawn happen after death?
-
     script_handle<tScrTimer> update_timer; //!< A timer used to despawn the AI
 };
 

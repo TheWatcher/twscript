@@ -17,10 +17,6 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 
-/*
- *
- */
-
 #ifndef TWTRIGGERAIECOLOGYFIRESHADOW_H
 #define TWTRIGGERAIECOLOGYFIRESHADOW_H
 
@@ -42,7 +38,7 @@
 class TWTriggerAIEcologyFireShadow : public TWBaseTrigger
 {
 public:
-    TWTriggerAIEcologyFireShadow(const char* name, int object) : TWBaseTrigger(name, object), refresh(1000),
+    TWTriggerAIEcologyFireShadow(const char* name, int object) : TWBaseTrigger(name, object), refresh(1000), speed_factor(0.8125), min_timewarp(0.03),
                                                                  SCRIPT_VAROBJ(TWTriggerAIEcologyFireShadow, update_timer, object)
         { /* fnord */ }
 
@@ -97,17 +93,37 @@ protected:
     MsgStatus on_slain(sSlayMsg* msg, cMultiParm& reply);
 
 private:
+    /** Determine whether the AI was visible during the last frame, if not delete
+     *  the AI from the world and notify the ecology that spawned the AI that
+     *  it should decrease its population count.
+     *
+     * @param msg   A pointer to the message received by the object.
+     * @return true if the AI was despawned, false if it was not.
+     */
     bool attempt_despawn(sScrMsg *msg);
 
+
+    /** Spawn copies of any items linked to the AI using CorpsePart links. For
+     *  FireShadows this will usually be a fire crystal and a smoke puff.
+     */
     void fire_corseparts(void);
 
+
+    /** Attach the M-FireShadowFlee metaprop to the fireshadow, and give it
+     *  a timewarp to make it move faster
+     */
     void fireshadow_flee(void);
 
+
+    /** Increase the timewarp on the AI to make it move faster. Each call
+     *  will increase the speed until the timewarp is 0.03
+     */
     void speedup(void);
 
-    int  refresh;                          //!< How frequently should the despawn happen after death?
-
-    script_handle<tScrTimer> update_timer; //!< A timer used to despawn the AI
+    int   refresh;                         //!< How frequently should the speedup and despawn happen after slay?
+    float speed_factor;                    //!< The speedup factor for the fireshadow
+    float min_timewarp;                    //!< The minimum timewarp factor.
+    script_handle<tScrTimer> update_timer; //!< A timer used to speedup and despawn the AI
 };
 
 #else // SCR_GENSCRIPTS
