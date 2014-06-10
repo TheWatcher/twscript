@@ -23,6 +23,10 @@ void TWTriggerAIEcologyFireShadow::init(int time)
         // How often should the ecology update?
         refresh  = get_scriptparam_int(design_note, "Rate", 1000);
 
+        // parse the timewarp settings
+        speed_factor = get_scriptparam_floatvec(design_note, "Speedup"    , 0.8125);
+        min_timewarp = get_scriptparam_floatvec(design_note, "MinTimewarp", 0.03);
+
         g_pMalloc -> Free(design_note);
     }
 
@@ -155,7 +159,7 @@ void TWTriggerAIEcologyFireShadow::fireshadow_flee(void)
         obj_srv -> AddMetaProperty(ObjId(), metaprop);
 
     prop_srv -> Add(ObjId(), "TimeWarp");
-    prop_srv -> SetSimple(ObjId(), "TimeWarp", 13.0f/16.0f);
+    prop_srv -> SetSimple(ObjId(), "TimeWarp", speed_factor);
 }
 
 
@@ -167,8 +171,8 @@ void TWTriggerAIEcologyFireShadow::speedup(void)
     cMultiParm timewarp;
     prop_srv -> Get(timewarp, ObjId(), "TimeWarp", NULL);
 
-    timewarp = float(timewarp) * 0.8125;
-    if(float(timewarp) < 0.03) timewarp = 0.03;
+    timewarp = float(timewarp) * speed_factor;
+    if(float(timewarp) < min_timewarp) timewarp = min_timewarp;
 
     prop_srv -> SetSimple(ObjId(), "TimeWarp", timewarp);
 }
