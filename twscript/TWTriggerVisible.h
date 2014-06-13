@@ -102,7 +102,7 @@ private:
 
 #else // SCR_GENSCRIPTS
 
-GEN_FACTORY("TWTriggerVisible", "TWBaseTrap", TWTriggerVisible)
+GEN_FACTORY("TWTriggerVisible", "TWBaseTrigger", TWTriggerVisible)
 
 #endif // SCR_GENSCRIPTS
 
