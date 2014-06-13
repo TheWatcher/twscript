@@ -24,8 +24,9 @@ void TWTriggerAIEcologyFireShadow::init(int time)
         refresh  = get_scriptparam_int(design_note, "Rate", 1000);
 
         // parse the timewarp settings
-        speed_factor = get_scriptparam_floatvec(design_note, "Speedup"    , 0.8125);
-        min_timewarp = get_scriptparam_floatvec(design_note, "MinTimewarp", 0.03);
+        std::string tmp;
+        speed_factor = get_scriptparam_float(design_note, "Speedup"    , 0.8125, tmp);
+        min_timewarp = get_scriptparam_float(design_note, "MinTimewarp", 0.03, tmp);
 
         g_pMalloc -> Free(design_note);
     }
