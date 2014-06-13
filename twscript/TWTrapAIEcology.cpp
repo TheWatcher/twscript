@@ -29,10 +29,10 @@ void TWTrapAIEcology::init(int time)
 
     } else {
         // How many AIs can be spawned?
-        poplimit = get_scriptparam_int(design_note, "Population", 1);
+        pop_limit = (int)get_scriptparam_float(design_note, "Population", 1.0f, pop_qvar);
 
         // How often should the ecology update?
-        refresh  = get_scriptparam_int(design_note, "Rate", 500);
+        refresh = (int)get_scriptparam_float(design_note, "Rate", 30000.0f, refresh_qvar);
 
         // Start on? Note that this will only have any effect the first time the script
         // does the init. After this point, the previous enabled state takes over.
@@ -61,7 +61,13 @@ void TWTrapAIEcology::init(int time)
 
     if(debug_enabled()) {
         debug_printf(DL_DEBUG, "Initialised on object. Settings:");
-        debug_printf(DL_DEBUG, "Population %d at refresh rate %d", poplimit, refresh);
+        debug_printf(DL_DEBUG, "Population %d at rate %d", pop_limit, refresh);
+        if(!refresh_qvar.empty())
+            debug_printf(DL_DEBUG, "Rate will be read from qvar '%s'", refresh_qvar.c_str());
+
+        if(!pop_qvar.empty())
+            debug_printf(DL_DEBUG, "Population will be read from qvar '%s'", pop_qvar.c_str());
+
         debug_printf(DL_DEBUG, "Start enabled is %s", starton ? "true" : "false");
         debug_printf(DL_DEBUG, "Archetype linkdef is '%s'", archetype_link.c_str());
         debug_printf(DL_DEBUG, "Spawn point linkdef is '%s'", spawnpoint_link.c_str());
@@ -149,8 +155,10 @@ TWBaseScript::MsgStatus TWTrapAIEcology::on_despawn(sScrMsg* msg, cMultiParm& re
 {
     population = population - 1;
 
+    update_pop_limit();
+
     if(debug_enabled())
-        debug_printf(DL_DEBUG, "AI despawned, population is now %d spawned AIs (limit is %d)", int(population), poplimit);
+        debug_printf(DL_DEBUG, "AI despawned, population is now %d spawned AIs (limit is %d)", int(population), pop_limit);
 
     return MS_CONTINUE;
 }
@@ -163,6 +171,7 @@ TWBaseScript::MsgStatus TWTrapAIEcology::on_despawn(sScrMsg* msg, cMultiParm& re
 void TWTrapAIEcology::start_timer(bool immediate)
 {
     stop_timer(); // most of the time this is redundant, but be sure.
+    update_refresh(); // Make sure the refresh rate is updated if it's read from a qvar
     update_timer = set_timed_message("CheckPop", immediate ? 100 : refresh, kSTM_OneShot);
 }
 
@@ -178,33 +187,36 @@ void TWTrapAIEcology::stop_timer(void)
 
 void TWTrapAIEcology::attempt_spawn(sScrMsg *msg)
 {
-    // Do nothing if there are already enough AIs spawned.
-    if(!spawn_needed()) return;
+    // Only bother doing anything if an AI should be spawned...
+    if(spawn_needed()) {
 
-    int archetype = select_archetype(msg);
-    if(archetype) {
-        int spawnpoint = select_spawnpoint(msg);
+        int archetype = select_archetype(msg);
+        if(archetype) {
+            int spawnpoint = select_spawnpoint(msg);
 
-        if(spawnpoint) {
-            spawn_ai(archetype, spawnpoint);
+            if(spawnpoint) {
+                spawn_ai(archetype, spawnpoint);
+
+            } else if(debug_enabled()) {
+                debug_printf(DL_WARNING, "Failed to locate a usable spawn point, aborting");
+            }
 
         } else if(debug_enabled()) {
-            debug_printf(DL_WARNING, "Failed to locate a usable spawn point");
+            debug_printf(DL_WARNING, "Failed to locate an archetype to spawn, aborting");
         }
-
-    } else if(debug_enabled()) {
-        debug_printf(DL_WARNING, "Failed to locate an archetype to spawn");
     }
 }
 
 
 bool TWTrapAIEcology::spawn_needed(void)
 {
+    update_pop_limit();
+
     if(debug_enabled())
-        debug_printf(DL_DEBUG, "Got %d spawned AIs (limit is %d)", int(population), poplimit);
+        debug_printf(DL_DEBUG, "Got %d spawned AIs (limit is %d)", int(population), pop_limit);
 
     // Less spawned than there may be spawned? If so, spawn is needed.
-    return population < poplimit;
+    return population < pop_limit;
 }
 
 
@@ -219,9 +231,9 @@ int TWTrapAIEcology::select_archetype(sScrMsg *msg)
     // Traverse the list looking for the first matched archetype.
     for(it = archetype -> begin(); it != archetype -> end() && target >= 0; it++) {
         target = it -> obj_id;
-        if(debug_enabled()) {
+
+        if(debug_enabled())
             debug_printf(DL_DEBUG, "Checking obj %d", it -> obj_id);
-        }
     }
 
     delete archetype;
@@ -242,9 +254,9 @@ int TWTrapAIEcology::select_spawnpoint(sScrMsg *msg)
     // Traverse the list looking for the first matched concrete.
     for(it = concrete -> begin(); it != concrete -> end() && target <= 0; it++) {
         target = it -> obj_id;
-        if(debug_enabled()) {
+
+        if(debug_enabled())
             debug_printf(DL_DEBUG, "Checking obj %d", it -> obj_id);
-        }
 
         // We may need to reject the concrete if it is in view.
         if(target > 0) target = check_spawn_visibility(target);
@@ -295,7 +307,7 @@ void TWTrapAIEcology::spawn_ai(int archetype, int spawnpoint)
         // only supports one parameter. Luckily, there's an upper limit of 8192 concrete object ids, and we're
         // dealing with a 32 bit int as the message parameter, so we can pack the two ids into one int, and still
         // have a safety margin by using 16 bits for each ID.
-        int combined = (spawn << 16) | spawnpoint;
+        int combined = combined_id(spawn, spawnpoint);
         set_timed_message("FixLinks", 100, kSTM_OneShot, combined);
 
         // Play a sound at the spawn point, maybe
@@ -404,12 +416,32 @@ void TWTrapAIEcology::fixup_links(int combined)
 	SService<ILinkSrv>      link_srv(g_pScriptManager);
 	SService<ILinkToolsSrv> link_tools(g_pScriptManager);
 
-    int spawnpoint = combined & 0xFFFF;
-    int spawned    = combined >> 16;
+    int spawnpoint = spawnpoint_id(combined);
+    int spawned    = spawn_id(combined);
 
     if(debug_enabled())
         debug_printf(DL_DEBUG, "Fixing up links on object %d (spawned from %d, ecology %d)", spawned, spawnpoint, ObjId());
 
     // Duplicate any AIWatch links on the spawn point
     copy_spawn_aiwatch(spawnpoint, spawned);
+}
+
+
+void TWTrapAIEcology::update_pop_limit(void)
+{
+    if(!pop_qvar.empty()) {
+        pop_limit = (int)get_qvar_value(pop_qvar.c_str(), (float)pop_limit);
+
+        if(debug_enabled()) debug_printf(DL_DEBUG, "Using population limit %d from %s.", pop_limit, pop_qvar.c_str());
+    }
+}
+
+
+void TWTrapAIEcology::update_refresh(void)
+{
+    if(!refresh_qvar.empty()) {
+        refresh = (int)get_qvar_value(refresh_qvar.c_str(), (float)refresh);
+
+        if(debug_enabled()) debug_printf(DL_DEBUG, "Using update rate %d from %s.", refresh, refresh_qvar.c_str());
+    }
 }
