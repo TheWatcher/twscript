@@ -69,6 +69,7 @@
 #include "TWCloudDrift.h"
 #include "TWTestOnscreen.h"
 
+#include "TWTriggerAIAware.h"
 #include "TWTriggerVisible.h"
 #include "TWTriggerAIEcologyDespawn.h"
 #include "TWTriggerAIEcologyFireShadow.h"
@@ -85,6 +86,7 @@
 #undef TWCLOUDDRIFT_H
 #undef TWTESTONSCREEN_H
 
+#undef TWTRIGGERAIAWARE_H
 #undef TWTRIGGERVISIBLE_H
 #undef TWTRIGGERAIECOLOGYDESPAWN_H
 #undef TWTRIGGERAIECOLOGYFIRESHADOW_H
