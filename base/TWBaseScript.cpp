@@ -442,6 +442,53 @@ int TWBaseScript::get_scriptparam_int(const char* design_note, const char* param
 }
 
 
+int TWBaseScript::get_scriptparam_time(const char* design_note, const char* param, int def_val)
+{
+    // float is used internally for time handling, as the user may specify fractional
+    // seconds or minutes
+    float result = float(def_val);
+    char* value = get_scriptparam_string(design_note, param);
+
+    if(value) {
+        char* workptr = value;
+
+        // Skip any leading whitespace
+        while(isspace(*workptr)) ++workptr;
+
+        // If the string starts with a '$', it is a qvar, in theory
+        if(*workptr == '$') {
+            result = get_qvar_value(&workptr[1], float(def_val));
+        } else {
+            char* endstr;
+            result = strtof(workptr, &endstr, 10);
+
+            // Restore the default if parsing failed
+            if(endstr == workptr) {
+                result = def_val;
+
+            // otherwise, see if the character at the end is something we recognise
+            } else if(*endstr) {
+                // skip spaces, just in case
+                while(isspace(*workptr)) ++workptr;
+
+                switch(*endstr) {
+                    // 's' indicates the time is in seconds, multiply up to milliseconds
+                    case 's': result *= 1000.0f; break;
+
+                    // 'm' indicates the time is in minutes, multiply up to milliseconds
+                    case 'm': result *= 60000.0f; break;
+                }
+            }
+        }
+
+        g_pMalloc -> Free(value);
+    }
+
+    // Drop the fractional part on the way out - here result is in integer milliseconds
+    return int(result);
+}
+
+
 bool TWBaseScript::get_scriptparam_bool(const char* design_note, const char* param, bool def_val)
 {
     std::string namestr = Name();

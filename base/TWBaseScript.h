@@ -515,6 +515,22 @@ protected:
     int get_scriptparam_int(const char* design_note, const char* param, int def_val = 0);
 
 
+    /** Parse a time parameter from the specified design note. This behaves
+     *  much like GetParamTime(), except that it automatically prepends the
+     *  script name to the specified parameter. It also supports simple calculations
+     *  in the value, see the documentation for get_scriptparam_float() for more details.
+     *
+     * @param design_note The design note string to parse the parameter from.
+     * @param param       The name of the parameter to parse. This will be prepended
+     *                    with the current script name.
+     * @param def_val     The default value to use if the parameter does not exist,
+     *                    or it references a non-existent QVar.
+     * @return The time, in milliseconds, specified in the parameter, or read from the qvar
+     *         named in the parameter.
+     */
+    int get_scriptparam_time(const char* design_note, const char* param, int def_val = 0);
+
+
     /** Parse a boolean parameter from the specified design note. This behaves identically
      *  to GetParamBool, except that it prepends the script name to the specified
      *  parameter name.
