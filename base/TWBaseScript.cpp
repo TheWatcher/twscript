@@ -218,12 +218,12 @@ void TWBaseScript::get_object_namestr(std::string& name)
  *  QVar convenience functions
  */
 
-int TWBaseScript::get_qvar_value(const char* qvar, int def_val)
+int TWBaseScript::get_qvar_value(std::string& qvar, int def_val)
 {
     int value = def_val;
     char  op;
     char* lhs_qvar, *rhs_data, *endstr = NULL;
-    char* buffer = parse_qvar(qvar, &lhs_qvar, &op, &rhs_data);
+    char* buffer = parse_qvar(qvar.c_str(), &lhs_qvar, &op, &rhs_data);
 
     if(buffer) {
         value = get_qvar(lhs_qvar, def_val);
@@ -261,12 +261,12 @@ int TWBaseScript::get_qvar_value(const char* qvar, int def_val)
 // I could probably avoid this hideous duplication of the above through
 // templating, but it's possible that float and int handling may support
 // different features in future, so I'm leaving the duplication for now...
-float TWBaseScript::get_qvar_value(const char* qvar, float def_val)
+float TWBaseScript::get_qvar_value(std::string& qvar, float def_val)
 {
     float value = def_val;
     char  op;
     char* lhs_qvar, *rhs_data, *endstr = NULL;
-    char* buffer = parse_qvar(qvar, &lhs_qvar, &op, &rhs_data);
+    char* buffer = parse_qvar(qvar.c_str(), &lhs_qvar, &op, &rhs_data);
 
     if(buffer) {
         value = get_qvar(lhs_qvar, def_val);
@@ -320,7 +320,7 @@ float TWBaseScript::parse_float(const char* param, float def_val, std::string& q
         if(*param == '$') {
             // Store the qvar string for later
             qvar_str = &param[1];
-            result = get_qvar_value(&param[1], def_val);
+            result = get_qvar_value(qvar_str, def_val);
 
         // Otherwise assume it's a float string
         } else {
@@ -411,7 +411,7 @@ float TWBaseScript::get_scriptparam_float(const char* design_note, const char* p
 }
 
 
-int TWBaseScript::get_scriptparam_int(const char* design_note, const char* param, int def_val)
+int TWBaseScript::get_scriptparam_int(const char* design_note, const char* param, int def_val, std::string& qvar_str)
 {
     int result = def_val;
     char* value = get_scriptparam_string(design_note, param);
@@ -426,7 +426,8 @@ int TWBaseScript::get_scriptparam_int(const char* design_note, const char* param
 
         // If the string starts with a '$', it is a qvar, in theory
         if(*workptr == '$') {
-            result = get_qvar_value(&workptr[1], def_val);
+            qvar_str = &param[1];
+            result = get_qvar_value(qvar_str, def_val);
         } else {
             char* endstr;
             result = strtol(workptr, &endstr, 10);
@@ -442,7 +443,7 @@ int TWBaseScript::get_scriptparam_int(const char* design_note, const char* param
 }
 
 
-int TWBaseScript::get_scriptparam_time(const char* design_note, const char* param, int def_val)
+int TWBaseScript::get_scriptparam_time(const char* design_note, const char* param, int def_val, std::string& qvar_str)
 {
     // float is used internally for time handling, as the user may specify fractional
     // seconds or minutes
@@ -457,7 +458,8 @@ int TWBaseScript::get_scriptparam_time(const char* design_note, const char* para
 
         // If the string starts with a '$', it is a qvar, in theory
         if(*workptr == '$') {
-            result = get_qvar_value(&workptr[1], float(def_val));
+            qvar_str = &param[1];
+            result = get_qvar_value(qvar_str, float(def_val));
         } else {
             char* endstr;
             result = strtof(workptr, &endstr, 10);

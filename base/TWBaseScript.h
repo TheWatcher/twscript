@@ -374,7 +374,7 @@ protected:
      * @param def_val The default value to return if the qvar does not exist.
      * @return The QVar value, or the default specified.
      */
-    int get_qvar_value(const char* qvar, int def_val);
+    int get_qvar_value(std::string& qvar, int def_val);
 
 
     /** Fetch the value stored in a qvar, potentially applying a simple calculation
@@ -393,7 +393,7 @@ protected:
      * @param def_val The default value to return if the qvar does not exist.
      * @return The QVar value, or the default specified.
      */
-    float get_qvar_value(const char* qvar, float def_val);
+    float get_qvar_value(std::string& qvar, float def_val);
 
 
     /* ------------------------------------------------------------------------
