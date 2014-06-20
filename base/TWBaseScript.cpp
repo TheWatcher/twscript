@@ -647,14 +647,15 @@ std::vector<TargetObj>* TWBaseScript::get_target_objects(const char* target, sSc
         archetype_search(matches, &target[1], *target == '@');
 
     // Radius archetype search
-    } else if(radius_search(target, &radius, &lessthan, &archname)) {
-        const char* realname = archname;
-        // Jump filter controls if needed...
-        if(*archname == '*' || *archname == '@') ++realname;
+    } else if($target == '<' || *target == '>') {
+        if(radius_search(target, &radius, &lessthan, &archname)) {
+            const char* realname = archname;
+            // Jump filter controls if needed...
+            if(*archname == '*' || *archname == '@') ++realname;
 
-        // Default behaviour for radius search is to get all decendants unless * is specified.
-        archetype_search(matches, realname, *archname != '*', true, msg -> to, radius, lessthan);
-
+            // Default behaviour for radius search is to get all decendants unless * is specified.
+            archetype_search(matches, realname, *archname != '*', true, msg -> to, radius, lessthan);
+        }
     // Named destination object
     } else {
         SInterface<IObjectSystem> ObjectSys(g_pScriptManager);
@@ -916,30 +917,26 @@ void TWBaseScript::select_links(std::vector<TargetObj>* matches, std::vector<Lin
 
 bool TWBaseScript::radius_search(const char* target, float* radius, bool* lessthan, const char** archetype)
 {
-    char mode = 0; // This gets set to '>' or '<' if a mode is found in the string
-    const char* search = target;
+    // Check for < or > here
+    *lessthan = (*target++ == '<');
 
-    // Search the string for a < or >, if found, record it and the start of the archetype
-    while(*search) {
-        if(*search == '<' || *search == '>') {
-            mode = *search;
-            *lessthan = (mode == '<');
-            *archetype = search + 1;
-            break;
-        }
-        ++search;
-    }
-
-    // If the mode hasn't been found, or there's no archetype set, it's not a radius search
-    if(!mode || !*archetype) return false;
-
-    // It's a radius search, so try to parse the radius
+    // try to parse the radius
     char* end;
     *radius = strtof(target, &end);
 
-    // If the value didn't parse, or parsing stopped before the < or >, give up (the latter
-    // is actually probably 'safe', but meh)
-    if(end == target || *end != mode) return false;
+    if(!end || end == target) return false;
+
+    // Look for the ':' in the string
+    while(*end && *end != ':') ++end;
+
+    // Hit end of string without finding a ':'? Give up.
+    if(!*end) return false;
+
+    // Archetype starts right after the ':'
+    *archetype = ++end;
+
+    // Make sure that end of string after ':' doesn't bite us.
+    if(!**archetype) return false;
 
     // Okay, this should be a radius search!
     return true;
