@@ -1092,6 +1092,13 @@ float TWBaseScript::get_qvar(const char* qvar, float def_val)
 }
 
 
+void TWBaseScript::set_qvar(const std::string &qvar, const int value)
+{
+    SService<IQuestSrv> QuestSrv(g_pScriptManager);
+    QuestSrv -> Set(qvar.c_str(), value, kQuestDataMission);
+}
+
+
 char* TWBaseScript::parse_qvar(const char* qvar, char** lhs, char* op, char** rhs)
 {
     char* buffer = new char[strlen(qvar) + 1];

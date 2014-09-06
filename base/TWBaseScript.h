@@ -358,6 +358,16 @@ protected:
      *  QVar convenience functions
      */
 
+    /** Update the value stored in the specified QVar. This updates the value set
+     *  for the qvar to the specified value, hopefully creating the qvar if it does
+     *  not already exist.
+     *
+     * @param qvar   The name of the qvar to store the value in.
+     * @param value  The value to store in the qvar.
+     */
+    void set_qvar(const std::string &qvar, const int value);
+
+
     /** Fetch the value stored in a qvar, potentially applying a simple calculation
      *  to the value set in the QVar. This takes a string of the form
      *  qvarname([*+/](value|$qvarname)) and parses out the name, and operation
@@ -509,10 +519,12 @@ protected:
      *                    or it references a non-existent QVar (note that qvar_str
      *                    will contain the parameter string even if the QVar does
      *                    not exist)
+     * @param qvar_str    A reference to a string to store the quest var name, or
+     *                    quest var and simple calculation string.
      * @return The value specified in the parameter, or the int read from the qvar
      *         named in the parameter.
      */
-    int get_scriptparam_int(const char* design_note, const char* param, int def_val = 0);
+    int get_scriptparam_int(const char* design_note, const char* param, int def_val, std::string& qvar_str);
 
 
     /** Parse a time parameter from the specified design note. This behaves
@@ -525,10 +537,12 @@ protected:
      *                    with the current script name.
      * @param def_val     The default value to use if the parameter does not exist,
      *                    or it references a non-existent QVar.
+     * @param qvar_str    A reference to a string to store the quest var name, or
+     *                    quest var and simple calculation string.
      * @return The time, in milliseconds, specified in the parameter, or read from the qvar
      *         named in the parameter.
      */
-    int get_scriptparam_time(const char* design_note, const char* param, int def_val = 0);
+    int get_scriptparam_time(const char* design_note, const char* param, int def_val, std::string& qvar_str);
 
 
     /** Parse a boolean parameter from the specified design note. This behaves identically
@@ -673,7 +687,7 @@ protected:
      *
      *      [3]?ControlDevice
      *
-     *  This will fetch all ScriptParam linked concrete objects in a random order:
+     *  This will fetch all ControlDevice linked concrete objects in a random order:
      *
      *      #?!ControlDevice
      *
