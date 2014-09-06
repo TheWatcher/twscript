@@ -339,16 +339,17 @@ float TWBaseScript::parse_float(const char* param, float def_val, std::string& q
 void TWBaseScript::get_scriptparam_valuefalloff(char* design_note, const char* param, int* value, int* falloff, bool* limit)
 {
     std::string workstr = param;
+    std::string dummy;
 
     // Get the value
     if(value) {
-        *value = get_scriptparam_int(design_note, param);
+        *value = get_scriptparam_int(design_note, param, 0, dummy);
     }
 
     // Allow uses to fall off over time
     if(falloff) {
         workstr += "Falloff";
-        *falloff = get_scriptparam_int(design_note, workstr.c_str());
+        *falloff = get_scriptparam_int(design_note, workstr.c_str(), 0, dummy);
     }
 
     // And allow counting to be limited
@@ -462,7 +463,7 @@ int TWBaseScript::get_scriptparam_time(const char* design_note, const char* para
             result = get_qvar_value(qvar_str, float(def_val));
         } else {
             char* endstr;
-            result = strtof(workptr, &endstr, 10);
+            result = strtof(workptr, &endstr);
 
             // Restore the default if parsing failed
             if(endstr == workptr) {
@@ -647,7 +648,7 @@ std::vector<TargetObj>* TWBaseScript::get_target_objects(const char* target, sSc
         archetype_search(matches, &target[1], *target == '@');
 
     // Radius archetype search
-    } else if($target == '<' || *target == '>') {
+    } else if(*target == '<' || *target == '>') {
         if(radius_search(target, &radius, &lessthan, &archname)) {
             const char* realname = archname;
             // Jump filter controls if needed...
@@ -873,8 +874,12 @@ void TWBaseScript::select_random_links(std::vector<TargetObj>* matches, std::vec
     // Yay for easy randomisation
     std::shuffle(links.begin(), links.end(), randomiser);
 
-    if(fetch_all && !is_weighted) {
-        select_links(matches, links, links.size());
+    if(!is_weighted) {
+        // Work out how many links to fetch, limiting it to the number available.
+        uint count = fetch_all ? links.size() : fetch_count;
+        if(count > links.size()) count = links.size();
+
+        select_links(matches, links, count);
 
     } else {
         // Weighted selection needs cumulative weight information
@@ -885,14 +890,10 @@ void TWBaseScript::select_random_links(std::vector<TargetObj>* matches, std::vec
         // Pick the requested number of links
         for(uint pass = 0; pass < fetch_count; ++pass) {
             // Weighted mode needs more work to pick the item
-            if(is_weighted) {
-                pick_weighted_link(links, 1 + (randomiser() % total_weights), chosen);
-            } else {
-                chosen = links[randomiser() % total_weights]; // at this point, total_weights is actually links.size()
-            }
+            pick_weighted_link(links, 1 + (randomiser() % total_weights), chosen);
 
             // Store the chosen item
-        matches -> push_back(chosen);
+            matches -> push_back(chosen);
         }
     }
 }

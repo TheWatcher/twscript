@@ -509,12 +509,10 @@ protected:
      *                    or it references a non-existent QVar (note that qvar_str
      *                    will contain the parameter string even if the QVar does
      *                    not exist)
-     * @param qvar_str    A reference to a string to store the quest var name, or
-     *                    quest var and simple calculation string.
      * @return The value specified in the parameter, or the int read from the qvar
      *         named in the parameter.
      */
-    int get_scriptparam_int(const char* design_note, const char* param, int def_val, std::string& qvar_str);
+    int get_scriptparam_int(const char* design_note, const char* param, int def_val = 0);
 
 
     /** Parse a time parameter from the specified design note. This behaves
@@ -527,12 +525,10 @@ protected:
      *                    with the current script name.
      * @param def_val     The default value to use if the parameter does not exist,
      *                    or it references a non-existent QVar.
-     * @param qvar_str    A reference to a string to store the quest var name, or
-     *                    quest var and simple calculation string.
      * @return The time, in milliseconds, specified in the parameter, or read from the qvar
      *         named in the parameter.
      */
-    int get_scriptparam_time(const char* design_note, const char* param, int def_val, std::string& qvar_str);
+    int get_scriptparam_time(const char* design_note, const char* param, int def_val = 0);
 
 
     /** Parse a boolean parameter from the specified design note. This behaves identically
@@ -677,7 +673,7 @@ protected:
      *
      *      [3]?ControlDevice
      *
-     *  This will fetch all ControlDevice linked concrete objects in a random order:
+     *  This will fetch all ScriptParam linked concrete objects in a random order:
      *
      *      #?!ControlDevice
      *
