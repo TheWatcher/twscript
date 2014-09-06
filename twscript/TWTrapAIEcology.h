@@ -90,11 +90,12 @@
 class TWTrapAIEcology : public TWBaseTrap
 {
 public:
-    TWTrapAIEcology(const char* name, int object) : TWBaseTrap(name, object), refresh(30000), refresh_qvar(), pop_limit(1), pop_qvar(), allow_visible_spawn(false),
+    TWTrapAIEcology(const char* name, int object) : TWBaseTrap(name, object), refresh(30000), refresh_qvar(), pop_limit(1), pop_qvar(), lives(0), lives_qvar(), spawned_qvar(), allow_visible_spawn(false),
                                                     archetype_link("&%Weighted"),
                                                     spawnpoint_link("&!#ScriptParams"),
                                                     SCRIPT_VAROBJ(TWTrapAIEcology, enabled, object),
                                                     SCRIPT_VAROBJ(TWTrapAIEcology, population, object),
+                                                    SCRIPT_VAROBJ(TWTrapAIEcology, spawned, object),
                                                     SCRIPT_VAROBJ(TWTrapAIEcology, update_timer, object)
         { /* fnord */ }
 
@@ -174,6 +175,18 @@ protected:
      *         processing the message
      */
     MsgStatus on_despawn(sScrMsg* msg, cMultiParm& reply);
+
+
+    /** Spawn count reset message handler, called whenever the script receives a "ResetSpawned"
+     *  message.
+     *
+     * @param msg   A pointer to the message received by the object.
+     * @param reply A reference to a multiparm variable in which a reply can
+     *              be stored.
+     * @return A status value indicating whether the caller should continue
+     *         processing the message
+     */
+    MsgStatus on_resetspawned(sScrMsg* msg, cMultiParm& reply);
 
 private:
     /** Enable the spawn timer. This starts a timer that will, when it fires, result in
@@ -282,6 +295,11 @@ private:
     void get_spawn_location(int spawnpoint, cScrVec& location, cScrVec& facing);
 
 
+    /** Handle increasing the current count of spawned AIs after a spawn.
+     */
+    void increase_spawncount(void);
+
+
     /** Build links between the AI and the ecology for firer counting, and copy any
      *  AIWatchObj links from the spawn point to the AI.
      *
@@ -338,6 +356,10 @@ private:
     std::string refresh_qvar;              //!< If the refresh rate is controlled by a qvar, the name goes here.
     int  pop_limit;                        //!< How many AIs should this ecology allow?
     std::string pop_qvar;                  //!< If the population is controlled by a qvar, the name goes here.
+    int  lives;                            //!< Should there be an upper limit to the number of AIs that are ever spawned?
+    std::string lives_qvar;                //!< If the number of lives is controlled by a qvar, the name goes here.
+    std::string spawned_qvar;              //!< The name of the qvar to store the total number of spawned AIs.
+
     bool allow_visible_spawn;              //!< Should spawns be allowed to happen on-screen?
 
     std::string archetype_link;            //!< The string to use as a linkdef when searching for the archetype to spawn.
@@ -345,6 +367,7 @@ private:
 
     script_int               enabled;      //!< Is the ecology enabled?
     script_int               population;   //!< The number of currently spawned AIs
+    script_int               spawned;      //!< The number of AIs spawned from the start.
     script_handle<tScrTimer> update_timer; //!< A timer used to update the ecology.
 };
 

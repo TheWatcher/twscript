@@ -17,6 +17,7 @@ void TWTrapAIEcology::init(int time)
 
     // Make sure the population count is set up correctly
     population.Init(0);
+    spawned.Init(0);
 
     // Fetch the contents of the object's design note
     char *design_note = GetObjectParams(ObjId());
@@ -29,10 +30,13 @@ void TWTrapAIEcology::init(int time)
 
     } else {
         // How many AIs can be spawned?
-        pop_limit = (int)get_scriptparam_float(design_note, "Population", 1.0f, pop_qvar);
+        pop_limit = get_scriptparam_int(design_note, "Population", 1, pop_qvar);
+
+        // does the ecology have an upper limit?
+        lives = get_scriptparam_int(design_note, "Lives", 0, lives_qvar);
 
         // How often should the ecology update?
-        refresh = (int)get_scriptparam_float(design_note, "Rate", 30000.0f, refresh_qvar);
+        refresh = get_scriptparam_time(design_note, "Rate", 30000, refresh_qvar);
 
         // Start on? Note that this will only have any effect the first time the script
         // does the init. After this point, the previous enabled state takes over.
@@ -51,7 +55,13 @@ void TWTrapAIEcology::init(int time)
             g_pMalloc -> Free(spawnpoint_def);
         }
 
-        g_pMalloc -> Free(design_note);
+        char *spawned_def = get_scriptparam_string(design_note, "SpawnCountQVar", NULL);
+        if(spawned_def) {
+            spawned_qvar = spawned_def;
+            g_pMalloc -> Free(spawned_def);
+        }
+
+       g_pMalloc -> Free(design_note);
     }
 
     // If the ecology is active, start it going
@@ -65,8 +75,14 @@ void TWTrapAIEcology::init(int time)
         if(!refresh_qvar.empty())
             debug_printf(DL_DEBUG, "Rate will be read from qvar '%s'", refresh_qvar.c_str());
 
+        if(lives)
+            debug_printf(DL_DEBUG, "Total spawns allowed: %d", lives);
+
         if(!pop_qvar.empty())
             debug_printf(DL_DEBUG, "Population will be read from qvar '%s'", pop_qvar.c_str());
+
+        if(!spawned_qvar.empty())
+            debug_printf(DL_DEBUG, "Total spawn count will appear in qvar '%s'", spawned_qvar.c_str());
 
         debug_printf(DL_DEBUG, "Start enabled is %s", starton ? "true" : "false");
         debug_printf(DL_DEBUG, "Archetype linkdef is '%s'", archetype_link.c_str());
@@ -89,6 +105,8 @@ TWBaseScript::MsgStatus TWTrapAIEcology::on_message(sScrMsg* msg, cMultiParm& re
         return on_timer(static_cast<sScrTimerMsg*>(msg), reply);
     } else if(!::_stricmp(msg -> message, "Despawned")) {
         return on_despawn(msg, reply);
+    } else if(!::_stricmp(msg -> message, "ResetSpawned")) {
+        return on_resetspawned(msg, reply);
     }
 
     return result;
@@ -164,6 +182,17 @@ TWBaseScript::MsgStatus TWTrapAIEcology::on_despawn(sScrMsg* msg, cMultiParm& re
 }
 
 
+TWBaseScript::MsgStatus TWTrapAIEcology::on_resetspawned(sScrMsg* msg, cMultiParm& reply)
+{
+    spawned = 0;
+
+    if(debug_enabled())
+        debug_printf(DL_DEBUG, "Reset spawned counter to zero");
+
+    return MS_CONTINUE;
+}
+
+
 /* =============================================================================
  *  TWTrapAIEcology Impmementation - private members
  */
@@ -212,11 +241,16 @@ bool TWTrapAIEcology::spawn_needed(void)
 {
     update_pop_limit();
 
-    if(debug_enabled())
+    if(debug_enabled()) {
         debug_printf(DL_DEBUG, "Got %d spawned AIs (limit is %d)", int(population), pop_limit);
 
+        if(lives) {
+            debug_printf(DL_DEBUG, "Total spawns so far %d of %d", int(spawned), lives);
+        }
+    }
+
     // Less spawned than there may be spawned? If so, spawn is needed.
-    return population < pop_limit;
+    return((population < pop_limit) && (!lives || (spawned < lives)));
 }
 
 
@@ -301,7 +335,7 @@ void TWTrapAIEcology::spawn_ai(int archetype, int spawnpoint)
 
         obj_srv -> EndCreate(spawn);
 
-        population = population + 1;
+        increase_spawncount();
 
         // Okay, this is horrible, but we need to pass both the spawn point and object id via a timed message that
         // only supports one parameter. Luckily, there's an upper limit of 8192 concrete object ids, and we're
@@ -411,6 +445,26 @@ void TWTrapAIEcology::get_spawn_location(int spawnpoint, cScrVec& location, cScr
 }
 
 
+void TWTrapAIEcology::increase_spawncount(void)
+{
+    // Increment the persistent counters. Keep local int versions to avoid lookups.
+    int pop   = population + 1;
+    int spawn = spawned + 1;
+
+    population = pop;
+    spawned    = spawn;
+
+    if(debug_enabled()) {
+        debug_printf(DL_DEBUG, "Updated spawn count. Currently spawned: %d, total so far: %d", pop, spawn);
+    }
+
+    // If the user has set a qvar to store the spawn count in, update it.
+    if(!spawned_qvar.empty()) {
+        set_qvar(spawned_qvar, spawn);
+    }
+}
+
+
 void TWTrapAIEcology::fixup_links(int combined)
 {
 	SService<ILinkSrv>      link_srv(g_pScriptManager);
@@ -430,7 +484,7 @@ void TWTrapAIEcology::fixup_links(int combined)
 void TWTrapAIEcology::update_pop_limit(void)
 {
     if(!pop_qvar.empty()) {
-        pop_limit = (int)get_qvar_value(pop_qvar.c_str(), (float)pop_limit);
+        pop_limit = get_qvar_value(pop_qvar, pop_limit);
 
         if(debug_enabled()) debug_printf(DL_DEBUG, "Using population limit %d from %s.", pop_limit, pop_qvar.c_str());
     }
@@ -440,7 +494,7 @@ void TWTrapAIEcology::update_pop_limit(void)
 void TWTrapAIEcology::update_refresh(void)
 {
     if(!refresh_qvar.empty()) {
-        refresh = (int)get_qvar_value(refresh_qvar.c_str(), (float)refresh);
+        refresh = get_qvar_value(refresh_qvar, refresh);
 
         if(debug_enabled()) debug_printf(DL_DEBUG, "Using update rate %d from %s.", refresh, refresh_qvar.c_str());
     }
