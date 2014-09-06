@@ -20,8 +20,10 @@ void TWTriggerAIEcologyDespawn::init(int time)
         debug_printf(DL_WARNING, "No Editor -> Design Note. Falling back on defaults.");
 
     } else {
+        std::string dummy;
+
         // How often should the ecology update?
-        refresh  = get_scriptparam_int(design_note, "Rate", 20000);
+        refresh  = get_scriptparam_int(design_note, "Rate", 20000, dummy);
 
         g_pMalloc -> Free(design_note);
     }

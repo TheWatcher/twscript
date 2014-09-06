@@ -31,6 +31,8 @@ void TWTrapAIBreath::init(int time)
         }
 
     } else {
+        std::string dummy;
+
         // Should the AI start off in the cold?
         if(!in_cold.Valid()) {
             in_cold = static_cast<int>(get_scriptparam_bool(design_note, "InCold", false));
@@ -43,18 +45,18 @@ void TWTrapAIBreath::init(int time)
         stop_on_ko = get_scriptparam_bool(design_note, "StopOnKO", false);
 
         // How long, in milliseconds, should the exhale last
-        exhale_time = get_scriptparam_int(design_note, "ExhaleTime", 250);
+        exhale_time = get_scriptparam_time(design_note, "ExhaleTime", 250, dummy);
 
         // Allow the base rate to be overridden, and recalculated the defaults
-        rates[0] = get_scriptparam_int(design_note, "Rate0", rates[0]);
+        rates[0] = get_scriptparam_time(design_note, "Rate0", rates[0], dummy);
         for(int level = 1; level < 4; ++level) {
             rates[level] = rates[0] / level;
         }
 
         // Allow override of the default rates
-        rates[1] = get_scriptparam_int(design_note, "Rate1", rates[1]);
-        rates[2] = get_scriptparam_int(design_note, "Rate2", rates[2]);
-        rates[3] = get_scriptparam_int(design_note, "Rate3", rates[3]);
+        rates[1] = get_scriptparam_time(design_note, "Rate1", rates[1], dummy);
+        rates[2] = get_scriptparam_time(design_note, "Rate2", rates[2], dummy);
+        rates[3] = get_scriptparam_time(design_note, "Rate3", rates[3], dummy);
 
         // Sort out the archetype for the particle
         char *sfx_name = get_scriptparam_string(design_note, "SFX", "AIBreath");

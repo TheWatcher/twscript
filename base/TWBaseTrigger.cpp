@@ -63,7 +63,7 @@ void TWBaseTrigger::init(int time)
         remove_links = get_scriptparam_bool(design_note, "KillLinks");
 
         // Allow triggers to fail
-        fail_chance = get_scriptparam_int(design_note, "FailChance", 0);
+        fail_chance = get_scriptparam_int(design_note, "FailChance", 0, fail_qvar);
 
         // Now for use limiting.
         get_scriptparam_valuefalloff(design_note, "Count", &value, &falloff, &limit);

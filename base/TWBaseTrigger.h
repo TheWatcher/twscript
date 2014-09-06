@@ -49,6 +49,7 @@ public:
                                                   dest_str("&ControlDevice"),
                                                   remove_links(false),
                                                   fail_chance(0),
+                                                  fail_qvar(),
                                                   count(name, object), count_mode(CM_BOTH),
                                                   uni_dist(0, 100)
         { /* fnord */ }
@@ -147,6 +148,7 @@ private:
 
     // Full of fail?
     int fail_chance;         //!< percentage chance of the trigger failing.
+    std::string fail_qvar;   //!< name of the qvar the fail percentage is in.
 
     // Count handling
     SavedCounter count;      //!< Control how many times the script will work

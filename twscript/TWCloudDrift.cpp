@@ -41,7 +41,8 @@ void TWCloudDrift::init(int time)
                 get_scriptparam_floatvec(design_note, "MaxRate", maxrates, 0.5, 0.5, 0.5);
                 get_scriptparam_floatvec(design_note, "MinRate", minrates, 0.05, 0.05, 0.05);
 
-                refresh = get_scriptparam_int(design_note, "Refresh", 1000);
+                std::string dummy;
+                refresh = get_scriptparam_time(design_note, "Refresh", 1000, dummy);
 
                 char *facmode = get_scriptparam_string(design_note, "Mode");
                 if(facmode) {

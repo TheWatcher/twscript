@@ -134,7 +134,7 @@ void TWTrapSetSpeed::update_speed(sScrMsg* msg)
 
     // If the user has specified a QVar to use, read that
     if(!qvar_name.empty()) {
-        speed = get_qvar_value(qvar_name.c_str(), (float)speed);
+        speed = get_qvar_value(qvar_name, (float)speed);
 
         if(debug_enabled()) debug_printf(DL_DEBUG, "Using speed %.3f from %s.", speed, qvar_name.c_str());
 

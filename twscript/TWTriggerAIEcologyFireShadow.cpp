@@ -20,11 +20,12 @@ void TWTriggerAIEcologyFireShadow::init(int time)
         debug_printf(DL_WARNING, "No Editor -> Design Note. Falling back on defaults.");
 
     } else {
+        std::string tmp;
+
         // How often should the ecology update?
-        refresh  = get_scriptparam_int(design_note, "Rate", 1000);
+        refresh  = get_scriptparam_int(design_note, "Rate", 1000, tmp);
 
         // parse the timewarp settings
-        std::string tmp;
         speed_factor = get_scriptparam_float(design_note, "Speedup"    , 0.8125, tmp);
         min_timewarp = get_scriptparam_float(design_note, "MinTimewarp", 0.03, tmp);
 

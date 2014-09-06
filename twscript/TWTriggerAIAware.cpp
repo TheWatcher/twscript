@@ -22,8 +22,10 @@ void TWTriggerAIAware::init(int time)
         debug_printf(DL_WARNING, "No Editor -> Design Note. Falling back on defaults.");
 
     } else {
-        refresh = get_scriptparam_int(design_note, "Rate", 500);
-        trigger_level = (eAIScriptAlertLevel)get_scriptparam_int(design_note, "Alertness" , 2);
+        std::string dummy;
+
+        refresh = get_scriptparam_int(design_note, "Rate", 500, dummy);
+        trigger_level = (eAIScriptAlertLevel)get_scriptparam_int(design_note, "Alertness" , 2, dummy);
 
         char *objname = get_scriptparam_string(design_note, "Object", "Garrett");
         if(objname) {

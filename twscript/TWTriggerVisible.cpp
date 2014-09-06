@@ -18,10 +18,12 @@ void TWTriggerVisible::init(int time)
         debug_printf(DL_WARNING, "No Editor -> Design Note. Falling back on defaults.");
 
     } else {
-        lowlight_threshold  = get_scriptparam_int(design_note, "Low" , 35);
-        highlight_threshold = get_scriptparam_int(design_note, "High", 55);
+        std::string dummy;
 
-        refresh = get_scriptparam_int(design_note, "Rate", 500);
+        lowlight_threshold  = get_scriptparam_int(design_note, "Low" , 35, dummy);
+        highlight_threshold = get_scriptparam_int(design_note, "High", 55, dummy);
+
+        refresh = get_scriptparam_int(design_note, "Rate", 500, dummy);
 
         g_pMalloc -> Free(design_note);
     }
