@@ -147,7 +147,6 @@ cleandist:
 dist: all $(DISTDIR) $(DOC_FILES)
 	$(MAKEDOCS) README.md $(DISTDIR)/docs/README.html
 	cp $(DOCDIR)/markdown.css $(DISTDIR)/docs/markdown.css
-	cp $(DOCDIR)/resourcer.png $(DISTDIR)/docs/resourcer.png
 	cp LICENSE $(DISTDIR)/
 	cp $(MYOSM) $(DISTDIR)/
 	$(PACKER) $(PACKARGS) $(PACKFILE) $(DISTDIR)
