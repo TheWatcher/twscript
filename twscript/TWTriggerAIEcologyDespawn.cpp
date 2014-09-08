@@ -70,6 +70,7 @@ TWBaseScript::MsgStatus TWTriggerAIEcologyDespawn::on_timer(sScrTimerMsg* msg, c
 
 }
 
+
 TWBaseScript::MsgStatus TWTriggerAIEcologyDespawn::on_slain(sSlayMsg* msg, cMultiParm& reply)
 {
     if(debug_enabled())
