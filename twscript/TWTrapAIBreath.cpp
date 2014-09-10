@@ -2,8 +2,6 @@
 #include "TWTrapAIBreath.h"
 #include "ScriptLib.h"
 
-static char* strtok_r(char *str, const char *delim, char **nextp);
-
 
 /* =============================================================================
  *  TWTrapAIBreath Implementation - protected members
@@ -451,7 +449,7 @@ void TWTrapAIBreath::parse_coldrooms(char *coldstr)
     char *room;
     char *rest = NULL;
 
-    for(room = ::strtok_r(coldstr, ",", &rest); room; room = ::strtok_r(NULL, ",", &rest)) {
+    for(room = tok_r(coldstr, ",", &rest); room; room = tok_r(NULL, ",", &rest)) {
         int room_id = StrToObject(room);
         if(room_id) {
             cold_rooms.insert(ColdRoomPair(room_id, true));
@@ -467,7 +465,7 @@ void TWTrapAIBreath::parse_coldrooms(char *coldstr)
 
 
 /*
- * public domain strtok_r() by Charlie Gordon
+ * public domain tok_r() by Charlie Gordon
  *
  *   from comp.lang.c  9/14/2007
  *
@@ -477,7 +475,7 @@ void TWTrapAIBreath::parse_coldrooms(char *coldstr)
  *      http://groups.google.com/group/comp.lang.c/msg/7c7b39328fefab9c
  */
 
-static char* strtok_r(char *str, const char *delim, char **nextp)
+char* TWTrapAIBreath::tok_r(char *str, const char *delim, char **nextp)
 {
     char *ret;
 

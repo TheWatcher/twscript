@@ -477,6 +477,8 @@ private:
     void parse_coldrooms(char* coldstr);
 
 
+    char *tok_r(char *str, const char *delim, char **nextp);
+
     // DesignNote configured options
     bool                     stop_immediately;   //!< Stop the particle group immediately on leaving the cold?
     bool                     stop_on_ko;         //!< Deactivate the particle group on knockout
