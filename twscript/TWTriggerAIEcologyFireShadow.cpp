@@ -79,15 +79,14 @@ TWBaseScript::MsgStatus TWTriggerAIEcologyFireShadow::on_timer(sScrTimerMsg* msg
 TWBaseScript::MsgStatus TWTriggerAIEcologyFireShadow::on_slain(sSlayMsg* msg, cMultiParm& reply)
 {
     if(debug_enabled())
-        debug_printf(DL_DEBUG, "AI slain, firing corpse parts and doing speed up");
-
-    fire_corseparts();
-    fireshadow_flee();
+        debug_printf(DL_DEBUG, "AI slain, setting up slain behaviour");
 
     if(update_timer) {
         cancel_timed_message(update_timer);
     }
     update_timer = set_timed_message("FireShadow", refresh, kSTM_OneShot);
+
+    fireshadow_flee();
 
     return MS_CONTINUE;
 }
@@ -97,6 +96,8 @@ bool TWTriggerAIEcologyFireShadow::attempt_despawn(sScrMsg *msg)
 {
     if(debug_enabled())
         debug_printf(DL_DEBUG, "Attempting despawn of AI");
+
+    fireshadow_flee();
 
     true_bool onscreen;
     SService<IObjectSrv> obj_srv(g_pScriptManager);
@@ -157,11 +158,22 @@ void TWTriggerAIEcologyFireShadow::fireshadow_flee(void)
 
     object metaprop;
     obj_srv -> Named(metaprop, "M-FireShadowFlee");
-    if(metaprop)
-        obj_srv -> AddMetaProperty(ObjId(), metaprop);
+    if(metaprop) {
+        true_bool has_prop;
 
-    prop_srv -> Add(ObjId(), "TimeWarp");
-    prop_srv -> SetSimple(ObjId(), "TimeWarp", speed_factor);
+        obj_srv -> HasMetaProperty(has_prop, ObjId(), metaprop);
+        if(!has_prop) {
+            obj_srv -> AddMetaProperty(ObjId(), metaprop);
+
+            if(debug_enabled())
+                debug_printf(DL_DEBUG, "Added M-FireShadowFlee to AI %d", ObjId());
+
+            fire_corseparts();
+
+            prop_srv -> Add(ObjId(), "TimeWarp");
+            prop_srv -> SetSimple(ObjId(), "TimeWarp", speed_factor);
+        }
+    }
 }
 
 
