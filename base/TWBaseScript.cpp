@@ -218,86 +218,30 @@ void TWBaseScript::get_object_namestr(std::string& name)
  *  QVar convenience functions
  */
 
-int TWBaseScript::get_qvar_value(std::string& qvar, int def_val)
+void TWBaseScript::set_qvar(const std::string &name, const int value)
 {
-    int value = def_val;
-    char  op;
-    char* lhs_qvar, *rhs_data, *endstr = NULL;
-    char* buffer = parse_qvar(qvar.c_str(), &lhs_qvar, &op, &rhs_data);
-
-    if(buffer) {
-        value = get_qvar(lhs_qvar, def_val);
-
-        // If an operation and right hand side value/qvar were found, use them
-        if(op && rhs_data) {
-            int adjval = 0;
-
-            // Is the RHS a qvar itself? If so, fetch it, otherwise treat it as an int
-            if(*rhs_data == '$') {
-                adjval = get_qvar(&rhs_data[1], 0);
-            } else {
-                adjval = strtol(rhs_data, &endstr, 10);
-            }
-
-            // If a value was parsed in some way, apply it (this also avoids
-            // division-by-zero problems for / )
-            if(endstr != rhs_data && adjval) {
-                switch(op) {
-                    case('+'): value += adjval; break;
-                    case('-'): value -= adjval; break;
-                    case('*'): value *= adjval; break;
-                    case('/'): value /= adjval; break;
-                }
-            }
-        }
-
-        delete[] buffer;
-    }
-
-    return value;
+    SService<IQuestSrv> QuestSrv(g_pScriptManager);
+    QuestSrv -> Set(name.c_str(), value, kQuestDataMission);
 }
 
 
-// I could probably avoid this hideous duplication of the above through
-// templating, but it's possible that float and int handling may support
-// different features in future, so I'm leaving the duplication for now...
-float TWBaseScript::get_qvar_value(std::string& qvar, float def_val)
+int TWBaseScript::get_qvar(const std::string& name, int def_val)
 {
-    float value = def_val;
-    char  op;
-    char* lhs_qvar, *rhs_data, *endstr = NULL;
-    char* buffer = parse_qvar(qvar.c_str(), &lhs_qvar, &op, &rhs_data);
+    SService<IQuestSrv> QuestSrv(g_pScriptManager);
+    if(QuestSrv -> Exists(name.c_str()))
+        return QuestSrv -> Get(name.c_str());
 
-    if(buffer) {
-        value = get_qvar(lhs_qvar, def_val);
+    return def_val;
+}
 
-        // If an operation and right hand side value/qvar were found, use them
-        if(op && rhs_data) {
-            float adjval = 0;
 
-            // Is the RHS a qvar itself? If so, fetch it, otherwise treat it as an int
-            if(*rhs_data == '$') {
-                adjval = get_qvar(&rhs_data[1], 0.0f);
-            } else {
-                adjval = strtof(rhs_data, &endstr);
-            }
+float TWBaseScript::get_qvar(const std::string& name, float def_val)
+{
+    SService<IQuestSrv> QuestSrv(g_pScriptManager);
+    if(QuestSrv -> Exists(name.c_str()))
+        return static_cast<float>(QuestSrv -> Get(name.c_str()));
 
-            // If a value was parsed in some way, apply it (this also avoids
-            // division-by-zero problems for / )
-            if(endstr != rhs_data && adjval) {
-                switch(op) {
-                    case('+'): value += adjval; break;
-                    case('-'): value -= adjval; break;
-                    case('*'): value *= adjval; break;
-                    case('/'): value /= adjval; break;
-                }
-            }
-        }
-
-        delete[] buffer;
-    }
-
-    return value;
+    return def_val;
 }
 
 
@@ -305,35 +249,6 @@ float TWBaseScript::get_qvar_value(std::string& qvar, float def_val)
  *  Design note support
  */
 
-float TWBaseScript::parse_float(const char* param, float def_val, std::string& qvar_str)
-{
-    float result = def_val;
-
-    // Gracefully handle the situation where the parameter is NULL or empty
-    if(param || *param == '\0') {
-        // Skip any leading whitespace
-        while(isspace(*param)) {
-            ++param;
-        }
-
-        // Starting with $ indicates that the string contains a qvar, fetch it
-        if(*param == '$') {
-            // Store the qvar string for later
-            qvar_str = &param[1];
-            result = get_qvar_value(qvar_str, def_val);
-
-        // Otherwise assume it's a float string
-        } else {
-            char* endstr;
-            result = strtof(param, &endstr);
-
-            // Restore the default if parsing failed
-            if(endstr == param) result = def_val;
-        }
-    }
-
-    return result;
-}
 
 
 void TWBaseScript::get_scriptparam_valuefalloff(char* design_note, const char* param, int* value, int* falloff, bool* limit)
@@ -535,26 +450,6 @@ bool TWBaseScript::get_scriptparam_floatvec(const char* design_note, const char*
     }
 
     return parsed;
-}
-
-
-int TWBaseScript::get_qvar_namelen(const char* namestr)
-{
-    const char* workptr = namestr;
-
-    // Work along the string looking for /, * or null
-    while(*workptr && *workptr != '/' && *workptr != '*') ++workptr;
-
-    // not gone anywhere? No name available...
-    if(workptr == namestr) return 0;
-
-    // Go back a char, and strip spaces
-    do {
-        --workptr;
-    } while(*workptr == ' ');
-
-     // Return length + 1, as the above loop always backs up 1 char too many
-    return (workptr - namestr) + 1;
 }
 
 
@@ -1065,91 +960,6 @@ int TWBaseScript::get_linked_object(const int from, const std::string& obj_name,
     }
 
     return fallback;
-}
-
-
-/* ------------------------------------------------------------------------
- *  qvar related
- */
-
-int TWBaseScript::get_qvar(const char* qvar, int def_val)
-{
-    SService<IQuestSrv> QuestSrv(g_pScriptManager);
-    if(QuestSrv -> Exists(qvar))
-        return QuestSrv -> Get(qvar);
-
-    return def_val;
-}
-
-
-float TWBaseScript::get_qvar(const char* qvar, float def_val)
-{
-    SService<IQuestSrv> QuestSrv(g_pScriptManager);
-    if(QuestSrv -> Exists(qvar))
-        return static_cast<float>(QuestSrv -> Get(qvar));
-
-    return def_val;
-}
-
-
-void TWBaseScript::set_qvar(const std::string &qvar, const int value)
-{
-    SService<IQuestSrv> QuestSrv(g_pScriptManager);
-    QuestSrv -> Set(qvar.c_str(), value, kQuestDataMission);
-}
-
-
-char* TWBaseScript::parse_qvar(const char* qvar, char** lhs, char* op, char** rhs)
-{
-    char* buffer = new char[strlen(qvar) + 1];
-    if(!buffer) return NULL;
-    strcpy(buffer, qvar);
-
-    char* workstr = buffer;
-
-    // skip any leading spaces or $
-    while(*workstr && (isspace(*workstr) || *workstr == '$')) {
-        ++workstr;
-    }
-
-    *lhs = workstr;
-
-    // Search for an operator
-    char* endstr = NULL;
-    *op = '\0';
-    while(*workstr) {
-        // NOTE: '-' is not included here. LarryG encountered problems with using QVar names containing
-        // '-' as this was interpreting it as an operator.
-        if(*workstr == '+' || *workstr == '*' || *workstr == '/') {
-            *op = *workstr;
-            endstr = workstr - 1; // record the character before the operator, for space trimming
-            *workstr = '\0';      // terminate so that lhs can potentially be used 'as is'
-            ++workstr;
-            break;
-        }
-        ++workstr;
-    }
-
-    // Only bother doing any more work if an operator was found
-    if(op && endstr) {
-        // Trim spaces before the operator if needed
-        while(isspace(*endstr)) {
-            *endstr = '\0';
-            --endstr;
-        }
-
-        // Skip spaces before the second operand
-        while(*workstr && isspace(*workstr)) {
-            ++workstr;
-        }
-
-        // If there is anything left on the right side, store the pointer to it
-        if(*workstr) {
-            *rhs = workstr;
-        }
-    }
-
-    return buffer;
 }
 
 

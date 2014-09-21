@@ -28,6 +28,7 @@
 #include <string>
 #include <random>       // std::default_random_engine
 #include "Script.h"
+#include "QVarVariable.h"
 
 
 /** POD class used by the link search code to keep track of link information.
@@ -309,7 +310,7 @@ protected:
         DL_ERROR      //!< A serious problem has been encountered.
     };
 
-    static const char*  const debug_levels[]; //!< An array of debug level strings
+    static const char* const debug_levels[]; //!< An array of debug level strings
 
 
     /** Has the editor enabled debugging via the design note?
@@ -362,70 +363,35 @@ protected:
      *  for the qvar to the specified value, hopefully creating the qvar if it does
      *  not already exist.
      *
-     * @param qvar   The name of the qvar to store the value in.
+     * @param name   The name of the qvar to store the value in.
      * @param value  The value to store in the qvar.
      */
-    void set_qvar(const std::string &qvar, const int value);
+    void set_qvar(const std::string& name, const int value);
 
 
-    /** Fetch the value stored in a qvar, potentially applying a simple calculation
-     *  to the value set in the QVar. This takes a string of the form
-     *  qvarname([*+/](value|$qvarname)) and parses out the name, and operation
-     *  and value or qvar name if they are present, and returns the value in the
-     *  left hand side qvar, potentially modified by the operator and value or
-     *  the value in the right hand qvar. For example, if the qvar variable
-     *  contains 'foo/100' this will take the value in foo and divide it by 100.
-     *  If the quest variable does not exist, this returns the default value
-     *  specified *without applying any calculations to it*. The value may
-     *  optionally be another QVar by placing $ before its name, eg: foo/$bar will
-     *  divide the value in foo by the value in bar.
+    /** Fetch the value in the specified QVar if it exists, return the default if it
+     *  does not.
      *
-     * @param qvar    The name of the QVar to return the value of, possibly including simple maths.
+     * @param name    The name of the QVar to return the value of.
      * @param def_val The default value to return if the qvar does not exist.
      * @return The QVar value, or the default specified.
      */
-    int get_qvar_value(std::string& qvar, int def_val);
+    int get_qvar(const std::string& name, int def_val);
 
 
-    /** Fetch the value stored in a qvar, potentially applying a simple calculation
-     *  to the value set in the QVar. This takes a string of the form
-     *  qvarname([*+/](value|$qvarname)) and parses out the name, and operation
-     *  and value or qvar name if they are present, and returns the value in the
-     *  left hand side qvar, potentially modified by the operator and value or
-     *  the value in the right hand qvar. For example, if the qvar variable
-     *  contains 'foo/2.5' this will take the value in foo and divide it by 2.5.
-     *  If the quest variable does not exist, this returns the default value
-     *  specified *without applying any calculations to it*. The value may
-     *  optionally be another QVar by placing $ before its name, eg: foo/$bar will
-     *  divide the value in foo by the value in bar.
+    /** Fetch the value in the specified QVar if it exists, return the default if it
+     *  does not.
      *
-     * @param qvar    The name of the QVar to return the value of, possibly including simple maths.
+     * @param name    The name of the QVar to return the value of.
      * @param def_val The default value to return if the qvar does not exist.
      * @return The QVar value, or the default specified.
      */
-    float get_qvar_value(std::string& qvar, float def_val);
+    float get_qvar(const std::string& name, float def_val);
 
 
     /* ------------------------------------------------------------------------
      *  Design note support
      */
-
-    /** Parse a string containing either a float value, or a qvar name, and
-     *  return the float value contained in the string or qvar. See the docs
-     *  for get_param_float for more information.
-     *
-     * @param param       A string to parse.
-     * @param def_val     The default value to use if the string does not contain
-     *                    a parseable value, or it references a non-existent QVar
-     *                    (note that qvar_str will contain the QVar name, even if
-     *                    the QVar does not exist)
-     * @param qvar_str    A reference to a string to store the quest var name, or
-     *                    quest var and simple calculation string.
-     * @return The value specified in the string, or the float version of a value
-     *         read from the qvar named in the string.
-     */
-    float parse_float(const char* param, float def_val, std::string& qvar_str);
-
 
     /** Values that may be returned from the get_scriptparam_countmode() function.
      */
@@ -437,54 +403,13 @@ protected:
     };
 
 
-    /** Attempt to parse the count mode out of the specified design note.
-     *  This handle situations where the user has set the CountOnly
-     *  parameter to 0, 1, 2, 3, None, On, Off, or Both. Because it is
-     *  nifty like that.
-     *
-     * @param design_note The design note to parse the count mode from.
-     * @param param       The name of the parameter to parse. This will be prepended
-     *                    with the current script name.
-     * @param default     The default CountMode to use if not set.
-     * @return The selected count mode, or the default if the mode has not
-     *         been set by the user, or the set value is invalid.
-     */
-    CountMode get_scriptparam_countmode(char* design_note, const char* param, CountMode def_mode = CM_BOTH);
-
-
-    /** Parse the value and falloff for a specified parameter from the
-     *  design note. This tries to parse a value for the parameter,
-     *  and a corresponding falloff if one has been specified.
-     *
-     * @param design_note The design note to parse the count mode from.
-     * @param param       The name of the parameter to parse the value and
-     *                    falloff for. This will be prepended with the current
-     *                    script name.
-     * @param value       A pointer to an int to store the value in. The
-     *                    int this points to will be set to 0 if no value
-     *                    has been specified for the parameter. If you do
-     *                    not need to parse a value, set this to NULL.
-     * @param falloff     A pointer to an int to store the falloff value
-     *                    in. If no value has been specified for the param,
-     *                    the int pointed to by this will be set to 0. If
-     *                    you do not need to parse a falloff, set this to NULL.
-     * @param limit       A pointer to a bool to store the limit flag in. If no
-     *                    value has been set for the param, the bool will be
-     *                    set to zero. If you do not need to parse the limit
-     *                    flag, set this to NULL.
-     */
-    void get_scriptparam_valuefalloff(char* design_note, const char* param, int* value = NULL, int* falloff = NULL, bool* limit = NULL);
-
-
     /** Read a float parameter from a design note string. If the value specified
      *  for the parameter in the design note is a simple number, this behaves
      *  identically to GetParamFloat(). However, this allows the user to specify
      *  the name of a QVar to read the value from by placing $ before the QVar
      *  name, eg: `ExampleParam='$a_quest_var'`. If a qvar is specified in this
      *  way, the user may also include the simple calculations supported by
-     *  get_qvar_value(). If a QVar is specified - with or without additional
-     *  calculations - the parameter string, with the leading $ removed, is stored
-     *  in the provided qvar_str for later use.
+     *  QVarVariables.
      *
      * @note Unlike the GetParamFloat() function, this will automatically prepend
      *       the script name to the specified parameter name. So, for example, if
@@ -495,16 +420,16 @@ protected:
      * @param design_note The design note string to parse the parameter from.
      * @param param       The name of the parameter to parse. This will be prepended
      *                    with the current script name.
+     * @param variable    The QVarVariable to use for this parameter.
      * @param def_val     The default value to use if the parameter does not exist,
-     *                    or it references a non-existent QVar (note that qvar_str
-     *                    will contain the parameter string even if the QVar does
-     *                    not exist)
-     * @param qvar_str    A reference to a string to store the quest var name, or
-     *                    quest var and simple calculation string.
+     *                    or it references a non-existent QVar.
+     * @param subscribe   If this is true, and the parameter contains one or more
+     *                    qvars, the object will be notified about changes to the
+     *                    qvar(s).
      * @return The value specified in the parameter, or the float version of a value
      *         read from the qvar named in the parameter.
      */
-    float get_scriptparam_float(const char* design_note, const char* param, float def_val, std::string& qvar_str);
+    float get_scriptparam_float(const char* design_note, const char* param, QVarVariable& variable, float def_val = 0.0f, bool subscribe = false);
 
 
     /** Parse an integer parameter from the specified design note. This behaves
@@ -515,16 +440,18 @@ protected:
      * @param design_note The design note string to parse the parameter from.
      * @param param       The name of the parameter to parse. This will be prepended
      *                    with the current script name.
+     * @param variable    The QVarVariable to use for this parameter.
      * @param def_val     The default value to use if the parameter does not exist,
      *                    or it references a non-existent QVar (note that qvar_str
      *                    will contain the parameter string even if the QVar does
      *                    not exist)
-     * @param qvar_str    A reference to a string to store the quest var name, or
-     *                    quest var and simple calculation string.
+     * @param subscribe   If this is true, and the parameter contains one or more
+     *                    qvars, the object will be notified about changes to the
+     *                    qvar(s).
      * @return The value specified in the parameter, or the int read from the qvar
      *         named in the parameter.
      */
-    int get_scriptparam_int(const char* design_note, const char* param, int def_val, std::string& qvar_str);
+    int get_scriptparam_int(const char* design_note, const char* param, QVarVariable& variable, int def_val = 0, bool subscribe = false);
 
 
     /** Parse a time parameter from the specified design note. This behaves
@@ -535,14 +462,16 @@ protected:
      * @param design_note The design note string to parse the parameter from.
      * @param param       The name of the parameter to parse. This will be prepended
      *                    with the current script name.
+     * @param variable    The QVarVariable to use for this parameter.
      * @param def_val     The default value to use if the parameter does not exist,
      *                    or it references a non-existent QVar.
-     * @param qvar_str    A reference to a string to store the quest var name, or
-     *                    quest var and simple calculation string.
+     * @param subscribe   If this is true, and the parameter contains one or more
+     *                    qvars, the object will be notified about changes to the
+     *                    qvar(s).
      * @return The time, in milliseconds, specified in the parameter, or read from the qvar
      *         named in the parameter.
      */
-    int get_scriptparam_time(const char* design_note, const char* param, int def_val, std::string& qvar_str);
+    int get_scriptparam_time(const char* design_note, const char* param, QVarVariable& varaible, int def_val = 200, bool subscribe = false);
 
 
     /** Parse a boolean parameter from the specified design note. This behaves identically
@@ -552,10 +481,14 @@ protected:
      * @param design_note The design note string to parse the parameter from.
      * @param param       The name of the parameter to parse. This will be prepended
      *                    with the current script name.
+     * @param variable    The QVarVariable to use for this parameter.
      * @param def_val     The default value to use if the parameter does not exist.
+     * @param subscribe   If this is true, and the parameter contains one or more
+     *                    qvars, the object will be notified about changes to the
+     *                    qvar(s).
      * @return The value specified in the parameter, or the default value.
      */
-    bool get_scriptparam_bool(const char* design_note, const char* param, bool def_val = false);
+    bool get_scriptparam_bool(const char* design_note, const char* param, QVarVariable& variable, bool def_val = false, bool subscribe = false);
 
 
     /** Read a string from a design note. This will attempt to locate the first
@@ -605,15 +538,43 @@ protected:
     bool get_scriptparam_floatvec(const char* design_note, const char* param, cScrVec &vect, float defx = 0.0f, float defy = 0.0f, float defz = 0.0f);
 
 
-    /** Establish the length of the name of the qvar in the specified string. This
-     *  will determine the length of the qvar name by looking for the end of the
-     *  name string, or the presence of a simple calculation, and then working back
-     *  until it hits the end of the name
+    /** Attempt to parse the count mode out of the specified design note.
+     *  This handle situations where the user has set the CountOnly
+     *  parameter to 0, 1, 2, 3, None, On, Off, or Both. Because it is
+     *  nifty like that.
      *
-     * @param namestr A string containing a QVar name, and potentially a simple calculation.
-     * @return The length of the QVar name, or 0 if the length can not be established.
+     * @param design_note The design note to parse the count mode from.
+     * @param param       The name of the parameter to parse. This will be prepended
+     *                    with the current script name.
+     * @param default     The default CountMode to use if not set.
+     * @return The selected count mode, or the default if the mode has not
+     *         been set by the user, or the set value is invalid.
      */
-    int get_qvar_namelen(const char* namestr);
+    CountMode get_scriptparam_countmode(char* design_note, const char* param, CountMode def_mode = CM_BOTH);
+
+
+    /** Parse the value and falloff for a specified parameter from the
+     *  design note. This tries to parse a value for the parameter,
+     *  and a corresponding falloff if one has been specified.
+     *
+     * @param design_note The design note to parse the count mode from.
+     * @param param       The name of the parameter to parse the value and
+     *                    falloff for. This will be prepended with the current
+     *                    script name.
+     * @param value       A pointer to a QVarVariable to store the value in. The
+     *                    variable this points to will be set to 0 if no value
+     *                    has been specified for the parameter. If you do
+     *                    not need to parse a value, set this to NULL.
+     * @param falloff     A pointer to a QVarVariable to store the falloff value
+     *                    in. If no value has been specified for the param,
+     *                    the variable pointed to by this will be set to 0. If
+     *                    you do not need to parse a falloff, set this to NULL.
+     * @param limit       A pointer to a QVarVariable to store the limit flag in.
+     *                    If no value has been set for the param, the variable
+     *                    will be set to zero. If you do not need to parse the
+     *                    limit flag, set this to NULL.
+     */
+    void get_scriptparam_valuefalloff(char* design_note, const char* param, QVarVariable* value = NULL, QVarVariable* falloff = NULL, QVarVariable* limit = NULL);
 
 
     /* ------------------------------------------------------------------------
@@ -895,47 +856,6 @@ private:
      *                  if false they must be outside it.
      */
     void archetype_search(std::vector<TargetObj>* matches, const char* archetype, bool do_full = false, bool do_radius = false, object from_obj = 0, float radius = 0.0f, bool lessthan = false);
-
-
-    /* ------------------------------------------------------------------------
-     *  qvar related
-     */
-
-    /** Fetch the value in the specified QVar if it exists, return the default if it
-     *  does not.
-     *
-     * @param qvar    The name of the QVar to return the value of.
-     * @param def_val The default value to return if the qvar does not exist.
-     * @return The QVar value, or the default specified.
-     */
-    int get_qvar(const char* name, int def_val);
-
-
-    /** Fetch the value in the specified QVar if it exists, return the default if it
-     *  does not.
-     *
-     * @param qvar    The name of the QVar to return the value of.
-     * @param def_val The default value to return if the qvar does not exist.
-     * @return The QVar value, or the default specified.
-     */
-    float get_qvar(const char* name, float def_val);
-
-
-    /** Parse the pieces of a qvar name string, potentially including a simple calculation.
-     *  The takes a string containing a qvar name, and potentially an operator and either
-     *  a number or another qvar, and stores pointers to the two sides of the operator, plus
-     *  the operator itself, in the provided pointers.
-     *
-     * @param qvar A pointer to the string containing the qvar name.
-     * @param lhs  A pointer to a string pointer in which to store a pointer to the left
-     *             hand side operand.
-     * @param op   A pointer to a char to store the operator in, if there is one.
-     * @param rhs  A pointer to a string pointer in which to store a pointer to the right
-     *             hand side operand, if there is one.
-     * @return A pointer to a buffer containing a processed version of `qvar`. This should
-     *         be freed by the called using `g_pMalloc -> Free()`.
-     */
-    char* parse_qvar(const char* qvar, char** lhs, char* op, char** rhs);
 
 
     /* ------------------------------------------------------------------------
