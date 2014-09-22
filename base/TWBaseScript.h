@@ -92,7 +92,7 @@ public:
      * @param object The ID of the client object to add the script to.
      * @return A new TWBaseScript object.
      */
-    TWBaseScript(const char* name, int object) : cScript(name, object), randomiser(0), need_fixup(true), sim_running(false), debug(false), message_time(0), done_init(false)
+    TWBaseScript(const char* name, int object) : cScript(name, object), randomiser(0), need_fixup(true), sim_running(false), message_time(0), done_init(false), debug()
         { /* fnord */ }
 
 
@@ -317,8 +317,8 @@ protected:
      *
      * @return true if the editor has enabled debugging, false otherwise.
      */
-    inline bool debug_enabled(void) const
-        { return debug; }
+    inline bool debug_enabled(void)
+        { return static_cast<bool>(debug); }
 
 
     /** Print out a debugging message to the monolog. This prints out a formatted
@@ -884,12 +884,12 @@ private:
     /* ------------------------------------------------------------------------
      *  Variables
      */
-    bool need_fixup;   //!< Does the script need to fix links to the player?
-    bool sim_running;  //!< Is the sim currently running?
-    bool debug;        //!< Is debugging enabled?
-    uint message_time; //!< The sim time stored in the last recieved message
+    bool need_fixup;    //!< Does the script need to fix links to the player?
+    bool sim_running;   //!< Is the sim currently running?
+    uint message_time;  //!< The sim time stored in the last recieved message
+    bool done_init;     //!< Has the script run its init?
 
-    bool done_init;    //!< Has the script run its init?
+    QVarVariable debug; //!< Should debugging be enabled?
 
     static const uint NAME_BUFFER_SIZE;
 };

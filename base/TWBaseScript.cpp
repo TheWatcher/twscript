@@ -250,75 +250,15 @@ float TWBaseScript::get_qvar(const std::string& name, float def_val)
  */
 
 
-
-void TWBaseScript::get_scriptparam_valuefalloff(char* design_note, const char* param, int* value, int* falloff, bool* limit)
-{
-    std::string workstr = param;
-    std::string dummy;
-
-    // Get the value
-    if(value) {
-        *value = get_scriptparam_int(design_note, param, 0, dummy);
-    }
-
-    // Allow uses to fall off over time
-    if(falloff) {
-        workstr += "Falloff";
-        *falloff = get_scriptparam_int(design_note, workstr.c_str(), 0, dummy);
-    }
-
-    // And allow counting to be limited
-    if(limit) {
-        workstr = param;
-        workstr += "Limit";
-        *limit = get_scriptparam_bool(design_note, workstr.c_str());
-    }
-}
-
-
-TWBaseScript::CountMode TWBaseScript::get_scriptparam_countmode(char* design_note, const char* param, CountMode def_mode)
-{
-    TWBaseScript::CountMode result = def_mode;
-
-    // Get the value the editor has set for countonly (or the default) and process it
-    char* mode = get_scriptparam_string(design_note, param, "Both");
-    if(mode) {
-        char* end = NULL;
-
-        // First up, art thou an int?
-        int parsed = strtol(mode, &end, 10);
-        if(mode != end) {
-            // Well, something parsed, only update the result if it is in range!
-            if(parsed >= CM_NOTHING && parsed <= CM_BOTH) {
-                result = static_cast<CountMode>(parsed);
-            }
-
-        // Doesn't appear to be numeric, so search for known modes
-        } else if(!::_stricmp(mode, "None")) {
-            result = CM_NOTHING;
-        } else if(!::_stricmp(mode, "On")) {
-            result = CM_TURNON;
-        } else if(!::_stricmp(mode, "Off")) {
-            result = CM_TURNOFF;
-        } else if(!::_stricmp(mode, "Both")) {
-            result = CM_BOTH;
-        }
-
-        g_pMalloc -> Free(mode);
-    }
-
-    return result;
-}
-
-
-float TWBaseScript::get_scriptparam_float(const char* design_note, const char* param, float def_val, std::string& qvar_str)
+float TWBaseScript::get_scriptparam_float(const char* design_note, const char* param, QVarVariable& variable, float def_val, bool subscribe);
 {
     float result = def_val;
 
     // Fetch the value as a string, if possible
     char* value = get_scriptparam_string(design_note, param);
     if(value) {
-        result = parse_float(value, def_val, qvar_str);
+        variable.init_float(value, def_val, subscribe);
+        result = static_cast<float>(variable);
 
         g_pMalloc -> Free(value);
     }
@@ -327,30 +267,15 @@ float TWBaseScript::get_scriptparam_float(const char* design_note, const char* p
 }
 
 
-int TWBaseScript::get_scriptparam_int(const char* design_note, const char* param, int def_val, std::string& qvar_str)
+int TWBaseScript::get_scriptparam_int(const char* design_note, const char* param, QVarVariable& variable, int def_val, bool subscribe);
 {
     int result = def_val;
+
+    // Fetch the value as a string, if possible
     char* value = get_scriptparam_string(design_note, param);
-
     if(value) {
-        char* workptr = value;
-
-        // Skip any leading whitespace
-        while(isspace(*workptr)) {
-            ++workptr;
-        }
-
-        // If the string starts with a '$', it is a qvar, in theory
-        if(*workptr == '$') {
-            qvar_str = &param[1];
-            result = get_qvar_value(qvar_str, def_val);
-        } else {
-            char* endstr;
-            result = strtol(workptr, &endstr, 10);
-
-            // Restore the default if parsing failed
-            if(endstr == workptr) result = def_val;
-        }
+        variable.init_integer(value, def_val, subscribe);
+        result = static_cast<int>(variable);
 
         g_pMalloc -> Free(value);
     }
@@ -359,60 +284,37 @@ int TWBaseScript::get_scriptparam_int(const char* design_note, const char* param
 }
 
 
-int TWBaseScript::get_scriptparam_time(const char* design_note, const char* param, int def_val, std::string& qvar_str)
+int TWBaseScript::get_scriptparam_time(const char* design_note, const char* param, QVarVariable& variable, int def_val, bool subscribe);
 {
-    // float is used internally for time handling, as the user may specify fractional
-    // seconds or minutes
-    float result = float(def_val);
+    int result = def_val;
+
+    // Fetch the value as a string, if possible
     char* value = get_scriptparam_string(design_note, param);
-
     if(value) {
-        char* workptr = value;
-
-        // Skip any leading whitespace
-        while(isspace(*workptr)) ++workptr;
-
-        // If the string starts with a '$', it is a qvar, in theory
-        if(*workptr == '$') {
-            qvar_str = &param[1];
-            result = get_qvar_value(qvar_str, float(def_val));
-        } else {
-            char* endstr;
-            result = strtof(workptr, &endstr);
-
-            // Restore the default if parsing failed
-            if(endstr == workptr) {
-                result = def_val;
-
-            // otherwise, see if the character at the end is something we recognise
-            } else if(*endstr) {
-                // skip spaces, just in case
-                while(isspace(*workptr)) ++workptr;
-
-                switch(*endstr) {
-                    // 's' indicates the time is in seconds, multiply up to milliseconds
-                    case 's': result *= 1000.0f; break;
-
-                    // 'm' indicates the time is in minutes, multiply up to milliseconds
-                    case 'm': result *= 60000.0f; break;
-                }
-            }
-        }
+        variable.init_time(value, def_val, subscribe);
+        result = static_cast<int>(variable);
 
         g_pMalloc -> Free(value);
     }
 
-    // Drop the fractional part on the way out - here result is in integer milliseconds
-    return int(result);
+    return result;
 }
 
 
-bool TWBaseScript::get_scriptparam_bool(const char* design_note, const char* param, bool def_val)
+bool TWBaseScript::get_scriptparam_bool(const char* design_note, const char* param, QVarVariable& variable, bool def_val, bool subscribe);
 {
-    std::string namestr = Name();
-    namestr += param;
+    bool result = def_val;
 
-    return GetParamBool(design_note, namestr.c_str(), def_val);
+    // Fetch the value as a string, if possible
+    char* value = get_scriptparam_string(design_note, param);
+    if(value) {
+        variable.init_boolean(value, def_val, subscribe);
+        result = static_cast<bool>(variable);
+
+        g_pMalloc -> Free(value);
+    }
+
+    return result;
 }
 
 
@@ -453,6 +355,66 @@ bool TWBaseScript::get_scriptparam_floatvec(const char* design_note, const char*
 }
 
 
+TWBaseScript::CountMode TWBaseScript::get_scriptparam_countmode(char* design_note, const char* param, CountMode def_mode)
+{
+    TWBaseScript::CountMode result = def_mode;
+
+    // Get the value the editor has set for countonly (or the default) and process it
+    char* mode = get_scriptparam_string(design_note, param, "Both");
+    if(mode) {
+        char* end = NULL;
+
+        // First up, art thou an int?
+        int parsed = strtol(mode, &end, 10);
+        if(mode != end) {
+            // Well, something parsed, only update the result if it is in range!
+            if(parsed >= CM_NOTHING && parsed <= CM_BOTH) {
+                result = static_cast<CountMode>(parsed);
+            }
+
+        // Doesn't appear to be numeric, so search for known modes
+        } else if(!::_stricmp(mode, "None")) {
+            result = CM_NOTHING;
+        } else if(!::_stricmp(mode, "On")) {
+            result = CM_TURNON;
+        } else if(!::_stricmp(mode, "Off")) {
+            result = CM_TURNOFF;
+        } else if(!::_stricmp(mode, "Both")) {
+            result = CM_BOTH;
+        }
+
+        g_pMalloc -> Free(mode);
+    }
+
+    return result;
+}
+
+
+void TWBaseScript::get_scriptparam_valuefalloff(char* design_note, const char* param, QVarVariable* value = NULL, QVarVariable* falloff = NULL, QVarVariable* limit = NULL)
+{
+    std::string workstr = param;
+    std::string dummy;
+
+    // Get the value
+    if(value) {
+        get_scriptparam_int(design_note, param, *value, 0, dummy);
+    }
+
+    // Allow uses to fall off over time
+    if(falloff) {
+        workstr += "Falloff";
+        get_scriptparam_int(design_note, workstr.c_str(), *falloff, 0, dummy);
+    }
+
+    // And allow counting to be limited
+    if(limit) {
+        workstr = param;
+        workstr += "Limit";
+        get_scriptparam_bool(design_note, workstr.c_str(), *limit);
+    }
+}
+
+
 /* ------------------------------------------------------------------------
  *  Initialisation related
  */
@@ -462,7 +424,7 @@ void TWBaseScript::init(int time)
     char* design_note = GetObjectParams(ObjId());
 
     if(design_note) {
-        debug = get_scriptparam_bool(design_note, "Debug");
+        get_scriptparam_bool(design_note, "Debug", &debug);
 
         if(debug_enabled()) {
             debug_printf(DL_DEBUG, "Attached %s version %s", Name(), SCRIPT_VERSTRING);
