@@ -336,11 +336,9 @@ bool TWBaseScript::get_scriptparam_floatvec(const char* design_note, const char*
         char* ystr = comma_split(value);              // Getting y is safe...
         char* zstr = ystr ? comma_split(ystr) : NULL; // z needs to be handled more carefully
 
-        std::string tmp; // This is actually throw-away, needed for parse_float
-
-        vect.x = parse_float(value, defx, tmp);
-        vect.y = parse_float( ystr, defy, tmp); // Note these are safe even if ystr and zstr are NULL
-        vect.z = parse_float( zstr, defz, tmp); // as parse_float checks for non-NULL
+        vect.x = parse_float(value, defx);
+        vect.y = parse_float( ystr, defy,); // Note these are safe even if ystr and zstr are NULL
+        vect.z = parse_float( zstr, defz); // as parse_float checks for non-NULL
 
         parsed = true;
 
@@ -952,4 +950,17 @@ char* TWBaseScript::comma_split(char* src)
     }
 
     return NULL;
+}
+
+
+float TWBaseScript::parse_float(const char *srcstr, float def_val)
+{
+    char *endstr = NULL;
+
+    float value = strtof(srcstr, &endstr);
+    if(endstr == srcstr) {
+        value = defval;
+    }
+
+    return value;
 }
