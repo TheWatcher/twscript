@@ -10,10 +10,10 @@ class QVarVariable
 private:
 
     enum VarType {
-        VT_FLOAT = 0, //!<
-        VT_INT,       //!<
-        VT_TIME,      //!<
-        VT_BOOL       //|<
+        VT_FLOAT = 0, //!< Identifies the variable as a float type
+        VT_INT,       //!< Identifies the variable as an int type
+        VT_TIME,      //!< Identifies the variable as a time variable
+        VT_BOOL       //|< Identifies the variable as a bool variable
     };
 
 
