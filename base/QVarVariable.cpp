@@ -6,6 +6,31 @@
 #include "QVarVariable.h"
 #include "ScriptLib.h"
 
+int QVar::get_qvar()
+{
+    // Can't do anything if there's no qvar name
+    if(qvar.empty()) return defval;
+
+    // Fetch the value if possible
+    SService<IQuestSrv> QuestSrv(g_pScriptManager);
+    if(QuestSrv -> Exists(qvar.c_str())) {
+        return QuestSrv -> Get(qvar.c_str());
+    }
+
+    return defval;
+}
+
+void QVar::set_qvar(int value)
+{
+    // Can't do anything if there's no qvar name
+    if(qvar.empty()) return defval;
+
+    // Fetch the value if possible
+    SService<IQuestSrv> QuestSrv(g_pScriptManager);
+    QuestSrv -> Set(qvar.c_str(), value, type)
+
+
+
 
 void QVarVariable::init(const char* design_val, float defval, bool listen, VarType typeinfo)
 {
@@ -152,21 +177,6 @@ float QVarVariable::update_value()
 
     return value_cache;
 }
-
-
-float QVarVariable::get_qvar(std::string &qvar, float defval)
-{
-    // Can't do anything if there's no qvar name
-    if(qvar.empty()) return defval;
-
-    // Fetch the value if possible
-    SService<IQuestSrv> QuestSrv(g_pScriptManager);
-    if(QuestSrv -> Exists(qvar.c_str()))
-        return static_cast<float>(QuestSrv -> Get(qvar.c_str()));
-
-    return defval;
-}
-
 
 void QVarVariable::parse_qvar_parts(const char* qvar, std::string& left, std::string& right, char *calc_op)
 {

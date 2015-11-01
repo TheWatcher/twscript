@@ -5,6 +5,33 @@
 #include <string>
 #include <cmath>
 
+
+class QVar
+{
+public:
+    QVar(const std::string &name, eQuestDataType qvar_type = kQuestDataMission, int def_val = 0): qvar(name), type(qvar_type), defval(def_val)
+        { /* fnord */ }
+
+    operator int ();
+
+private:
+
+    /** Fetch the value in the QVar if it exists, return the default if it does not.
+     *
+     * @return The QVar value, or the default.
+     */
+    int get_qvar();
+
+    /** Set the value in the QVar.
+     */
+    void set_qvar(int value);
+
+    std::string    qvar;   //!< The name of the QVar to fetch/set.
+    eQuestDataType type;   //!< The type of quest var to use.
+    int            defval; //!< The default value to return if the qvar does not exist.
+}
+
+
 class QVarVariable
 {
 private:
@@ -90,6 +117,18 @@ public:
 
 private:
 
+    /** Initialise the QVarVariable. This sets up the QVarVariable and defines its internal type
+     *  based on the specified typeinfo.
+     *
+     *  @param design_val  A pointer to the design note string. Note that this is a c-style char * to
+     *                     facilitate integration with the wider code.
+     *  @param defval      The default value to set for the qvar.
+     *  @param listen      If true, add QVar change notification message registration for any qvars
+     *                     in the design note. Note that the QVarVariable itself does not handle the
+     *                     change message - the script the QVarVariable is used by must deal with it.
+     *  @param typeinfo    The type of variable to support. This controls how literal values are handled
+     *                     and returned to the caller.
+     */
     void init(const char* design_val, float defval, bool listen, VarType typeinfo);
 
 
@@ -110,15 +149,6 @@ private:
     float update_value();
 
 
-    /** Fetch the value in the specified QVar if it exists, return the default if it
-     *  does not.
-     *
-     * @param qvar   The name of the QVar to return the value of.
-     * @param defval The default value to return if the qvar does not exist.
-     * @return The QVar value, or the default specified.
-     */
-    float get_qvar(std::string &qvar, float defval);
-
     void parse_qvar_parts(const char* qvar, std::string& left, std::string& right, char *calc_op);
 
     int         obj_id;   //!< The ID of the object this is a variable for.
@@ -129,5 +159,14 @@ private:
 
     float value_cache;    //!< The last value calculated for the variable.
 };
+
+
+
+class IntQVarVariable
+{
+
+
+};
+
 
 #endif
