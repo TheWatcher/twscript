@@ -37,9 +37,9 @@
   string      = *(SP / VCHAR)
   object      = identifier / 1*DIGIT / qvar
   float-vec   = qvar-eq "," qvar-eq "," qvar-eq
+  distance    = float / qvar-eq
   qvar-eq     = qvar-val [operator qvar-val]
   qvar-val    = (integer / float / qvar)
-  distance    = float / qvar
   integer     = ["-"] 1*DIGIT
   float       = ["-"] *DIGIT "." 1*DIGIT
   qvar        = "$" 1*identifier
