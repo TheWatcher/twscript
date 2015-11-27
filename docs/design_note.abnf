@@ -1,0 +1,49 @@
+; Depends on the ABNF Core Rules specified in RFC5234 appendix B.1.
+
+; Design notes are one or more parameters, separated by semicolons
+  design-note = parameter *(separator parameter)
+  parameter   = name "=" value
+
+; names are the script name (TWTrapSomething) followed by a parameter
+; name (SomeParam). ie: TWTrapSomethingSomeParam
+  name        = script-name param-name
+  script-name = identifier
+  param-name  = identifier
+
+; values depend on the type of parameter, and may optionally be enclosed
+; in matching single or double quotes
+  value       = value-opts / DQUOTE value-opts DQUOTE / SQUOTE value-opts SQUOTE
+  value-opts  = target / string / object / boolean / time / float-vec / qvar-eq
+
+; targets are used for targetting paramers. They are... complicated
+  target      = "[me]" / "[source]" / direct / indirect / inrange / outrange / linkdef
+  direct      = "*" identifier               ; target direct concrete descendants
+  indirect    = "@" identifier               ; target all concrete descendants
+  inrange     = "<" distance ":" identifier  ; target objects within a distance
+  outrange    = ">" distance ":" identifier  ; target objects beyond a distance
+  linkdef     = "&" [sigils] linktype        ; link selection
+  linktype    = "Weighted" / identifier
+
+; See http://thief.starforge.co.uk/wiki/Scripting:Targeting for what these do
+  sigils      = *("?" / "%" / "#" / "!" / "[" 1*DIGIT "]")
+
+; booleans need to support t/f/etc. Remember quoted strings are case insensitive in ABNF
+  boolean     = ("t" *ALPHA) / ("f" *ALPHA) / qvar-eq
+
+; times allow for s or m after a float or int
+  time        = (1*DIGIT ["s" / "m"]) / qvar-eq
+
+; more basic rules used by the above
+  string      = *(SP / VCHAR)
+  object      = identifier / 1*DIGIT / qvar
+  float-vec   = qvar-eq "," qvar-eq "," qvar-eq
+  qvar-eq     = qvar-val [operator qvar-val]
+  qvar-val    = (integer / float / qvar)
+  distance    = float
+  integer     = ["-"] 1*DIGIT
+  float       = ["-"] *DIGIT "." 1*DIGIT
+  qvar        = "$" 1*identifier
+  identifier  = ALPHA *(ALPHA / DIGIT / "_" / "-") ; identifiers are alphanumeric, underscore, or hypen
+  operator    = "+" / "*" / "/" ; Note subtraction is not supported, as "-" can be used in an identifier
+  separator   = ";"             ; semicolons separate design note parameters
+  SQUOTE      = "'"             ; single quote needed as rfc5234 doesn't include it, oddly.
