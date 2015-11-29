@@ -4,42 +4,31 @@
  * @author Chris Page &lt;chris@starforge.co.uk&gt;
  *
  */
-/* Okay, let's try to get this right this time. The problem is as follows:
+/* Okay, let's try to get this right this time. The full description of
+ * what at design note can include is given in docs/design_note.abnf
+ * Some observations from that:
  *
- * design_note = parameter *( SEPARATOR parameter )
- *   parameter = name EQUALS target / string / object / float-vec / qvar-eq
- *        name = script-name param-name
- * script-name = 1*( ALPHA DIGIT )
- *  param-name = 1*( ALPHA DIGIT )
- *      target = FIXME: ohgods
- *      string = [ QUOTE ] noquotestr [ QUOTE ]
- *      object = 1*DIGIT / qvar
- *   float-vec = qvar-eq COMMA qvar-eq COMMA qvar-eq
- *     qvar-eq = qvar-val [ operator qvar-val ]
- *    qvar-val = ( integer / float / qvar )
- *        qvar = "$" 1*identifier
- *  identifier = ALPHA *( ALPHA / DIGIT / "_" / "-" )
- *    operator = "+" / "*" / "/"
- *   SEPARATOR = ";"
- *      EQUALS = "="
- *       ALPHA = FIXME
- *       DIGIT = FIXME
- *       QUOTE = '"' / "'"
- *       COMMA = ","
+ * - string is the only parameter type that absolutely can never depend on the
+ *   qvar rule directly or indirectly.
  *
- * - design notes contain parameters. Each parameter consists of a name
- *   and a value.
- * - Each parameter may have a type:
- *   - `integer`
- *   - `boolean`
- *   - `float`
- *   - `float vector` (three floats)
- *   - `time`
- *   - `object`
- *   - `string`
- *   - `target`
- * - All but `string` and `target` are potentially complex types, where
- *   the design note does not include a simple value, and instead it
+ * - object is the only design note parameter type that uses qvar
+ *   values directly without supporting calculations (as all we want
+ *   in the qvar is the object ID to act upon)
+ *
+ * - target parameter is either a float, or an implicitly float qvar-eq
+ *
+ * - boolean and time have specific fiddliness involved:
+ *   - bool can either be t/f/y/n followed by any arbitrary text, or
+ *     an implicitly integer qvar-eq
+ *   - time can either be an integer followed by s or m, or an implicitly
+ *     integer qvar-eq
+ *
+ * - the remaining design note parameter types are integer, float, and
+ *   floatvec. The integer and float ones are implicit integer or float
+ *   qvar-eqs with no special treatment, while the floatvec type is
+ *   three comma-separated implicitly float qvar-eqs
+ *
+ * Now, really we don't want
 
 /*
  * This program is free software: you can redistribute it and/or modify
