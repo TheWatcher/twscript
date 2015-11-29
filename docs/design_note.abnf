@@ -28,7 +28,7 @@
   sigils      = *("?" / "%" / "#" / "!" / "[" 1*DIGIT "]")
 
 ; booleans need to support t/f/etc. Remember quoted strings are case insensitive in ABNF
-  boolean     = ("t" *ALPHA) / ("f" *ALPHA) / qvar-eq
+  boolean     = ("t" *ALPHA) / ("f" *ALPHA) / ("y" *ALPHA) / ("n" *ALPHA) / qvar-eq
 
 ; times allow for s or m after a float or int
   time        = (1*DIGIT ["s" / "m"]) / qvar-eq
