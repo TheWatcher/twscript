@@ -28,7 +28,46 @@
  *   qvar-eqs with no special treatment, while the floatvec type is
  *   three comma-separated implicitly float qvar-eqs
  *
- * Now, really we don't want
+ * In an ideal world, the scripts should not need to care about any of
+ * these issues: they should be able to just fetch the value of a
+ * parameter and just get a value of the type appropriate for that
+ * parameter. Inevitably, doing this is going to involve creating
+ * classes that abstract away the ghastly implementation details for
+ * each type of parameter. Hence we probably need a hierarchy of
+ * parameter types, with one class per parameter type and a base
+ * class that implements any common code.
+ *
+ * object, boolean, and time are specific sub-types of integer: they
+ * all ultimately result in an integer result after some initial
+ * type-specific handling (boolean may need to do a one-time translate
+ * of t/f/y/n to 1 or 0, time may need to do multiplication of s or m
+ * suffixed floats - but as we can't have fractional milliseconds, the
+ * *value* of time is always integer milliseconds, and object may need
+ * to do a one-time translate from object name to interger ID.
+ *
+ * target is a sub-type of string that must be able to register a qvar
+ * change listener if appropriate. It should return the parameter
+ * string as-is if a string is requested, and a float value for the
+ * radius (or 0.0) if a float is requested?
+ *
+ * float-vec is really just three floats wrapped up in something that
+ * makes them easily accessible (say overload [] and treat them as
+ * arrays of three values?)
+ *
+ * string, integer and float are, obviously, 'base' types here. What's
+ * arguable is whether int should be considered as a sub-tye of float
+ * (as any qvar-eq may internally produce a float result).
+ *
+ * Working on the basis of the above, we then have:
+ *
+ * StringParameter
+ * FloatParameter <- TargetParameter
+ *       ^-- IntParameter <- ObjectParameter
+ *              ^    ^-- TimeParameter
+ *              `-- BooleanParameter
+ *
+ * with FloatVecParameter off to the side somewhere using three
+ * FloatParameters
 
 /*
  * This program is free software: you can redistribute it and/or modify
