@@ -1,5 +1,6 @@
 /** @file
- * This file contains the QVar variable handling base code.
+ * This file contains the base code for the DesignNote Parameter containers
+ * and wrapper classes.
  *
  * @author Chris Page &lt;chris@starforge.co.uk&gt;
  *
@@ -67,7 +68,8 @@
  *              `-- BooleanParameter
  *
  * with FloatVecParameter off to the side somewhere using three
- * FloatParameters
+ * FloatParameters.
+ *
  */
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -83,3 +85,40 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
+
+#include <string>
+
+class DesignParamString
+{
+public:
+    /** Create a new DesignParamString. Note that little or no work can or
+     *  should be done by this constructor: the client code should call
+     *  init(), passing the design note data to initialise the parameter
+     *  with after object creation is complete.
+     *
+     * @param name The name of the script the parameter is for.
+     */
+    DesignParamString(const std::string& name) : script_name(name)
+        { /* fnord */ }
+
+
+    /** Destroy the DesignParamString object.
+     */
+    virtual ~DesignParamString()
+        { /* fnord */ }
+
+
+    /** Initialise the DesignParamString based on the values specified.
+     *
+     * @param design_note   A reference to a string containing the design note to parse
+     * @param param_name    A reference to a string containing the name of the parameter.
+     *                      This will be prepended with the current script name.
+     * @param default_value The default value to set for the string. If not specified,
+     *                      the empty string is used.
+     */
+    bool init(const std::string& design_note, const std::string& param_name, const std::string& default_value = "");
+
+
+private:
+    std::string script_name; //!< The name of the script this variable is attached to
+};
