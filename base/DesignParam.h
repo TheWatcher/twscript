@@ -88,6 +88,17 @@
 
 #include <string>
 
+/** The base class for String-like design parameter classes. This implements
+ *  the basic operations needed to initialise and fetch the value of a basic
+ *  string parameter that will not update after initialisation is completed.
+ *
+ * @note If the design note is changed after init is complete - say some other
+ *       script modifies the string to store data, or change the behaviour
+ *       of another script, *this will not pick up the change*. Whether this
+ *       is "correct" behaviour is arguable, but it's the one I'm using. If
+ *       picking up the change is really needed, the client /could/ call
+ *       init() before each get() to get the desired behaviour.
+ */
 class DesignParamString
 {
 public:
@@ -98,7 +109,7 @@ public:
      *
      * @param name The name of the script the parameter is for.
      */
-    DesignParamString(const std::string& name) : script_name(name)
+    DesignParamString(const std::string& name) : script_name(name), set(false), value("")
         { /* fnord */ }
 
 
@@ -119,6 +130,36 @@ public:
     bool init(const std::string& design_note, const std::string& param_name, const std::string& default_value = "");
 
 
+    /** Obtain the value of this string design parameter. This will return the current
+     *  design parameter value, which may be an empty string if the parameter was not
+     *  set in the design note.
+     *
+     * @return A reference to a string containing the design note parameter value.
+     */
+    const std:string& get() const { return script_name; }
+
+
+    /** Was the value of this parameter set in the design note?
+     *
+     * @return true if the value of this parameter was set in the design note, false
+     *         if it was not.
+     */
+    bool is_set() const { return set; }
+
 private:
     std::string script_name; //!< The name of the script this variable is attached to
+    bool        set;         //!< Was the value of this parameter set in the design note?
+    std::string value;       //!< The current value of the parameter.
+};
+
+
+/**
+ */
+class DesignParamFloat
+{
+public:
+
+
+private:
+
 };
