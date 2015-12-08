@@ -95,12 +95,6 @@ public:
         { /* fnord */ }
 
 
-    /** Destroy the TWBaseScript object.
-     */
-    virtual ~TWBaseScript()
-        { /* fnord */ }
-
-
     /** Entrypoint for messages recieved from the game. All messages sent to
      *  the object a script is placed on get sent to this function for handling.
      *  This internally provides debugging and exception handling to prevent
