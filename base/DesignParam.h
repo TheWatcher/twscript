@@ -88,7 +88,52 @@
 
 #include <string>
 
-/** The base class for String-like design parameter classes. This implements
+
+/** A base class for design note parameters. This collects the common
+ *  code for all design note parameter types, and maintains the
+ *  information that all design note parameter types need to keep
+ *  track of.
+ */
+class DesignParam
+{
+public:
+    /** Create a new DesignParam object. Generally this will never be called
+     *  directly, but as part of constructing a child of this class.
+     *
+     * @param name The name of the script the parameter is for.
+     */
+    DesignParam(const std::string& name) : script_name(name), set(false)
+        { /* fnord */ }
+
+
+    /** Ensure that destruction works correctly through inheritance.
+     */
+    virtual ~DesignParam()
+        { /* fnord */ }
+
+
+    /** Was the value of this parameter set in the design note?
+     *
+     * @return true if the value of this parameter was set in the design note, false
+     *         if it was not. If called before calling init(), this will always
+     *         return false.
+     */
+    bool is_set() const { return set; }
+
+protected:
+    /** Set whether this design parameter has been set in the design note.
+     *
+     * @param status true if the parameter has been set in the design note, false otherwise.
+     */
+    void is_set(bool status)
+        { set = status; }
+
+    std::string script_name; //!< The name of the script this variable is attached to
+    bool        set;         //!< Was the value of this parameter set in the design note?
+};
+
+
+/** A design note parameter class to handle string parameters. This implements
  *  the basic operations needed to initialise and fetch the value of a basic
  *  string parameter that will not update after initialisation is completed.
  *
@@ -99,7 +144,7 @@
  *       picking up the change is really needed, the client /could/ call
  *       init() before each get() to get the desired behaviour.
  */
-class DesignParamString
+class DesignParamString : public DesignParam
 {
 public:
     /** Create a new DesignParamString. Note that little or no work can or
@@ -109,13 +154,7 @@ public:
      *
      * @param name The name of the script the parameter is for.
      */
-    DesignParamString(const std::string& name) : script_name(name), set(false), value("")
-        { /* fnord */ }
-
-
-    /** Destroy the DesignParamString object.
-     */
-    virtual ~DesignParamString()
+    DesignParamString(const std::string& script, const std::string &param) : DesignParam(script), param_name(param), value("")
         { /* fnord */ }
 
 
@@ -127,7 +166,7 @@ public:
      * @param default_value The default value to set for the string. If not specified,
      *                      the empty string is used.
      */
-    bool init(const std::string& design_note, const std::string& param_name, const std::string& default_value = "");
+    bool init(const std::string& design_note, const std::string& default_value = "");
 
 
     /** Obtain the value of this string design parameter. This will return the current
@@ -138,24 +177,14 @@ public:
      */
     const std:string& get() const { return script_name; }
 
-
-    /** Was the value of this parameter set in the design note?
-     *
-     * @return true if the value of this parameter was set in the design note, false
-     *         if it was not.
-     */
-    bool is_set() const { return set; }
-
 private:
-    std::string script_name; //!< The name of the script this variable is attached to
-    bool        set;         //!< Was the value of this parameter set in the design note?
-    std::string value;       //!< The current value of the parameter.
+    std::string value; //!< The current value of the parameter.
 };
 
 
 /**
  */
-class DesignParamFloat
+class DesignParamFloat : public DesignParam
 {
 public:
 
