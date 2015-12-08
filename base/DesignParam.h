@@ -100,9 +100,9 @@ public:
     /** Create a new DesignParam object. Generally this will never be called
      *  directly, but as part of constructing a child of this class.
      *
-     * @param name The name of the script the parameter is for.
+     * @param name The name of the parameter.
      */
-    DesignParam(const std::string& name) : script_name(name), set(false)
+    DesignParam(const std::string& name) : param_name(name), set(false)
         { /* fnord */ }
 
 
@@ -128,8 +128,8 @@ protected:
     void is_set(bool status)
         { set = status; }
 
-    std::string script_name; //!< The name of the script this variable is attached to
-    bool        set;         //!< Was the value of this parameter set in the design note?
+    std::string param_name; //!< The name of parameter this represents.
+    bool        set;        //!< Was the value of this parameter set in the design note?
 };
 
 
@@ -152,17 +152,15 @@ public:
      *  init(), passing the design note data to initialise the parameter
      *  with after object creation is complete.
      *
-     * @param name The name of the script the parameter is for.
+     * @param name The name of the parameter.
      */
-    DesignParamString(const std::string& script, const std::string &param) : DesignParam(script), param_name(param), value("")
+    DesignParamString(const std::string &name) : DesignParam(name), value("")
         { /* fnord */ }
 
 
     /** Initialise the DesignParamString based on the values specified.
      *
      * @param design_note   A reference to a string containing the design note to parse
-     * @param param_name    A reference to a string containing the name of the parameter.
-     *                      This will be prepended with the current script name.
      * @param default_value The default value to set for the string. If not specified,
      *                      the empty string is used.
      */
@@ -175,7 +173,7 @@ public:
      *
      * @return A reference to a string containing the design note parameter value.
      */
-    const std:string& get() const { return script_name; }
+    const std:string& get() const { return value; }
 
 private:
     std::string value; //!< The current value of the parameter.
