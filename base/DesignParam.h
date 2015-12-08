@@ -100,9 +100,10 @@ public:
     /** Create a new DesignParam object. Generally this will never be called
      *  directly, but as part of constructing a child of this class.
      *
-     * @param name The name of the parameter.
+     * @param script The name of the script the parameter is attached to.
+     * @param name   The name of the parameter.
      */
-    DesignParam(const std::string& name) : param_name(name), set(false)
+    DesignParam(const std::string& script, const std::string& name) : script_name(script), param_name(name), set(false)
         { /* fnord */ }
 
 
@@ -118,18 +119,20 @@ public:
      *         if it was not. If called before calling init(), this will always
      *         return false.
      */
-    bool is_set() const { return set; }
+    const bool is_set() const
+        { return set; }
 
 protected:
     /** Set whether this design parameter has been set in the design note.
      *
      * @param status true if the parameter has been set in the design note, false otherwise.
      */
-    void is_set(bool status)
+    void is_set(const bool status)
         { set = status; }
 
-    std::string param_name; //!< The name of parameter this represents.
-    bool        set;        //!< Was the value of this parameter set in the design note?
+    std::string script_name; //!< The name of the script the parameter is for.
+    std::string param_name;  //!< The name of parameter this represents.
+    bool        set;         //!< Was the value of this parameter set in the design note?
 };
 
 
@@ -152,9 +155,10 @@ public:
      *  init(), passing the design note data to initialise the parameter
      *  with after object creation is complete.
      *
-     * @param name The name of the parameter.
+     * @param script The name of the script the parameter is attached to.
+     * @param name   The name of the parameter.
      */
-    DesignParamString(const std::string &name) : DesignParam(name), value("")
+    DesignParamString(const std::string& script, const std::string& name) : DesignParam(script, name), value("")
         { /* fnord */ }
 
 
@@ -173,7 +177,8 @@ public:
      *
      * @return A reference to a string containing the design note parameter value.
      */
-    const std:string& get() const { return value; }
+    const std:string& get() const
+        { return value; }
 
 private:
     std::string value; //!< The current value of the parameter.
@@ -185,7 +190,24 @@ private:
 class DesignParamFloat : public DesignParam
 {
 public:
+    /** Create a new DesignParamFloat. As with DesignParamString, this
+     *  does no actual work: init() must be called before this will do
+     *  anything useful.
+     *
+     * @param script The name of the script the parameter is attached to.
+     * @param name   The name of the parameter.
+     */
+    DesignParamFloat(const std::string& script, const std::string& name) : DesignParam(script, name), value("")
+        { /* fnord */ }
 
+
+    /** Initialise the DesignParamFloat based on the values specified.
+     *
+     * @param design_note   A reference to a string containing the design note to parse
+     * @param default_value The default value to set for the parameter. If not specified,
+     *                      0.0 is used.
+     */
+    bool init(const std::string& design_note, const float default_value = 0.0f);
 
 private:
 
