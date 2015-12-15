@@ -103,7 +103,7 @@ public:
      * @param script The name of the script the parameter is attached to.
      * @param name   The name of the parameter.
      */
-    DesignParam(const std::string& script, const std::string& name) : script_name(script), param_name(name), set(false)
+    DesignParam(const std::string& script, const std::string& name) : script_name(script), param_name(name), fullname(script + name), set(false)
         { /* fnord */ }
 
 
@@ -132,17 +132,20 @@ protected:
 
 
     /** Fetch the value of the parameter as a string, and store the string in the
-     *  provided string reference.
+     *  provided string reference. Note that this does not modify the 'set' value,
+     *  as subclasses may do additional validation on the string that determines
+     *  whether a valid value has be set.
      *
      * @param parameter A reference to a string to store the parameter in.
      * @reture true if the parameter was set in the design note, false if it was not
      *         or could not be parsed from it.
      */
-    bool get_param_string(std::string& design_note, std::string& parameter);
+    bool get_param_string(const std::string& design_note, std::string& parameter);
 
 
     std::string script_name; //!< The name of the script the parameter is for.
     std::string param_name;  //!< The name of parameter this represents.
+    std::string fullname;    //!< The full name of the parameter (script_name + param_name)
     bool        set;         //!< Was the value of this parameter set in the design note?
 };
 
