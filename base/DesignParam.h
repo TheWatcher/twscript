@@ -130,6 +130,17 @@ protected:
     void is_set(const bool status)
         { set = status; }
 
+
+    /** Fetch the value of the parameter as a string, and store the string in the
+     *  provided string reference.
+     *
+     * @param parameter A reference to a string to store the parameter in.
+     * @reture true if the parameter was set in the design note, false if it was not
+     *         or could not be parsed from it.
+     */
+    bool get_param_string(std::string& design_note, std::string& parameter);
+
+
     std::string script_name; //!< The name of the script the parameter is for.
     std::string param_name;  //!< The name of parameter this represents.
     bool        set;         //!< Was the value of this parameter set in the design note?
@@ -158,7 +169,7 @@ public:
      * @param script The name of the script the parameter is attached to.
      * @param name   The name of the parameter.
      */
-    DesignParamString(const std::string& script, const std::string& name) : DesignParam(script, name), value("")
+    DesignParamString(const std::string& script, const std::string& name) : DesignParam(script, name), data("")
         { /* fnord */ }
 
 
@@ -171,17 +182,17 @@ public:
     bool init(const std::string& design_note, const std::string& default_value = "");
 
 
-    /** Obtain the value of this string design parameter. This will return the current
+    /** Obtain the value of this design parameter. This will return the current
      *  design parameter value, which may be an empty string if the parameter was not
      *  set in the design note.
      *
      * @return A reference to a string containing the design note parameter value.
      */
-    const std:string& get() const
+    const std:string& value() const
         { return value; }
 
 private:
-    std::string value; //!< The current value of the parameter.
+    std::string data; //!< The current value of the parameter.
 };
 
 
@@ -197,7 +208,10 @@ public:
      * @param script The name of the script the parameter is attached to.
      * @param name   The name of the parameter.
      */
-    DesignParamFloat(const std::string& script, const std::string& name) : DesignParam(script, name), value("")
+    DesignParamFloat(const std::string& script, const std::string& name) : DesignParam(script, name),
+                                                                           lhs_qvar("") , rhs_qvar(""),
+                                                                           lhs_val(0.0f), rhs_val(0.0f),
+                                                                           calc_op('\0')
         { /* fnord */ }
 
 
@@ -209,6 +223,27 @@ public:
      */
     bool init(const std::string& design_note, const float default_value = 0.0f);
 
-private:
 
+    /** Obtain the current value of this design note parameter.
+     *
+     * @return The current float value of this parameter.
+     */
+    float value();
+
+protected:
+    /** Given a parameter string, attempt to parse it as a qvar_eq.
+     *  This attempts to parse the specified string based on the rules
+     *  defined for the qvar_eq rule in the design_note.abnf file.
+     *
+     * @param parameter A reference to a string containing the qvar_eq to parse.
+     * @return true if parsing completed successfully, false on error.
+     */
+    bool parse_parameter(const std::string& parameter);
+
+private:
+    std::string lhs_qvar;
+    std::string rhs_qvar;
+    float       lhs_val;
+    float       rhs_val;
+    char        calc_op;
 };
