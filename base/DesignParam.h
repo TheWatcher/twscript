@@ -181,6 +181,8 @@ public:
      * @param design_note   A reference to a string containing the design note to parse
      * @param default_value The default value to set for the string. If not specified,
      *                      the empty string is used.
+     * @return true on successful init (which may include when no parameter was set
+     *         in the design note!), false if init failed.
      */
     bool init(const std::string& design_note, const std::string& default_value = "");
 
@@ -192,7 +194,7 @@ public:
      * @return A reference to a string containing the design note parameter value.
      */
     const std:string& value() const
-        { return value; }
+        { return data; }
 
 private:
     std::string data; //!< The current value of the parameter.
@@ -223,6 +225,8 @@ public:
      * @param design_note   A reference to a string containing the design note to parse
      * @param default_value The default value to set for the parameter. If not specified,
      *                      0.0 is used.
+     * @return true on successful init (which may include when no parameter was set
+     *         in the design note!), false if init failed.
      */
     bool init(const std::string& design_note, const float default_value = 0.0f);
 
@@ -243,10 +247,21 @@ protected:
      */
     bool parse_parameter(const std::string& parameter);
 
+
+    /** The supported calculation types for qvar_eq parameters.
+     */
+    enum CalcType {
+        CALCOP_NONE = '\0', //!< No operation, only LHS set
+        CALCOP_ADD  = '+',  //!< Add LHS and RHS
+        CALCOP_SUB  = '-',  //!< Subtract RHS from LHS
+        CALCOP_MULT = '*',  //!< Multiply the LHS and RHS
+        CALCOP_DIV  = '/'   //!< Divide the LHS by the RHS.
+    };
+
 private:
-    std::string lhs_qvar;
-    std::string rhs_qvar;
-    float       lhs_val;
-    float       rhs_val;
-    char        calc_op;
+    std::string lhs_qvar; //!< The name of the qvar on the left side of any calculation, if any
+    std::string rhs_qvar; //!< The name of the qvar on the right side of any calculation
+    float       lhs_val;  //!< The literal value on the left side if no qvar specified
+    float       rhs_val;  //!< The literal value on the right side if no qvar specified
+    CalcType    calc_op;  //!< The operation to apply. If this is CALCOP_NONE, only the LHS is considered.
 };
