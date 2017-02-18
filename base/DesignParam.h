@@ -12,22 +12,20 @@
  * - string is the only parameter type that absolutely can never depend on the
  *   qvar rule directly or indirectly.
  *
- * - object is the only design note parameter type that uses qvar
- *   values directly without supporting calculations (as all we want
- *   in the qvar is the object ID to act upon)
+ * - object is like int, except it also supports names for objects
  *
- * - target parameter is either a float, or an implicitly float qvar-eq
+ * - target only allows for qvar-eq in distance arguments
  *
  * - boolean and time have specific fiddliness involved:
  *   - bool can either be t/f/y/n followed by any arbitrary text, or
  *     an implicitly integer qvar-eq
- *   - time can either be an integer followed by s or m, or an implicitly
- *     integer qvar-eq
+ *   - time can either be a positive float or int followed by s or m,
+ *     or an implicitly integer qvar-eq
  *
  * - the remaining design note parameter types are integer, float, and
  *   floatvec. The integer and float ones are implicit integer or float
  *   qvar-eqs with no special treatment, while the floatvec type is
- *   three comma-separated implicitly float qvar-eqs
+ *   three comma-separated implicitly float qvar-eq
  *
  * In an ideal world, the scripts should not need to care about any of
  * these issues: they should be able to just fetch the value of a
@@ -58,11 +56,9 @@
  * string, integer and float are, obviously, 'base' types here. What's
  * arguable is whether int should be considered as a sub-tye of float
  * (as any qvar-eq may internally produce a float result).
- *
- * Working on the basis of the above, we then have:
- *
+ * *
  * StringParameter
- * FloatParameter <- TargetParameter
+ * FloatParameter <- TargetParameter?
  *       ^-- IntParameter <- ObjectParameter
  *              ^    ^-- TimeParameter
  *              `-- BooleanParameter
@@ -70,6 +66,9 @@
  * with FloatVecParameter off to the side somewhere using three
  * FloatParameters.
  *
+ * Note to self: the get_scriptparam_valuefalloff() and get_scriptparam_countmode
+ * functions *ARE NOT* suitable for turning into first-order design parameter
+ * classes: they are really formed from multiple separate design parameters.
  */
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -119,7 +118,7 @@ public:
      *         if it was not. If called before calling init(), this will always
      *         return false.
      */
-    const bool is_set() const
+    const bool is_set(void) const
         { return set; }
 
 protected:
@@ -142,7 +141,7 @@ protected:
      */
     bool get_param_string(const std::string& design_note, std::string& parameter);
 
-
+private:
     std::string script_name; //!< The name of the script the parameter is for.
     std::string param_name;  //!< The name of parameter this represents.
     std::string fullname;    //!< The full name of the parameter (script_name + param_name)
@@ -193,7 +192,7 @@ public:
      *
      * @return A reference to a string containing the design note parameter value.
      */
-    const std:string& value() const
+    const std::string& value() const
         { return data; }
 
 private:
@@ -203,65 +202,3 @@ private:
 
 /**
  */
-class DesignParamFloat : public DesignParam
-{
-public:
-    /** Create a new DesignParamFloat. As with DesignParamString, this
-     *  does no actual work: init() must be called before this will do
-     *  anything useful.
-     *
-     * @param script The name of the script the parameter is attached to.
-     * @param name   The name of the parameter.
-     */
-    DesignParamFloat(const std::string& script, const std::string& name) : DesignParam(script, name),
-                                                                           lhs_qvar("") , rhs_qvar(""),
-                                                                           lhs_val(0.0f), rhs_val(0.0f),
-                                                                           calc_op('\0')
-        { /* fnord */ }
-
-
-    /** Initialise the DesignParamFloat based on the values specified.
-     *
-     * @param design_note   A reference to a string containing the design note to parse
-     * @param default_value The default value to set for the parameter. If not specified,
-     *                      0.0 is used.
-     * @return true on successful init (which may include when no parameter was set
-     *         in the design note!), false if init failed.
-     */
-    bool init(const std::string& design_note, const float default_value = 0.0f);
-
-
-    /** Obtain the current value of this design note parameter.
-     *
-     * @return The current float value of this parameter.
-     */
-    float value();
-
-protected:
-    /** Given a parameter string, attempt to parse it as a qvar_eq.
-     *  This attempts to parse the specified string based on the rules
-     *  defined for the qvar_eq rule in the design_note.abnf file.
-     *
-     * @param parameter A reference to a string containing the qvar_eq to parse.
-     * @return true if parsing completed successfully, false on error.
-     */
-    bool parse_parameter(const std::string& parameter);
-
-
-    /** The supported calculation types for qvar_eq parameters.
-     */
-    enum CalcType {
-        CALCOP_NONE = '\0', //!< No operation, only LHS set
-        CALCOP_ADD  = '+',  //!< Add LHS and RHS
-        CALCOP_SUB  = '-',  //!< Subtract RHS from LHS
-        CALCOP_MULT = '*',  //!< Multiply the LHS and RHS
-        CALCOP_DIV  = '/'   //!< Divide the LHS by the RHS.
-    };
-
-private:
-    std::string lhs_qvar; //!< The name of the qvar on the left side of any calculation, if any
-    std::string rhs_qvar; //!< The name of the qvar on the right side of any calculation
-    float       lhs_val;  //!< The literal value on the left side if no qvar specified
-    float       rhs_val;  //!< The literal value on the right side if no qvar specified
-    CalcType    calc_op;  //!< The operation to apply. If this is CALCOP_NONE, only the LHS is considered.
-};

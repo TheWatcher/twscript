@@ -31,18 +31,20 @@
   boolean     = ("t" *ALPHA) / ("f" *ALPHA) / ("y" *ALPHA) / ("n" *ALPHA) / qvar-eq
 
 ; times allow for s or m after a float or int
-  time        = (1*DIGIT ["s" / "m"]) / qvar-eq
+  time        = ((posint / posfloat) ["s" / "m"]) / qvar-eq
 
 ; more basic rules used by the above
   string      = *(SP / VCHAR)
-  object      = identifier / 1*DIGIT / qvar
+  object      = identifier / 1*DIGIT / qvar-eq
   float-vec   = qvar-eq "," qvar-eq "," qvar-eq
-  distance    = float / qvar-eq
+  distance    = qvar-eq
   qvar-eq     = qvar-val [operator qvar-val]
   qvar-val    = (integer / float / qvar)
+  posint      = 1*DIGIT
   integer     = ["-"] 1*DIGIT
+  posfloat    = *DIGIT "." 1*DIGIT
   float       = ["-"] *DIGIT "." 1*DIGIT
-  qvar        = "$" 1*identifier
+  qvar        = "$" identifier
   identifier  = ALPHA *(ALPHA / DIGIT / "_" / "-") ; identifiers are alphanumeric, underscore, or hypen
   operator    = "+" / "*" / "/" ; Note subtraction is not supported, as "-" can be used in an identifier
   separator   = ";"             ; semicolons separate design note parameters
