@@ -892,47 +892,6 @@ private:
 
 
     /* ------------------------------------------------------------------------
-     *  qvar related
-     */
-
-    /** Fetch the value in the specified QVar if it exists, return the default if it
-     *  does not.
-     *
-     * @param qvar    The name of the QVar to return the value of.
-     * @param def_val The default value to return if the qvar does not exist.
-     * @return The QVar value, or the default specified.
-     */
-    int get_qvar(const char* name, int def_val);
-
-
-    /** Fetch the value in the specified QVar if it exists, return the default if it
-     *  does not.
-     *
-     * @param qvar    The name of the QVar to return the value of.
-     * @param def_val The default value to return if the qvar does not exist.
-     * @return The QVar value, or the default specified.
-     */
-    float get_qvar(const char* name, float def_val);
-
-
-    /** Parse the pieces of a qvar name string, potentially including a simple calculation.
-     *  The takes a string containing a qvar name, and potentially an operator and either
-     *  a number or another qvar, and stores pointers to the two sides of the operator, plus
-     *  the operator itself, in the provided pointers.
-     *
-     * @param qvar A pointer to the string containing the qvar name.
-     * @param lhs  A pointer to a string pointer in which to store a pointer to the left
-     *             hand side operand.
-     * @param op   A pointer to a char to store the operator in, if there is one.
-     * @param rhs  A pointer to a string pointer in which to store a pointer to the right
-     *             hand side operand, if there is one.
-     * @return A pointer to a buffer containing a processed version of `qvar`. This should
-     *         be freed by the called using `g_pMalloc -> Free()`.
-     */
-    char* parse_qvar(const char* qvar, char** lhs, char* op, char** rhs);
-
-
-    /* ------------------------------------------------------------------------
      *  Miscellaneous stuff
      */
 

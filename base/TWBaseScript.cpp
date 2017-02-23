@@ -215,93 +215,6 @@ void TWBaseScript::get_object_namestr(std::string& name)
 
 
 /* ------------------------------------------------------------------------
- *  QVar convenience functions
- */
-
-int TWBaseScript::get_qvar_value(std::string& qvar, int def_val)
-{
-    int value = def_val;
-    char  op;
-    char* lhs_qvar, *rhs_data, *endstr = NULL;
-    char* buffer = parse_qvar(qvar.c_str(), &lhs_qvar, &op, &rhs_data);
-
-    if(buffer) {
-        value = get_qvar(lhs_qvar, def_val);
-
-        // If an operation and right hand side value/qvar were found, use them
-        if(op && rhs_data) {
-            int adjval = 0;
-
-            // Is the RHS a qvar itself? If so, fetch it, otherwise treat it as an int
-            if(*rhs_data == '$') {
-                adjval = get_qvar(&rhs_data[1], 0);
-            } else {
-                adjval = strtol(rhs_data, &endstr, 10);
-            }
-
-            // If a value was parsed in some way, apply it (this also avoids
-            // division-by-zero problems for / )
-            if(endstr != rhs_data && adjval) {
-                switch(op) {
-                    case('+'): value += adjval; break;
-                    case('-'): value -= adjval; break;
-                    case('*'): value *= adjval; break;
-                    case('/'): value /= adjval; break;
-                }
-            }
-        }
-
-        delete[] buffer;
-    }
-
-    return value;
-}
-
-
-// I could probably avoid this hideous duplication of the above through
-// templating, but it's possible that float and int handling may support
-// different features in future, so I'm leaving the duplication for now...
-float TWBaseScript::get_qvar_value(std::string& qvar, float def_val)
-{
-    float value = def_val;
-    char  op;
-    char* lhs_qvar, *rhs_data, *endstr = NULL;
-    char* buffer = parse_qvar(qvar.c_str(), &lhs_qvar, &op, &rhs_data);
-
-    if(buffer) {
-        value = get_qvar(lhs_qvar, def_val);
-
-        // If an operation and right hand side value/qvar were found, use them
-        if(op && rhs_data) {
-            float adjval = 0;
-
-            // Is the RHS a qvar itself? If so, fetch it, otherwise treat it as an int
-            if(*rhs_data == '$') {
-                adjval = get_qvar(&rhs_data[1], 0.0f);
-            } else {
-                adjval = strtof(rhs_data, &endstr);
-            }
-
-            // If a value was parsed in some way, apply it (this also avoids
-            // division-by-zero problems for / )
-            if(endstr != rhs_data && adjval) {
-                switch(op) {
-                    case('+'): value += adjval; break;
-                    case('-'): value -= adjval; break;
-                    case('*'): value *= adjval; break;
-                    case('/'): value /= adjval; break;
-                }
-            }
-        }
-
-        delete[] buffer;
-    }
-
-    return value;
-}
-
-
-/* ------------------------------------------------------------------------
  *  Design note support
  */
 
@@ -1072,84 +985,11 @@ int TWBaseScript::get_linked_object(const int from, const std::string& obj_name,
  *  qvar related
  */
 
-int TWBaseScript::get_qvar(const char* qvar, int def_val)
-{
-    SService<IQuestSrv> QuestSrv(g_pScriptManager);
-    if(QuestSrv -> Exists(qvar))
-        return QuestSrv -> Get(qvar);
-
-    return def_val;
-}
-
-
-float TWBaseScript::get_qvar(const char* qvar, float def_val)
-{
-    SService<IQuestSrv> QuestSrv(g_pScriptManager);
-    if(QuestSrv -> Exists(qvar))
-        return static_cast<float>(QuestSrv -> Get(qvar));
-
-    return def_val;
-}
-
 
 void TWBaseScript::set_qvar(const std::string &qvar, const int value)
 {
     SService<IQuestSrv> QuestSrv(g_pScriptManager);
     QuestSrv -> Set(qvar.c_str(), value, kQuestDataMission);
-}
-
-
-char* TWBaseScript::parse_qvar(const char* qvar, char** lhs, char* op, char** rhs)
-{
-    char* buffer = new char[strlen(qvar) + 1];
-    if(!buffer) return NULL;
-    strcpy(buffer, qvar);
-
-    char* workstr = buffer;
-
-    // skip any leading spaces or $
-    while(*workstr && (isspace(*workstr) || *workstr == '$')) {
-        ++workstr;
-    }
-
-    *lhs = workstr;
-
-    // Search for an operator
-    char* endstr = NULL;
-    *op = '\0';
-    while(*workstr) {
-        // NOTE: '-' is not included here. LarryG encountered problems with using QVar names containing
-        // '-' as this was interpreting it as an operator.
-        if(*workstr == '+' || *workstr == '*' || *workstr == '/') {
-            *op = *workstr;
-            endstr = workstr - 1; // record the character before the operator, for space trimming
-            *workstr = '\0';      // terminate so that lhs can potentially be used 'as is'
-            ++workstr;
-            break;
-        }
-        ++workstr;
-    }
-
-    // Only bother doing any more work if an operator was found
-    if(op && endstr) {
-        // Trim spaces before the operator if needed
-        while(isspace(*endstr)) {
-            *endstr = '\0';
-            --endstr;
-        }
-
-        // Skip spaces before the second operand
-        while(*workstr && isspace(*workstr)) {
-            ++workstr;
-        }
-
-        // If there is anything left on the right side, store the pointer to it
-        if(*workstr) {
-            *rhs = workstr;
-        }
-    }
-
-    return buffer;
 }
 
 
