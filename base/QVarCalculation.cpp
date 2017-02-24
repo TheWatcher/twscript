@@ -98,11 +98,15 @@ bool QVarCalculation::parse_calculation(const std::string& calculation)
      *   valid while 0.5 is.
      *
      * - for qvars we have a problem: the dark engine doesn't seem to have
-     *   *any restrictions* on quest variable names: ANY non-NUL ascii
-     *   character appears to be usable in qvar names. In the pathological
+     *   *any restrictions* on quest variable names: ANY NUL-terminated ascii
+     *   character string appears to be usable as a qvar name. In the pathological
      *   case, somthing like '$foobar-4.5*bob-3' /IS A VALID QUEST VAR NAME/.
      *   Needless to say, allowing such names would make it nearly impossible
-     *   to support
+     *   to support calculations. So we need to establish some rules:
+     *  - qvar names must be alphanumeric, '_', or '-'
+     *  - if '-' appears in a qvar name, it MUST be followed by a alphabet character
+     *    (upper or lower case). So "Q-foobar" is valid, but "Qfoobar-1" is not.
+     *
      *
      * numbers are either always (\d+|\d*\.\d+)
      * a qvar always starts with $,
