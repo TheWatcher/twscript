@@ -1,8 +1,8 @@
 
 
-bool QVarEquation::init(const std::string& equation, const bool add_listeners)
+bool QVarCalculation::init(const std::string& calculation, const bool add_listeners)
 {
-    bool parsed = parse_equation(equation);
+    bool parsed = parse_calculation(calculation);
 
     // If listeners need to be added, sort that now
     if(parsed && add_listeners) {
@@ -62,7 +62,7 @@ float TWBaseScript::get_qvar_value(std::string& qvar, float def_val)
 
 
 
-float QVarEquation::get_qvar(const char* qvar, float def_val)
+float QVarCalculation::get_qvar(const char* qvar, float def_val)
 {
     SService<IQuestSrv> QuestSrv(g_pScriptManager);
     if(QuestSrv -> Exists(qvar))
@@ -73,13 +73,42 @@ float QVarEquation::get_qvar(const char* qvar, float def_val)
 
 
 
-bool QVarEquation::parse_equation(const std::string& equation)
+bool QVarCalculation::parse_calculation(const std::string& calculation)
 {
-    char* buffer = new char[equation.length() + 1];
+    char* buffer = new char[calculation.length() + 1];
     if(!buffer) return false;
 
-    // Copy the equation over, and get a pointer to the end of the string
-    char* endptr = remove_whitespace(equation.c_str(), buffer, equation.length() + 1);
+    // Copy the calculation over, and get a pointer to the end of the string
+    char* endptr = remove_whitespace(calculation.c_str(), buffer, calculation.length() + 1);
+
+    /* So, what we have now is one of the following:
+     *
+     * 1. the empty string, endptr == buffer, no calculation, nothing to do
+     * 2. a number (treat int as float with implicit .0)
+     * 3. a qvar name (string of characters starting with $)
+     * 4. a number, an operator, a number (which we can always simplify to a single value)
+     * 5. a number, an operator, a qvar
+     * 6. a qvar, an operator, a number
+     * 7. a qvar, an operator, a qvar
+     *
+     * Ignoring 1 - because it's boring - we need to establish some rules to prevent
+     * this becoming a cavern of woe and sorrow spiders:
+     *
+     * - for numbers we must insist on fully specifying them, so .5 is not
+     *   valid while 0.5 is.
+     *
+     * - for qvars we have a problem: the dark engine doesn't seem to have
+     *   *any restrictions* on quest variable names: ANY non-NUL ascii
+     *   character appears to be usable in qvar names. In the pathological
+     *   case, somthing like '$foobar-4.5*bob-3' /IS A VALID QUEST VAR NAME/.
+     *   Needless to say, allowing such names would make it nearly impossible
+     *   to support
+     *
+     * numbers are either always (\d+|\d*\.\d+)
+     * a qvar always starts with $,
+     * operator is always followed by either '$' introducing a qvar, or a digit
+
+     */
 
     // Search for an operator
     char* op = find_operator(buffer, endptr);
@@ -89,7 +118,7 @@ bool QVarEquation::parse_equation(const std::string& equation)
 }
 
 
-char* remove_whitespace(const char* src, char* dst, size_t len)
+char* QVarCalculation::remove_whitespace(const char* src, char* dst, size_t len)
 {
     while(*src && len) {
         if(!isspace(*src)) {
@@ -105,10 +134,16 @@ char* remove_whitespace(const char* src, char* dst, size_t len)
 }
 
 
-bool is_operator(const char ch)
+QVarCalculation::CalcType QVarCalculation::is_operator(const char ch)
 {
+    switch(ch) {
+        case('+'): return CALCOP_ADD;  break;
+        case('-'): return CALCOP_SUB;  break;
+        case('*'): return CALCOP_MULT; break;
+        case('/'): return CALCOP_DIV;  break;
+    }
 
-
+    return CALCOP_NONE;
 }
 
 

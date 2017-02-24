@@ -1,7 +1,7 @@
 
 #include <string>
 
-class QVarEquation
+class QVarCalculation
 {
 protected:
     /** The supported calculation types for qvar_eq parameters.
@@ -16,31 +16,31 @@ protected:
 
 
 public:
-    /** Create a new QVarEquation. This creates an empty, unitialised equation
+    /** Create a new QVarCalculation. This creates an empty, unitialised calculation
      *  that must be intialised before it can produce useful values.
      *
      */
-    QVarEquation() : lhs_qvar("") , rhs_qvar(""),
+    QVarCalculation() : lhs_qvar("") , rhs_qvar(""),
                      lhs_val(0.0f), rhs_val(0.0f),
                      calc_op(CALCOP_NONE)
         { /* fnord */ }
 
 
-    /** Initialise the QVarEquation. This will attempt to parse the specified
-     *  equation string into a left hand side, with possibly an operator and
+    /** Initialise the QVarCalculation. This will attempt to parse the specified
+     *  calculation string into a left hand side, with possibly an operator and
      *  a right-hand sidde. This implements the qvar-eq rule in the design
      *  note specification.
      *
-     * @param equation A reference to a string containing the qvar equation
+     * @param calculation A reference to a string containing the qvar calculation
      *                 to parse.
      * @param add_listeners If true, add qvar change listeners for any qvars
-     *                 found in the specified equation. Note that the client
+     *                 found in the specified calculation. Note that the client
      *                 *MUST* call unsubscribe() on EndScript if this is set
      *                 to true.
-     * @return true if the QVarEquation has been initialised successfully,
+     * @return true if the QVarCalculation has been initialised successfully,
      *         false if it has not.
      */
-    bool init(const std::string& equation, const bool add_listeners = false);
+    bool init(const std::string& calculation, const bool add_listeners = false);
 
 
     float value();
