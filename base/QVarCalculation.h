@@ -3,7 +3,8 @@
 
 class QVarCalculation
 {
-protected:
+
+public:
     /** The supported calculation types for qvar_eq parameters.
      */
     enum CalcType {
@@ -15,7 +16,6 @@ protected:
     };
 
 
-public:
     /** Create a new QVarCalculation. This creates an empty, unitialised calculation
      *  that must be intialised before it can produce useful values.
      *
