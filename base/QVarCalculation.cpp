@@ -1,10 +1,12 @@
 
+#include <lg/interface.h>
+#include <lg/scrmanagers.h>
+#include <lg/scrservices.h>
 #include <cctype>
 #include <cstring>
 #include <cstdlib>
+#include "ScriptLib.h"
 #include "QVarCalculation.h"
-#include <iostream>
-#include <cstdio>
 
 /* Anonymous namespace for horrible internal implementation functions that have
  * no business existing on a good and wholesome Earth.
@@ -16,6 +18,19 @@
  * worry about making it less of an offering to Nyarlathotep later.
  */
 namespace {
+    /** Copy from a source string into a destination, discarding any
+     *  whitespace in the source. This is guaranteed to include the
+     *  nul at the end of the destination.
+     *
+     * @param src A pointer to the start of the source string.
+     * @param dst A pointer to the start of the destination. This must
+     *            be at least `len` characters long.
+     * @param len The length of the destination string. If the source
+     *            string minus any whitespace is longer than this
+     *            length, the copy in the destination will be truncated.
+     * @return A pointer to the end of the destination string (the
+     *         nul at the end of the string).
+     */
     char* remove_whitespace(const char* src, char* dst, size_t len)
     {
         --len; // account for nul terminator
@@ -33,11 +48,25 @@ namespace {
     }
 
 
-    char char_at(const char* bstart, const char* bend, const char* current, int offset)
+    /** Obtain the character at an offset from a position in a string.
+     *  This does a bouinded character loopup on a string, applying an
+     *  offset to a pointer into the string, and ensuring that it can
+     *  not go out of bounds.
+     *
+     * @param sstart  A pointer to the start of the string.
+     * @param send    A pointer to the end of the string.
+     * @param current A pointer to a location within the string.
+     * @param offset  An offset relative to the current position to fetch
+     *                the character at.
+     * @return The character at the offset from the specified current
+     *         location, if it is within the bounds of the string. 0
+     *         if it falls outside the string.
+     */
+    char char_at(const char* sstart, const char* send, const char* current, int offset)
     {
         current += offset;
 
-        if(current < bstart || current > bend) {
+        if(current < sstart || current > send) {
             return 0;
         } else {
             return *current;
@@ -45,6 +74,14 @@ namespace {
     }
 
 
+    /** Determine whether the specified character is an operation character.
+     *  This will inspect the character provided and if it represents a
+     *  known calculation this will return the CalcType of the calculation.
+     *
+     * @param ch The character to check for operationhood.
+     * @return A CalcType for the character; if the character is not an
+     *         operation character, this returns CALCOP_NONE.
+     */
     QVarCalculation::CalcType is_operator(const char ch)
     {
         switch(ch) {
@@ -58,6 +95,16 @@ namespace {
     }
 
 
+    /** Attempt to locate an operator within the specified buffer. This
+     *  will scan the buffer for a character that appears to be an
+     *  operator, and then checks that it meets the rules of operatorness.
+     *  If it does, a pointer to the operator is returned.
+     *
+     * @param buffer The buffer to scan for an operator
+     * @param endptr A pointer to the end of the buffer.
+     * @return A pointer to the operator on success, NULL if no valid
+     *         operator is found in the string.
+     */
     char* find_operator(char* buffer, const char* endptr)
     {
         char* current = buffer;
@@ -69,8 +116,9 @@ namespace {
             // Does the current character look like an operator?
             if(is_operator(*current) != QVarCalculation::CALCOP_NONE) {
 
-                // It can only really be one if it's followed by $, a digit, or - and a digit
-                // and preceeded by a digit, or a letter and the first char is $
+                // It can only really be an op if it's followed by '$', a digit,
+                // or '-' and a digit and preceeded by a digit, or a letter and
+                // the first char is $
                 if((char_at(buffer, endptr, current, 1) == '$' ||
                     isdigit(char_at(buffer, endptr, current, 1)) ||
                     (char_at(buffer, endptr, current, 1) == '-' && isdigit(char_at(buffer, endptr, current, 2))))
@@ -88,91 +136,116 @@ namespace {
     }
 
 
+    /** Attempt to parse the value in the specified string, and store it in
+     *  the provided variable.
+     *
+     * @param str   A pointer to a string containing the value to parse.
+     * @param store A reference to a float to store the parsed value in.
+     *              This will not be updated if the function returns false.
+     * @return true if the store has been updated with a parsed value, false
+     *         if it has not. Note that this will return true for partial
+     *         success (some part of `str` is not a valid number, but a value
+     *         was parsed from it).
+     */
     bool parse_value(const char* str, float& store)
     {
         char* end = NULL;
 
-        store = strtof(str, &end);
+        float parsed = strtof(str, &end);
+        // Only update the store if something was parsed.
+        if(end != str) {
+            store = parsed;
+        }
 
         // All we can really do is tell if /something/ has been parsed. We could
         // required that *end == '\0' too, but that may be excessive
         return (end != str);
     }
+
+
+    /* ------------------------------------------------------------------------
+     *  QVar convenience functions
+     */
+
+    /** Fetch the value in the specified QVar if it exists, return the default
+     *  if it does not.
+     *
+     * @param qvar    The name of the QVar to return the value of.
+     * @param def_val The default value to return if the qvar does not exist.
+     * @return The QVar value, or the default specified.
+     */
+    float get_qvar(const std::string& qvar, float def_val)
+    {
+        SService<IQuestSrv> quest_srv(g_pScriptManager);
+        if(quest_srv -> Exists(qvar.c_str()))
+            return static_cast<float>(quest_srv -> Get(qvar.c_str()));
+
+        return def_val;
+    }
+
 }
 
 
-
-bool QVarCalculation::init(const std::string& calculation, const bool add_listeners)
+bool QVarCalculation::init(int hostid, const std::string& calculation, const bool add_listeners)
 {
+    host = hostid;
+
     bool parsed = parse_calculation(calculation);
 
     // If listeners need to be added, sort that now
     if(parsed && add_listeners) {
-        // TODO
+        SService<IQuestSrv> quest_srv(g_pScriptManager);
+
+        if(!lhs_qvar.empty())
+            quest_srv -> SubscribeMsg(host, lhs_qvar.c_str(), kQuestDataAny);
+
+        if(!rhs_qvar.empty())
+            quest_srv -> SubscribeMsg(host, rhs_qvar.c_str(), kQuestDataAny);
     }
 
     return parsed;
 }
 
 
-
-
-
-/* ------------------------------------------------------------------------
- *  QVar convenience functions
- */
-
-
-/*float TWBaseScript::get_qvar_value(std::string& qvar, float def_val)
+void QVarCalculation::unsubscribe()
 {
-    float value = def_val;
-    char  op;
-    char* lhs_qvar, *rhs_data, *endstr = NULL;
-    char* buffer = parse_qvar(qvar.c_str(), &lhs_qvar, &op, &rhs_data);
+    SService<IQuestSrv> quest_srv(g_pScriptManager);
 
-    if(buffer) {
-        value = get_qvar(lhs_qvar, def_val);
+    if(!lhs_qvar.empty())
+        quest_srv -> UnsubscribeMsg(host, lhs_qvar.c_str());
 
-        // If an operation and right hand side value/qvar were found, use them
-        if(op && rhs_data) {
-            float adjval = 0;
-
-            // Is the RHS a qvar itself? If so, fetch it, otherwise treat it as an int
-            if(*rhs_data == '$') {
-                adjval = get_qvar(&rhs_data[1], 0.0f);
-            } else {
-                adjval = strtof(rhs_data, &endstr);
-            }
-
-            // If a value was parsed in some way, apply it (this also avoids
-            // division-by-zero problems for / )
-            if(endstr != rhs_data && adjval) {
-                switch(op) {
-                    case('+'): value += adjval; break;
-                    case('-'): value -= adjval; break;
-                    case('*'): value *= adjval; break;
-                    case('/'): value /= adjval; break;
-                }
-            }
-        }
-
-        delete[] buffer;
-    }
-
-    return value;
+    if(!rhs_qvar.empty())
+        quest_srv -> UnsubscribeMsg(host, rhs_qvar.c_str());
 }
 
 
-
-float QVarCalculation::get_qvar(const std::string& qvar, float def_val)
+float QVarCalculation::value()
 {
-    SService<IQuestSrv> QuestSrv(g_pScriptManager);
-    if(QuestSrv -> Exists(qvar.c_str()))
-        return static_cast<float>(QuestSrv -> Get(qvar.c_str()));
+    // Update the values from the qvars
+    if(!lhs_qvar.empty()) {
+        lhs_val = get_qvar(lhs_qvar, 0.0f);
+    }
 
-    return def_val;
-}*/
+    if(!rhs_qvar.empty()) {
+        rhs_val = get_qvar(rhs_qvar, 0.0f);
+    }
 
+    // Apply calculation, if any
+    switch(calc_op) {
+        case(CALCOP_ADD):  return (lhs_val + rhs_val); break;
+        case(CALCOP_SUB):  return (lhs_val - rhs_val); break;
+        case(CALCOP_MULT): return (lhs_val * rhs_val); break;
+        case(CALCOP_DIV):  if(rhs_val == 0.0f) return 0.0f; // prevent divide by zero
+                           return (lhs_val / rhs_val);
+            break;
+        default: return lhs_val;
+    }
+}
+
+
+/* ------------------------------------------------------------------------
+ *  Calculation parser
+ */
 
 bool QVarCalculation::parse_calculation(const std::string& calculation)
 {
@@ -263,35 +336,16 @@ bool QVarCalculation::parse_calculation(const std::string& calculation)
                 parsed = parse_value(rightside, rhs_val);
             }
         }
+
+        // optimise the situation where both sides are constants
+        if(lhs_qvar.empty() && rhs_qvar.empty() && calc_op != CALCOP_NONE) {
+            lhs_val = value();
+            calc_op = CALCOP_NONE;
+        }
     }
 
     // No need to retain the temporary buffer anymore
     delete buffer;
 
     return parsed;
-}
-
-
-void QVarCalculation::dump()
-{
-    std::cout << "left side qvar: '" << lhs_qvar << "'\n";
-    std::cout << "left side value: '" << lhs_val << "'\n";
-    std::cout << "right side qvar: '" << rhs_qvar << "'\n";
-    std::cout << "right side value: '" << rhs_val << "'\n";
-    if(calc_op) {
-        std::cout << "Operation: " << calc_op << "\n";
-    } else {
-        std::cout << "No operation defined\n";
-    }
-}
-
-int main(int argc, char** argv)
-{
-    QVarCalculation calc;
-
-    bool status = calc.init(argv[1]);
-    std::cout << "Parsing " << (status ? "success" : "failed") << "\n";
-    calc.dump();
-
-    return 0;
 }
