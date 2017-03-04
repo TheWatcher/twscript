@@ -1,11 +1,26 @@
 
+/*
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses/.
+ */
+
 #include <lg/interface.h>
 #include <lg/scrmanagers.h>
 #include <lg/scrservices.h>
 #include <cctype>
 #include <cstring>
 #include <cstdlib>
-#include "ScriptLib.h"
+#include <ScriptLib.h>
 #include "QVarCalculation.h"
 
 /* Anonymous namespace for horrible internal implementation functions that have
@@ -51,7 +66,8 @@ namespace {
     /** Obtain the character at an offset from a position in a string.
      *  This does a bouinded character loopup on a string, applying an
      *  offset to a pointer into the string, and ensuring that it can
-     *  not go out of bounds.
+     *  not go out of bounds. Essentially, this is a lookaround function
+     *  needed by find_operator to do lookahead/behind.
      *
      * @param sstart  A pointer to the start of the string.
      * @param send    A pointer to the end of the string.
@@ -186,6 +202,10 @@ namespace {
 }
 
 
+/* ------------------------------------------------------------------------
+ *  Public interface functions
+ */
+
 bool QVarCalculation::init(int hostid, const std::string& calculation, const bool add_listeners)
 {
     host = hostid;
@@ -196,11 +216,13 @@ bool QVarCalculation::init(int hostid, const std::string& calculation, const boo
     if(parsed && add_listeners) {
         SService<IQuestSrv> quest_srv(g_pScriptManager);
 
-        if(!lhs_qvar.empty())
+        if(!lhs_qvar.empty()) {
             quest_srv -> SubscribeMsg(host, lhs_qvar.c_str(), kQuestDataAny);
+        }
 
-        if(!rhs_qvar.empty())
+        if(!rhs_qvar.empty()) {
             quest_srv -> SubscribeMsg(host, rhs_qvar.c_str(), kQuestDataAny);
+        }
     }
 
     return parsed;
@@ -211,11 +233,13 @@ void QVarCalculation::unsubscribe()
 {
     SService<IQuestSrv> quest_srv(g_pScriptManager);
 
-    if(!lhs_qvar.empty())
+    if(!lhs_qvar.empty()) {
         quest_srv -> UnsubscribeMsg(host, lhs_qvar.c_str());
+    }
 
-    if(!rhs_qvar.empty())
+    if(!rhs_qvar.empty()) {
         quest_srv -> UnsubscribeMsg(host, rhs_qvar.c_str());
+    }
 }
 
 
@@ -287,14 +311,13 @@ bool QVarCalculation::parse_calculation(const std::string& calculation)
      *
      * - for qvars:
      *   - qvars must always be introduced with '$'
-     *   - qvar names may only contain alphanumerics, '_', or '-'
-     *   - qvar names must start with an alphabet character, not a number
-     *   - if '-' appears in a qvar name, it MUST be followed by a alphabet
-     *     character (upper or lower case). So "Q-foobar" is valid, but
-     *     "Qfoobar-1" is not.
+     *   - if an operator appears in a qvar name, it MUST be followed by a
+     *     alphabet character (upper or lower case). So "Q-foobar" is valid,
+     *     but "Qfoobar-1" is not.
      *
      * From this we can state that operator is always:
-     *   - preceeded by either a digit, or $ followed by at least one char.
+     *   - preceeded by either a digit, or an alphabet character if a '$'
+     *     has introduced a qvar.
      *   - followed by either '$' (a qvar), a - and a digit, or a digit.
      *
      */
@@ -337,7 +360,8 @@ bool QVarCalculation::parse_calculation(const std::string& calculation)
             }
         }
 
-        // optimise the situation where both sides are constants
+        // optimise the situation where both sides are constants: we can
+        // do the calculation once, store it on the lhs, and kill the op
         if(lhs_qvar.empty() && rhs_qvar.empty() && calc_op != CALCOP_NONE) {
             lhs_val = value();
             calc_op = CALCOP_NONE;

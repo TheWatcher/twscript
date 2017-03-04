@@ -1,11 +1,33 @@
 
+/** @file
+ * This file is the header for the Quest Variable Calculation class.
+ *
+ * @author Chris Page &lt;chris@starforge.co.uk&gt;
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses/.
+ */
+
 #include <string>
 
+/** This class provides a way to encapsulate quest variable calculations
+ *  as given in the design note spcification.
+ */
 class QVarCalculation
 {
 
 public:
-    /** The supported calculation types for qvar_eq parameters.
+    /** The supported calculation types
      */
     enum CalcType {
         CALCOP_NONE = '\0', //!< No operation, only LHS set
@@ -16,9 +38,9 @@ public:
     };
 
 
-    /** Create a new QVarCalculation. This creates an empty, unitialised calculation
-     *  that must be intialised before it can produce useful values.
-     *
+    /** Create a new QVarCalculation. This creates an empty, uninitialised
+     *  calculation that must be initialised before it can produce useful
+     *  values.
      */
     QVarCalculation() : host(0),
                         lhs_qvar("") , rhs_qvar(""),
@@ -49,18 +71,19 @@ public:
      *  were created, this does not need to be called, but it should be
      *  safe to call regardless.
      */
-    void unsubscribe();
+    void unsubscribe() const;
 
 
     /** Retrieve the current value of the QVarCalculation. This will fetch the
      *  current value of any qvars used in the calculation, apply the
-     *  calculation to the value, and return the result. Note that this will
-     *  prevent divide by zero errors: if the right side of a calculation using
-     *  the divide operator is zero, this returns 0.
+     *  calculation to the value, and return the result.
      *
-     * @return The result of the calculation.
+     * @return The result of the calculation. If init() has not been called, or
+     *         the right side of a calculation using the divide operator is
+     *         zero, this returns 0.
      */
     float value(); // can't be const, as qvars may update values
+
 
 protected:
     /** Given a parameter string, attempt to parse it as a qvar_eq.
