@@ -21,8 +21,8 @@ public:
      *
      */
     QVarCalculation() : lhs_qvar("") , rhs_qvar(""),
-                     lhs_val(0.0f), rhs_val(0.0f),
-                     calc_op(CALCOP_NONE)
+                        lhs_val(0.0f), rhs_val(0.0f),
+                        calc_op(CALCOP_NONE)
         { /* fnord */ }
 
 
@@ -44,6 +44,8 @@ public:
 
 
     float value();
+
+    void dump();
 
 protected:
     /** Given a parameter string, attempt to parse it as a qvar_eq.
@@ -83,6 +85,7 @@ private:
      */
     char* parse_qvar(const char* qvar, char** lhs, char* op, char** rhs);
 
+    bool parse_calculation(const std::string& calculation);
 
     std::string lhs_qvar; //!< The name of the qvar on the left side of any calculation, if any
     std::string rhs_qvar; //!< The name of the qvar on the right side of any calculation

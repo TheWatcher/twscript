@@ -1,4 +1,10 @@
 
+#include <cctype>
+#include <cstring>
+#include <cstdlib>
+#include "QVarCalculation.h"
+#include <iostream>
+#include <cstdio>
 
 /* Anonymous namespace for horrible internal implementation functions that have
  * no business existing on a good and wholesome Earth.
@@ -12,6 +18,7 @@
 namespace {
     char* remove_whitespace(const char* src, char* dst, size_t len)
     {
+        --len; // account for nul terminator
         while(*src && len) {
             if(!isspace(*src)) {
                 *dst = *src;
@@ -41,17 +48,17 @@ namespace {
     QVarCalculation::CalcType is_operator(const char ch)
     {
         switch(ch) {
-            case('+'): return CALCOP_ADD;  break;
-            case('-'): return CALCOP_SUB;  break;
-            case('*'): return CALCOP_MULT; break;
-            case('/'): return CALCOP_DIV;  break;
+            case('+'): return QVarCalculation::CALCOP_ADD;  break;
+            case('-'): return QVarCalculation::CALCOP_SUB;  break;
+            case('*'): return QVarCalculation::CALCOP_MULT; break;
+            case('/'): return QVarCalculation::CALCOP_DIV;  break;
         }
 
-        return CALCOP_NONE;
+        return QVarCalculation::CALCOP_NONE;
     }
 
 
-    char* find_operator(const char* buffer, const char* endptr)
+    char* find_operator(char* buffer, const char* endptr)
     {
         char* current = buffer;
 
@@ -60,14 +67,16 @@ namespace {
         while(current < endptr) {
 
             // Does the current character look like an operator?
-            if(is_operator(*current) != CALCOP_NONE) {
+            if(is_operator(*current) != QVarCalculation::CALCOP_NONE) {
+
                 // It can only really be one if it's followed by $, a digit, or - and a digit
                 // and preceeded by a digit, or a letter and the first char is $
                 if((char_at(buffer, endptr, current, 1) == '$' ||
+                    isdigit(char_at(buffer, endptr, current, 1)) ||
                     (char_at(buffer, endptr, current, 1) == '-' && isdigit(char_at(buffer, endptr, current, 2))))
                    &&
                    (isdigit(char_at(buffer, endptr, current, -1)) ||
-                    (isalpha(char_at(buffer, endptr, current, 1)) && *buffer == '$'))) {
+                    (isalpha(char_at(buffer, endptr, current, -1)) && *buffer == '$'))) {
                     return current;
                 }
             }
@@ -83,9 +92,11 @@ namespace {
     {
         char* end = NULL;
 
-        store = strtof(str, 10, &end);
+        store = strtof(str, &end);
 
-        return (end == str);
+        // All we can really do is tell if /something/ has been parsed. We could
+        // required that *end == '\0' too, but that may be excessive
+        return (end != str);
     }
 }
 
@@ -112,7 +123,7 @@ bool QVarCalculation::init(const std::string& calculation, const bool add_listen
  */
 
 
-float TWBaseScript::get_qvar_value(std::string& qvar, float def_val)
+/*float TWBaseScript::get_qvar_value(std::string& qvar, float def_val)
 {
     float value = def_val;
     char  op;
@@ -153,22 +164,24 @@ float TWBaseScript::get_qvar_value(std::string& qvar, float def_val)
 
 
 
-float QVarCalculation::get_qvar(const char* qvar, float def_val)
+float QVarCalculation::get_qvar(const std::string& qvar, float def_val)
 {
     SService<IQuestSrv> QuestSrv(g_pScriptManager);
-    if(QuestSrv -> Exists(qvar))
-        return static_cast<float>(QuestSrv -> Get(qvar));
+    if(QuestSrv -> Exists(qvar.c_str()))
+        return static_cast<float>(QuestSrv -> Get(qvar.c_str()));
 
     return def_val;
-}
-
+}*/
 
 
 bool QVarCalculation::parse_calculation(const std::string& calculation)
 {
+    char* buffer = new char[calculation.length() + 1];
+    if(!buffer) return false;
+
+    // working pointers for left and right sides of the calculation
+    char* leftside  = buffer;
     char* rightside = NULL;
-    char* leftside  = new char[calculation.length() + 1];
-    if(!leftside) return false;
 
     // Copy the calculation over, and get a pointer to the end of the string
     char* endptr = remove_whitespace(calculation.c_str(), leftside, calculation.length() + 1);
@@ -213,43 +226,72 @@ bool QVarCalculation::parse_calculation(const std::string& calculation)
      *
      */
 
+    bool parsed = false;
+
     // So, that situation 0 above....
-    if(leftside == endptr) {
-        return false;
-    }
+    if(leftside != endptr) {
 
-    // Search for an operator
-    char* op = find_operator(leftside, endptr);
+        // Search for an operator
+        char* op = find_operator(leftside, endptr);
 
-    // If we have an operator, store and replace it with nul - that gives us a
-    // LHS at leftside, and a RHS at op + 1
-    if(op) {
-        calc_op = is_operator(*op);
-        *op = '\0';
-        rightside = op + 1;
-    }
-
-    // If we get here, regardless of whether the above found an operator, we
-    // have a LHS, so deal with it first
-    if(leftside == '$') {
-        lhs_qvar = ++leftside;
-    } else {
-        if(!parse_value(leftside, lhs_val)) {
-            return false;
+        // If we have an operator, store and replace it with nul - that gives us a
+        // LHS at leftside, and a RHS at op + 1
+        if(op) {
+            calc_op = is_operator(*op);
+            *op = '\0';
+            rightside = op + 1;
         }
-    }
 
-    // rightside only does anything if there is one
-    if(rightside) {
-        if(rightside == '$') { // there's qvars off the starboard bow...
-            rhs_qvar = ++rightside;
+        // If we get here, regardless of whether the above found an operator, we
+        // have a LHS. This may be either a qvar (so, leading '$' followed by
+        // a letter), or a number. Note that malformed qvars will be treated
+        // as numbers, which should inevitably fail the parse_value() call
+        // and result in false from this function.
+        if(*leftside == '$' && strlen(leftside) > 1 && isalpha(*(leftside + 1))) {
+            lhs_qvar = ++leftside;
+            parsed = true;
         } else {
-            if(!parse_value(rightside, rhs_val)) {
-                return false;
+            parsed = parse_value(leftside, lhs_val);
+        }
+
+        // rightside only does anything if there is one
+        if(rightside) {
+            if(*rightside == '$' && strlen(rightside) > 1 && isalpha(*(rightside + 1))) {
+                rhs_qvar = ++rightside;
+                parsed = true;
+            } else {
+                parsed = parse_value(rightside, rhs_val);
             }
         }
     }
 
-    // Get here and all parsed...
-    return true;
+    // No need to retain the temporary buffer anymore
+    delete buffer;
+
+    return parsed;
+}
+
+
+void QVarCalculation::dump()
+{
+    std::cout << "left side qvar: '" << lhs_qvar << "'\n";
+    std::cout << "left side value: '" << lhs_val << "'\n";
+    std::cout << "right side qvar: '" << rhs_qvar << "'\n";
+    std::cout << "right side value: '" << rhs_val << "'\n";
+    if(calc_op) {
+        std::cout << "Operation: " << calc_op << "\n";
+    } else {
+        std::cout << "No operation defined\n";
+    }
+}
+
+int main(int argc, char** argv)
+{
+    QVarCalculation calc;
+
+    bool status = calc.init(argv[1]);
+    std::cout << "Parsing " << (status ? "success" : "failed") << "\n";
+    calc.dump();
+
+    return 0;
 }
