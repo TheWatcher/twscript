@@ -21,7 +21,7 @@
 #include <string>
 
 /** This class provides a way to encapsulate quest variable calculations
- *  as given in the design note spcification.
+ *  as given in the design note specification.
  */
 class QVarCalculation
 {
