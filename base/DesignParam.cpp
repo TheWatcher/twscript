@@ -45,22 +45,14 @@ bool DesignParamString::init(const std::string& design_note, const std::string& 
  *  DesignParamFloat
  */
 
-bool DesignParamFloat::init(const std::string& design_note, const float default_value)
+bool DesignParamFloat::init(const std::string& design_note, const float default_value, const bool add_listeners)
 {
+    std::string param;
 
-    return true;
-}
+    bool valid = get_param_string(design_note, param);
+    if(valid) {
+        valid = data.init(param, default_value, add_listeners);
+    }
 
-
-float DesignParamFloat::value()
-{
-
-    return 0.0f;
-}
-
-
-bool DesignParamFloat::parse_parameter(const std::string& parameter)
-{
-
-    return true;
+    return valid;
 }

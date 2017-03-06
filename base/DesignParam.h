@@ -56,16 +56,7 @@
  * string, integer and float are, obviously, 'base' types here. What's
  * arguable is whether int should be considered as a sub-tye of float
  * (as any qvar-eq may internally produce a float result).
- * *
- * StringParameter
- * FloatParameter <- TargetParameter?
- *       ^-- IntParameter <- ObjectParameter
- *              ^    ^-- TimeParameter
- *              `-- BooleanParameter
- *
- * with FloatVecParameter off to the side somewhere using three
- * FloatParameters.
- *
+  *
  * Note to self: the get_scriptparam_valuefalloff() and get_scriptparam_countmode
  * functions *ARE NOT* suitable for turning into first-order design parameter
  * classes: they are really formed from multiple separate design parameters.
@@ -86,7 +77,7 @@
  */
 
 #include <string>
-
+#include <cmath>
 
 /** A base class for design note parameters. This collects the common
  *  code for all design note parameter types, and maintains the
@@ -102,7 +93,8 @@ public:
      * @param script The name of the script the parameter is attached to.
      * @param name   The name of the parameter.
      */
-    DesignParam(const std::string& script, const std::string& name) : script_name(script), param_name(name), fullname(script + name), set(false)
+    DesignParam(const int hostid, const std::string& script, const std::string& name) :
+        host(hostid), script_name(script), param_name(name), fullname(script + name), set(false)
         { /* fnord */ }
 
 
@@ -121,6 +113,7 @@ public:
     const bool is_set(void) const
         { return set; }
 
+
 protected:
     /** Set whether this design parameter has been set in the design note.
      *
@@ -130,18 +123,27 @@ protected:
         { set = status; }
 
 
+    /** Obtain the ID of the host object this design parameter is attached to.
+     *
+     * @return The host object ID
+     */
+    const int hostid() const
+        { return host; }
+
+
     /** Fetch the value of the parameter as a string, and store the string in the
      *  provided string reference. Note that this does not modify the 'set' value,
      *  as subclasses may do additional validation on the string that determines
      *  whether a valid value has be set.
      *
      * @param parameter A reference to a string to store the parameter in.
-     * @reture true if the parameter was set in the design note, false if it was not
+     * @return true if the parameter was set in the design note, false if it was not
      *         or could not be parsed from it.
      */
     bool get_param_string(const std::string& design_note, std::string& parameter);
 
 private:
+    int host;                //!< ID of the object this variable is attached to
     std::string script_name; //!< The name of the script the parameter is for.
     std::string param_name;  //!< The name of parameter this represents.
     std::string fullname;    //!< The full name of the parameter (script_name + param_name)
@@ -171,7 +173,8 @@ public:
      * @param script The name of the script the parameter is attached to.
      * @param name   The name of the parameter.
      */
-    DesignParamString(const std::string& script, const std::string& name) : DesignParam(script, name), data("")
+    DesignParamString(const int hostid, const std::string& script, const std::string& name) :
+        DesignParam(hostid, script, name), data("")
         { /* fnord */ }
 
 
@@ -202,3 +205,85 @@ private:
 
 /**
  */
+class DesignParamFloat : public DesignParam
+{
+public:
+    /** Create a new DesignParamFloat. Note that little or no work can or
+     *  should be done by this constructor: the client code should call
+     *  init(), passing the design note data to initialise the parameter
+     *  with after object creation is complete.
+     *
+     * @param script The name of the script the parameter is attached to.
+     * @param name   The name of the parameter.
+     */
+    DesignParamFloat(const int hostid, const std::string& script, const std::string& name) :
+        DesignParam(hostid, script, name), data(hostid)
+        { /* fnord */ }
+
+
+    /** Initialise the DesignParamFloat based on the values specified.
+     *
+     * @param design_note   A reference to a string containing the design note to parse
+     * @param default_value The default value to set for the float. If not specified,
+     *                      0.0f is used.
+     * @return true on successful init (which may include when no parameter was set
+     *         in the design note!), false if init failed.
+     */
+    bool init(const std::string& design_note, float default_value = 0.0f, const bool add_listeners = false);
+
+
+    /** Obtain the value of this design parameter. This will return the current
+     *  design parameter value, which may be 0.0f if the parameter was not
+     *  set in the design note.
+     *
+     * @return A float containing the design note parameter value.
+     */
+    float value()
+        { return data.value(); }
+
+    operator float() { return value(); }
+
+private:
+    QVarCalculation data; //!< The current value of the parameter.
+};
+
+
+
+class DesignParamInt : public DesignParamFloat
+{
+public:
+    /** Create a new DesignParamInt. This hands off the actual work to
+     *  the DesignParamFloat constructor
+     *
+     * @param script The name of the script the parameter is attached to.
+     * @param name   The name of the parameter.
+     */
+    DesignParamInt(const int hostid, const std::string& script, const std::string& name) :
+        DesignParamFloat(hostid, script, name)
+        { /* fnord */ }
+
+
+    /** Initialise the DesignParamInt based on the values specified.
+     *
+     * @param design_note   A reference to a string containing the design note to parse
+     * @param default_value The default value to set for the int. If not specified,
+     *                      0 is used.
+     * @return true on successful init (which may include when no parameter was set
+     *         in the design note!), false if init failed.
+     */
+    bool init(const std::string& design_note, int default_value = 0, const bool add_listeners = false)
+        { return DesignParamFloat::init(design_note, static_cast<float>(default_value), add_listeners); }
+
+
+    /** Obtain the value of this design parameter. This will return the current
+     *  design parameter value, which may be 0.0f if the parameter was not
+     *  set in the design note.
+     *
+     * @return A float containing the design note parameter value.
+     */
+    int value()
+        { return static_cast<int>(round(data.value())); }
+
+
+    operator int() { return value(); }
+};
