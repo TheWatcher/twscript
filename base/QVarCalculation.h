@@ -41,11 +41,13 @@ public:
     /** Create a new QVarCalculation. This creates an empty, uninitialised
      *  calculation that must be initialised before it can produce useful
      *  values.
+     *
+     * @param hostid The ID of the object this calculation is attached to.
      */
-    QVarCalculation() : host(0),
-                        lhs_qvar("") , rhs_qvar(""),
-                        lhs_val(0.0f), rhs_val(0.0f),
-                        calc_op(CALCOP_NONE)
+    QVarCalculation(hostid) : host(hostid),
+                              lhs_qvar("") , rhs_qvar(""),
+                              lhs_val(0.0f), rhs_val(0.0f),
+                              calc_op(CALCOP_NONE)
         { /* fnord */ }
 
 
@@ -54,9 +56,9 @@ public:
      *  a right-hand sidde. This implements the qvar-eq rule in the design
      *  note specification.
      *
-     * @param hostid The ID of the object this calculation is attached to.
      * @param calculation A reference to a string containing the qvar calculation
      *                 to parse.
+     * @param default_value The default value to fall back on if init fails.
      * @param add_listeners If true, add qvar change listeners for any qvars
      *                 found in the specified calculation. Note that the client
      *                 *MUST* call unsubscribe() on EndScript if this is set
@@ -64,7 +66,7 @@ public:
      * @return true if the QVarCalculation has been initialised successfully,
      *         false if it has not.
      */
-    bool init(int hostid, const std::string& calculation, const bool add_listeners = false);
+    bool init(const std::string& calculation, const float default_value = 0.0f, const bool add_listeners = false);
 
 
     /** Remove any subscriptions created during init. If no subscriptions
@@ -90,10 +92,11 @@ protected:
      *  This attempts to parse the specified string based on the rules
      *  defined for the qvar_eq rule in the design_note.abnf file.
      *
-     * @param parameter A reference to a string containing the qvar_eq to parse.
+     * @param parameter     A reference to a string containing the qvar_eq to parse.
+     * @param default_value The default value to fall back on.
      * @return true if parsing completed successfully, false on error.
      */
-    bool parse_calculation(const std::string& calculation);
+    bool parse_calculation(const std::string& calculation, const float default_value);
 
 
 private:

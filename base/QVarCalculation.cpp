@@ -206,11 +206,9 @@ namespace {
  *  Public interface functions
  */
 
-bool QVarCalculation::init(int hostid, const std::string& calculation, const bool add_listeners)
+bool QVarCalculation::init(const std::string& calculation, const float default_value, const bool add_listeners)
 {
-    host = hostid;
-
-    bool parsed = parse_calculation(calculation);
+    bool parsed = parse_calculation(calculation, default_value);
 
     // If listeners need to be added, sort that now
     if(parsed && add_listeners) {
@@ -271,7 +269,7 @@ float QVarCalculation::value()
  *  Calculation parser
  */
 
-bool QVarCalculation::parse_calculation(const std::string& calculation)
+bool QVarCalculation::parse_calculation(const std::string& calculation, const float default_value)
 {
     char* buffer = new char[calculation.length() + 1];
     if(!buffer) return false;
@@ -358,6 +356,11 @@ bool QVarCalculation::parse_calculation(const std::string& calculation)
             } else {
                 parsed = parse_value(rightside, rhs_val);
             }
+        }
+
+        // Handle default
+        if(!parsed) {
+            lhs_val = default_value;
         }
 
         // optimise the situation where both sides are constants: we can
