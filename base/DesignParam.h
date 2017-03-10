@@ -14,18 +14,18 @@
  *
  * - object is like int, except it also supports names for objects
  *
- * - target only allows for qvar-eq in distance arguments
+ * - target only allows for qvar-calc in distance arguments
  *
  * - boolean and time have specific fiddliness involved:
  *   - bool can either be t/f/y/n followed by any arbitrary text, or
- *     an implicitly integer qvar-eq
+ *     an implicitly integer qvar-calc
  *   - time can either be a positive float or int followed by s or m,
- *     or an implicitly integer qvar-eq
+ *     or an implicitly integer qvar-calc
  *
  * - the remaining design note parameter types are integer, float, and
  *   floatvec. The integer and float ones are implicit integer or float
- *   qvar-eqs with no special treatment, while the floatvec type is
- *   three comma-separated implicitly float qvar-eq
+ *   qvar-calcs with no special treatment, while the floatvec type is
+ *   three comma-separated implicitly float qvar-calc
  *
  * In an ideal world, the scripts should not need to care about any of
  * these issues: they should be able to just fetch the value of a
@@ -42,12 +42,26 @@
  * of t/f/y/n to 1 or 0, time may need to do multiplication of s or m
  * suffixed floats - but as we can't have fractional milliseconds, the
  * *value* of time is always integer milliseconds, and object may need
- * to do a one-time translate from object name to interger ID.
+ * to do a one-time translate from object name to integer ID.
  *
- * target is a sub-type of string that must be able to register a qvar
+ * <stike>target is a sub-type of string that must be able to register a qvar
  * change listener if appropriate. It should return the parameter
  * string as-is if a string is requested, and a float value for the
- * radius (or 0.0) if a float is requested?
+ * radius (or 0.0) if a float is requested?</strike>
+ *
+ * NOTE: is object really just a sub-type of target? If the target
+ *       syntax is modified to include the object syntax?
+ *
+ * Adding `parameter=object`, `parameter=id`, and `parameter=qvar-calc`
+ * to the target syntax allows target to work for object selection.
+ * Important things:
+ *
+ * - function to retrieve object ID(s) must have a limit arg
+ * - As individual object is a special case, perhaps own function
+ *   that wraps object Id retrieval and returns first?
+ *
+ * What's the overhead here? Can we optimise the simple case where
+ * an ID, object, or [me] is specified?
  *
  * float-vec is really just three floats wrapped up in something that
  * makes them easily accessible (say overload [] and treat them as
@@ -55,8 +69,8 @@
  *
  * string, integer and float are, obviously, 'base' types here. What's
  * arguable is whether int should be considered as a sub-tye of float
- * (as any qvar-eq may internally produce a float result).
-  *
+ * (as any qvar-calc may internally produce a float result).
+ *
  * Note to self: the get_scriptparam_valuefalloff() and get_scriptparam_countmode
  * functions *ARE NOT* suitable for turning into first-order design parameter
  * classes: they are really formed from multiple separate design parameters.
@@ -90,6 +104,7 @@ public:
     /** Create a new DesignParam object. Generally this will never be called
      *  directly, but as part of constructing a child of this class.
      *
+     * @param hostid The ID of the host object.
      * @param script The name of the script the parameter is attached to.
      * @param name   The name of the parameter.
      */
@@ -170,6 +185,7 @@ public:
      *  init(), passing the design note data to initialise the parameter
      *  with after object creation is complete.
      *
+     * @param hostid The ID of the host object.
      * @param script The name of the script the parameter is attached to.
      * @param name   The name of the parameter.
      */
@@ -213,6 +229,7 @@ public:
      *  init(), passing the design note data to initialise the parameter
      *  with after object creation is complete.
      *
+     * @param hostid The ID of the host object.
      * @param script The name of the script the parameter is attached to.
      * @param name   The name of the parameter.
      */
@@ -226,6 +243,8 @@ public:
      * @param design_note   A reference to a string containing the design note to parse
      * @param default_value The default value to set for the float. If not specified,
      *                      0.0f is used.
+     * @param add_listeners If true, request quest variable change messages for any quest
+     *                      variables in the design param.
      * @return true on successful init (which may include when no parameter was set
      *         in the design note!), false if init failed.
      */
@@ -255,6 +274,7 @@ public:
     /** Create a new DesignParamInt. This hands off the actual work to
      *  the DesignParamFloat constructor
      *
+     * @param hostid The ID of the host object.
      * @param script The name of the script the parameter is attached to.
      * @param name   The name of the parameter.
      */
@@ -268,6 +288,8 @@ public:
      * @param design_note   A reference to a string containing the design note to parse
      * @param default_value The default value to set for the int. If not specified,
      *                      0 is used.
+     * @param add_listeners If true, request quest variable change messages for any quest
+     *                      variables in the design param.
      * @return true on successful init (which may include when no parameter was set
      *         in the design note!), false if init failed.
      */
@@ -276,14 +298,123 @@ public:
 
 
     /** Obtain the value of this design parameter. This will return the current
-     *  design parameter value, which may be 0.0f if the parameter was not
+     *  design parameter value, which may be 0 if the parameter was not
      *  set in the design note.
      *
-     * @return A float containing the design note parameter value.
+     * @return An int containing the design note parameter value.
      */
     int value()
         { return static_cast<int>(round(data.value())); }
 
 
     operator int() { return value(); }
+};
+
+
+class DesignParamTime : public DesignParamInt
+{
+public:
+    /** Create a new DesignParamTime. This hands off the actual work to
+     *  the DesignParamInt constructor
+     *
+     * @param hostid The ID of the host object.
+     * @param script The name of the script the parameter is attached to.
+     * @param name   The name of the parameter.
+     */
+    DesignParamTime(const int hostid, const std::string& script, const std::string& name) :
+        DesignParamInt(hostid, script, name)
+        { /* fnord */ }
+
+
+    /** Initialise the DesignParamTime based on the values specified.
+     *
+     * @param design_note   A reference to a string containing the design note to parse
+     * @param default_value The default value to set for the time. If not specified,
+     *                      0 is used.
+     * @param add_listeners If true, request quest variable change messages for any quest
+     *                      variables in the design param.
+     * @return true on successful init (which may include when no parameter was set
+     *         in the design note!), false if init failed.
+     */
+    bool init(const std::string& design_note, int default_value = 0, const bool add_listeners = false);
+};
+
+
+class DesignParamBool : public DesignParamInt
+{
+public:
+    /** Create a new DesignParamBool. This hands off the actual work to
+     *  the DesignParamInt constructor
+     *
+     * @param hostid The ID of the host object.
+     * @param script The name of the script the parameter is attached to.
+     * @param name   The name of the parameter.
+     */
+    DesignParamBool(const int hostid, const std::string& script, const std::string& name) :
+        DesignParamInt(hostid, script, name)
+        { /* fnord */ }
+
+
+    /** Initialise the DesignParamBool based on the values specified.
+     *
+     * @param design_note   A reference to a string containing the design note to parse
+     * @param default_value The default value to set for the time. If not specified,
+     *                      0 is used.
+     * @param add_listeners If true, request quest variable change messages for any quest
+     *                      variables in the design param.
+     * @return true on successful init (which may include when no parameter was set
+     *         in the design note!), false if init failed.
+     */
+    bool init(const std::string& design_note, bool default_value = false, const bool add_listeners = false);
+
+
+    /** Obtain the value of this design parameter. This will return the current
+     *  design parameter value, which may be false if the parameter was not
+     *  set in the design note.
+     *
+     * @return An bool containing the design note parameter value.
+     */
+    bool value()
+        { return (static_cast<int>(data.value()) != 0); }
+
+
+    operator bool() { return value(); }
+};
+
+
+class DesignParamTarget : public DesignParam
+{
+public:
+    /**
+     *
+     * @param hostid The ID of the host object.
+     * @param script The name of the script the parameter is attached to.
+     * @param name   The name of the parameter.
+     */
+    DesignParamTarget(const int hostid, const std::string& script, const std::string& name) :
+        DesignParam(hostid, script, name), data(hostid)
+        { /* fnord */ }
+
+
+    /** Initialise the DesignParamTarget based on the values specified.
+     *
+     * @param design_note   A reference to a string containing the design note to parse
+     * @param add_listeners If true, request quest variable change messages for any quest
+     *                      variables in the design param.
+     * @return true on successful init (which may include when no parameter was set
+     *         in the design note!), false if init failed.
+     */
+    bool init(const std::string& design_note, const bool add_listeners = false);
+
+
+    /** Obtain a single object ID from the target string.
+     *
+     * @return An int containing the object ID
+     */
+    int value();
+
+    operator int() { return value(); }
+
+private:
+
 };
