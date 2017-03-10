@@ -358,11 +358,6 @@ bool QVarCalculation::parse_calculation(const std::string& calculation, const fl
             }
         }
 
-        // Handle default
-        if(!parsed) {
-            lhs_val = default_value;
-        }
-
         // optimise the situation where both sides are constants: we can
         // do the calculation once, store it on the lhs, and kill the op
         if(lhs_qvar.empty() && rhs_qvar.empty() && calc_op != CALCOP_NONE) {
@@ -373,6 +368,11 @@ bool QVarCalculation::parse_calculation(const std::string& calculation, const fl
 
     // No need to retain the temporary buffer anymore
     delete buffer;
+
+    // Handle default
+    if(!parsed) {
+        lhs_val = default_value;
+    }
 
     return parsed;
 }
