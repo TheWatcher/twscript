@@ -13,7 +13,7 @@
 ; values depend on the type of parameter, and may optionally be enclosed
 ; in matching single or double quotes
   value       = value-opts / DQUOTE value-opts DQUOTE / SQUOTE value-opts SQUOTE
-  value-opts  = target / string / object / boolean / time / float-vec / qvar-eq
+  value-opts  = target / string / object / boolean / time / float-vec / qvar-calc
 
 ; targets are used for targetting paramers. They are... complicated
   target      = "[me]" / "[source]" / direct / indirect / inrange / outrange / linkdef
@@ -28,17 +28,17 @@
   sigils      = *("?" / "%" / "#" / "!" / "[" 1*DIGIT "]")
 
 ; booleans need to support t/f/etc. Remember quoted strings are case insensitive in ABNF
-  boolean     = ("t" *ALPHA) / ("f" *ALPHA) / ("y" *ALPHA) / ("n" *ALPHA) / qvar-eq
+  boolean     = ("t" *ALPHA) / ("f" *ALPHA) / ("y" *ALPHA) / ("n" *ALPHA) / qvar-calc
 
 ; times allow for s or m after a float or int
-  time        = (float ["s" / "m"]) / qvar-eq
+  time        = (float ["s" / "m"]) / qvar-calc
 
 ; more basic rules used by the above
   string      = *(SP / VCHAR)
-  object      = identifier / qvar-eq
-  float-vec   = qvar-eq "," qvar-eq "," qvar-eq
-  distance    = qvar-eq
-  qvar-eq     = qvar-val [operator qvar-val]
+  object      = identifier / qvar-calc
+  float-vec   = qvar-calc "," qvar-calc "," qvar-calc
+  distance    = qvar-calc
+  qvar-calc   = qvar-val [operator qvar-val]
   qvar-val    = (integer / float / qvar)
   integer     = ["-"] 1*DIGIT
   float       = ["-"] 1*DIGIT "." 1*DIGIT
