@@ -382,6 +382,49 @@ public:
 };
 
 
+
+/** POD class used by the link search code to keep track of link information.
+ */
+struct LinkScanWorker {
+    int link_id;         //!< The ID of a link from the source object to another
+    int dest_id;         //!< The ID of the object being linked to
+    uint weight;         //!< The link weight (only used when doing weighted link selection)
+    uint cumulative;     //!< The cumulative weight of this link, and earlier links in the list.
+
+    /** Less-than operator to allow sorting by link IDs.
+     */
+    bool operator<(const LinkScanWorker& rhs) const
+    {
+        return link_id < rhs.link_id;
+    }
+};
+
+
+/** POD class used by the targetting functions to keep track of information
+ */
+struct TargetObj {
+    int  obj_id;   //!< The ID of the target object
+    int  link_id;  //!< The ID of a the link to the object (may be zero, indicating no link)
+
+    /** Less-than operator to allow sorting by object ID.
+     */
+    bool operator<(const TargetObj& rhs) const
+    {
+        return obj_id < rhs.obj_id;
+    }
+
+    /** Assignment operator to simplify the process of copying data from a LinkScanWorker
+     */
+    TargetObj& operator=(const LinkScanWorker& rhs)
+    {
+        obj_id = rhs.dest_id;
+        link_id = rhs.link_id;
+
+        return *this;
+    }
+};
+
+
 class DesignParamTarget : public DesignParam
 {
 public:
@@ -416,5 +459,5 @@ public:
     operator int() { return value(); }
 
 private:
-
+    std::string targetstr; //!< The current value of the parameter.
 };
