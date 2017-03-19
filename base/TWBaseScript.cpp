@@ -472,6 +472,77 @@ int TWBaseScript::get_qvar_namelen(const char* namestr)
 
 
 /* ------------------------------------------------------------------------
+ *  Link inspection
+ */
+
+int TWBaseScript::get_linked_object(const int from, const std::string& obj_name, const std::string& link_name, const int fallback)
+{
+    SInterface<IObjectSystem> ObjectSys(g_pScriptManager);
+    SService<IObjectSrv>      ObjectSrv(g_pScriptManager);
+    SService<ILinkSrv>        LinkSrv(g_pScriptManager);
+    SService<ILinkToolsSrv>   LinkToolsSrv(g_pScriptManager);
+
+    // Can't do anything if there is no archytype name set
+    if(!obj_name.empty()) {
+
+        // Attempt to locate the object requested
+        int object = StrToObject(obj_name.c_str());
+        if(object) {
+
+            // Convert the link to a liny type ID
+            long flavourid = LinkToolsSrv -> LinkKindNamed(link_name.c_str());
+
+            if(flavourid) {
+                // Does the object have a link of the specified flavour?
+                true_bool has_link;
+                LinkSrv -> AnyExist(has_link, flavourid, from, 0);
+
+                // Only do anything if there is at least one particle attachment.
+                if(has_link) {
+                    linkset links;
+                    true_bool inherits;
+
+                    // Check all the links of the appropriate flavour, looking for a link either to
+                    // the named object, or to an object that inherits from it
+                    LinkSrv -> GetAll(links, flavourid, from, 0);
+                    while(links.AnyLinksLeft()) {
+                        sLink link = links.Get();
+
+                        // If the object is an archetype, check whether the destination inherits from it.
+                        if(object < 0) {
+                            ObjectSrv -> InheritsFrom(inherits, link.dest, object);
+
+                            // Found a link from a concrete instance of the archetype? Return that object.
+                            if(inherits) {
+                                return link.dest;
+                            }
+
+                        // If the target object is concrete, is the link to that object?
+                        } else if(link.dest == object) {
+                            return link.dest;
+                        }
+
+                        links.NextLink();
+                    }
+
+                    if(debug_enabled())
+                        debug_printf(DL_WARNING, "Object has no %s link to a object named or inheriting from %s", link_name.c_str(), obj_name.c_str());
+                }
+            } else {
+                debug_printf(DL_ERROR, "Request for non-existent link flavour %s", link_name.c_str());
+            }
+        } else if(debug_enabled()) {
+            debug_printf(DL_WARNING, "Unable to find object named '%s'", obj_name.c_str());
+        }
+    } else {
+        debug_printf(DL_ERROR, "obj_name name is empty.");
+    }
+
+    return fallback;
+}
+
+
+/* ------------------------------------------------------------------------
  *  Initialisation related
  */
 
