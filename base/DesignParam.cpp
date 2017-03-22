@@ -198,6 +198,12 @@ bool DesignParamBool::init(const std::string& design_note, bool default_value, c
  *  DesignParamTarget
  */
 
+
+namespace {
+
+}
+
+
 bool DesignParamTarget::init(const std::string& design_note, const bool add_listeners)
 {
     std::string param;
@@ -213,8 +219,6 @@ bool DesignParamTarget::init(const std::string& design_note, const bool add_list
 }
 
 
-bool
-
 
 
 
@@ -224,7 +228,7 @@ bool
  *  Targetting
  */
 
-std::vector<TargetObj>* TWBaseScript::get_target_objects(const char* target, sScrMsg* msg)
+std::vector<TargetObj>* DesignParamTarget::get_target_objects(const char* target, sScrMsg* msg)
 {
     std::vector<TargetObj>* matches = new std::vector<TargetObj>;
 
@@ -245,9 +249,9 @@ std::vector<TargetObj>* TWBaseScript::get_target_objects(const char* target, sSc
         newtarget.obj_id = msg -> from;
         matches -> push_back(newtarget);
 
-    // linked objects
+    // objects linked to the host object through a named link
     } else if(*target == '&') {
-        link_search(matches, ObjId(), &target[1]);
+        link_search(matches, host, &target[1]);
 
     // Archetype search, direct concrete and indirect concrete
     } else if(*target == '*' || *target == '@') {
@@ -263,7 +267,15 @@ std::vector<TargetObj>* TWBaseScript::get_target_objects(const char* target, sSc
             // Default behaviour for radius search is to get all decendants unless * is specified.
             archetype_search(matches, realname, *archname != '*', true, msg -> to, radius, lessthan);
         }
-    // Named destination object
+
+    // QVar calculation (leading $ or all digits)
+    } else if(target_qvarcalc.init(target)) {
+        newtarget.obj_id = static_cast<int>(target_qvarcalc.value());
+
+        if(newtarget.obj_id)
+            matches -> push_back(newtarget);
+
+    // Give up, treat as named destination object
     } else {
         SInterface<IObjectSystem> ObjectSys(g_pScriptManager);
 
@@ -280,7 +292,7 @@ std::vector<TargetObj>* TWBaseScript::get_target_objects(const char* target, sSc
  *  Link Targetting
  */
 
-void TWBaseScript::link_search(std::vector<TargetObj>* matches, const int from, const char* linkdef)
+void DesignParamTarget::link_search(std::vector<TargetObj>* matches, const int from, const char* linkdef)
 {
     std::vector<LinkScanWorker> links;
     bool is_random = false, is_weighted = false, fetch_all = false;;
@@ -307,7 +319,7 @@ void TWBaseScript::link_search(std::vector<TargetObj>* matches, const int from, 
 }
 
 
-const char* TWBaseScript::link_search_setup(const char* linkdef, bool* is_random, bool* is_weighted, uint* fetch_count, bool *fetch_all, LinkMode *mode)
+const char* DesignParamTarget::link_search_setup(const char* linkdef, bool* is_random, bool* is_weighted, uint* fetch_count, bool *fetch_all, LinkMode *mode)
 {
     while(*linkdef) {
         switch(*linkdef) {
@@ -350,7 +362,7 @@ const char* TWBaseScript::link_search_setup(const char* linkdef, bool* is_random
 }
 
 
-const char* TWBaseScript::parse_link_count(const char* linkdef, uint* fetch_count)
+const char* DesignParamTarget::parse_link_count(const char* linkdef, uint* fetch_count)
 {
     // linkdef should be a pointer to a '[' - check to be sure
     if(*linkdef == '[') {
@@ -389,7 +401,7 @@ const char* TWBaseScript::parse_link_count(const char* linkdef, uint* fetch_coun
 }
 
 
-uint TWBaseScript::link_scan(const char* flavour, const int from, const bool weighted, LinkMode mode, std::vector<LinkScanWorker>& links)
+uint DesignParamTarget::link_scan(const char* flavour, const int from, const bool weighted, LinkMode mode, std::vector<LinkScanWorker>& links)
 {
     // If there is no link flavour, do nothing
     if(!flavour || !*flavour) return 0;
@@ -401,7 +413,7 @@ uint TWBaseScript::link_scan(const char* flavour, const int from, const bool wei
 
     if(flavourid) {
         // At this point, we need to locate all the linked objects that match the flavour and mode
-        SService<ILinkSrv>      LinkSrv(g_pScriptManager);
+        SService<ILinkSrv> LinkSrv(g_pScriptManager);
         linkset matching_links;
         LinkScanWorker temp = { 0, 0, 0, 0 };
 
@@ -446,7 +458,7 @@ uint TWBaseScript::link_scan(const char* flavour, const int from, const bool wei
 }
 
 
-bool TWBaseScript::pick_weighted_link(std::vector<LinkScanWorker>& links, const uint target, TargetObj& store)
+bool DesignParamTarget::pick_weighted_link(std::vector<LinkScanWorker>& links, const uint target, TargetObj& store)
 {
     std::vector<LinkScanWorker>::iterator it;
 
@@ -461,7 +473,7 @@ bool TWBaseScript::pick_weighted_link(std::vector<LinkScanWorker>& links, const 
 }
 
 
-uint TWBaseScript::build_link_weightsums(std::vector<LinkScanWorker>& links)
+uint DesignParamTarget::build_link_weightsums(std::vector<LinkScanWorker>& links)
 {
     uint accumulator = 0;
     std::vector<LinkScanWorker>::iterator it;
@@ -475,7 +487,7 @@ uint TWBaseScript::build_link_weightsums(std::vector<LinkScanWorker>& links)
 }
 
 
-void TWBaseScript::select_random_links(std::vector<TargetObj>* matches, std::vector<LinkScanWorker>& links, const uint fetch_count, const bool fetch_all, const uint total_weights, const bool is_weighted)
+void DesignParamTarget::select_random_links(std::vector<TargetObj>* matches, std::vector<LinkScanWorker>& links, const uint fetch_count, const bool fetch_all, const uint total_weights, const bool is_weighted)
 {
     // Yay for easy randomisation
     std::shuffle(links.begin(), links.end(), randomiser);
@@ -505,7 +517,7 @@ void TWBaseScript::select_random_links(std::vector<TargetObj>* matches, std::vec
 }
 
 
-void TWBaseScript::select_links(std::vector<TargetObj>* matches, std::vector<LinkScanWorker>& links, const uint fetch_count)
+void DesignParamTarget::select_links(std::vector<TargetObj>* matches, std::vector<LinkScanWorker>& links, const uint fetch_count)
 {
     uint copied = 0;
     TargetObj newtemp = { 0, 0 };
@@ -522,7 +534,7 @@ void TWBaseScript::select_links(std::vector<TargetObj>* matches, std::vector<Lin
  *  Search methods
  */
 
-bool TWBaseScript::radius_search(const char* target, float* radius, bool* lessthan, const char** archetype)
+bool DesignParamTarget::radius_search(const char* target, float* radius, bool* lessthan, const char** archetype)
 {
     // Check for < or > here
     *lessthan = (*target++ == '<');
@@ -550,7 +562,7 @@ bool TWBaseScript::radius_search(const char* target, float* radius, bool* lessth
 }
 
 
-void TWBaseScript::archetype_search(std::vector<TargetObj>* matches, const char* archetype, bool do_full, bool do_radius, object from_obj, float radius, bool lessthan)
+void DesignParamTarget::archetype_search(std::vector<TargetObj>* matches, const char* archetype, bool do_full, bool do_radius, object from_obj, float radius, bool lessthan)
 {
     // Get handles to game interfaces here for convenience
     SInterface<IObjectSystem> ObjectSys(g_pScriptManager);
