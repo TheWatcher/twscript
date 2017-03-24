@@ -18,6 +18,9 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 
+#ifndef QVARCALCULATION_H
+#define QVARCALCULATION_H
+
 #include <string>
 
 /** This class provides a way to encapsulate quest variable calculations
@@ -107,3 +110,5 @@ private:
     float       rhs_val;  //!< The literal value on the right side if no qvar specified
     CalcType    calc_op;  //!< The operation to apply. If this is CALCOP_NONE, only the LHS is considered.
 };
+
+#endif // QVARCALCULATION_H
