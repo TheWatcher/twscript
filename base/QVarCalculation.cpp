@@ -21,6 +21,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <ScriptLib.h>
+#include "QVarWrapper.h"
 #include "QVarCalculation.h"
 
 /* Anonymous namespace for horrible internal implementation functions that have
@@ -177,28 +178,6 @@ namespace {
         // required that *end == '\0' too, but that may be excessive
         return (end != str);
     }
-
-
-    /* ------------------------------------------------------------------------
-     *  QVar convenience functions
-     */
-
-    /** Fetch the value in the specified QVar if it exists, return the default
-     *  if it does not.
-     *
-     * @param qvar    The name of the QVar to return the value of.
-     * @param def_val The default value to return if the qvar does not exist.
-     * @return The QVar value, or the default specified.
-     */
-    float get_qvar(const std::string& qvar, float def_val)
-    {
-        SService<IQuestSrv> quest_srv(g_pScriptManager);
-        if(quest_srv -> Exists(qvar.c_str()))
-            return static_cast<float>(quest_srv -> Get(qvar.c_str()));
-
-        return def_val;
-    }
-
 }
 
 
