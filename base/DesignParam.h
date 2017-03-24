@@ -90,6 +90,9 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 
+#ifndef DESIGNPARAM_H
+#define DESIGNPARAM_H
+
 #include <string>
 #include <cmath>
 
@@ -428,6 +431,14 @@ struct TargetObj {
 class DesignParamTarget : public DesignParam
 {
 public:
+    /** Possible targetting modes
+     */
+    enum TargetMode {
+        TARGET_INT,    //!< The target parameter describes a simple constant int object ID
+        TARGET_QVAR,   //!< The target is a QVar or QVarCalculation
+        TARGET_COMPLEX //!< The target is a link/archetype/radius scan
+    };
+
     /**
      *
      * @param hostid The ID of the host object.
@@ -435,7 +446,7 @@ public:
      * @param name   The name of the parameter.
      */
     DesignParamTarget(const int hostid, const std::string& script, const std::string& name) :
-        DesignParam(hostid, script, name), data(hostid)
+        DesignParam(hostid, script, name), targetstr("")
         { /* fnord */ }
 
 
@@ -459,5 +470,12 @@ public:
     operator int() { return value(); }
 
 private:
-    std::string targetstr; //!< The current value of the parameter.
+    TargetMode      mode;        //!< Which mode is this target parameter working in?
+
+    // FIXME: Can we just union this?
+    int             objid_cache; //!< Used by TARGET_INT to store the target object id
+    QVarCalculation qvar_calc;   //!< In TARGET_QVAR, this stores the qvar/qvar calc
+    std::string     targetstr;   //!< In TARGET_COMPLEX, this is the target string
 };
+
+#endif // DESIGNPARAM_H

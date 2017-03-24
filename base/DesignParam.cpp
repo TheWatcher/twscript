@@ -2,6 +2,7 @@
 #include <cctype>
 #include <cstring>
 #include <cstdlib>
+#include "QVarWrapper.h"
 #include "DesignParam.h"
 #include "ScriptLib.h"
 
@@ -200,7 +201,29 @@ bool DesignParamBool::init(const std::string& design_note, bool default_value, c
 
 
 namespace {
+    /** Determine whether the specified parameter contains a target
+     *  string that can not have its results cached. This inspects
+     *  the provided parameter and returns true if it contains a
+     *  target string  that may match different objects each time
+     *  value() is called.
+     *
+     * @param param A reference to a string containing the parameter to check.
+     * @return true if the parameter string contains an uncacheable
+     *         target string, false otherwise.
+     */
+    bool is_complex_target(const std::string& param)
+    {
+        char sigil = param[0];
 
+        // Complex targets include all forms of target string that may need
+        // to be fully processed with each call to value() - they are generally
+        // easy to identify as they either contain [source] or start with a
+        // recognised sigils
+        return (param == "[source]" ||          // message sender
+                sigil == '&' ||                 // link search
+                sigil == '*' || sigil == '@' || // archetype search
+                sigil == '<' || sigil == '>');  // Radius search
+    }
 }
 
 
@@ -211,8 +234,27 @@ bool DesignParamTarget::init(const std::string& design_note, const bool add_list
     // Fetch the raw string from the design note
     bool valid = get_param_string(design_note, param);
     if(valid) {
+        // [me] is always going to be the host object id
+        if(param == "[me]") {
+            objid_cache = host;
+            mode = TARGET_INT;
 
+        // Target may be a QVar calculation (leading $ or all digits)
+        } else if(qvar_calc.init(param)) {
+            mode = TARGET_QVAR;
 
+        // Check for known target incantations
+        } else if(is_complex_target(param)) {
+            targetstr = param;
+            mode = TARGET_COMPLEX;
+
+        // Treat anything else as a bare object name
+        } else {
+            SInterface<IObjectSystem> ObjectSys(g_pScriptManager);
+
+            objid_cache = ObjectSys -> GetObjectNamed(target);
+            mode = TARGET_INT;
+        }
     }
 
     return false;
@@ -240,12 +282,8 @@ std::vector<TargetObj>* DesignParamTarget::get_target_objects(const char* target
     const char* archname;
     TargetObj newtarget = { 0, 0 };
 
-    // Simple target/source selection.
-    if(!_stricmp(target, "[me]")) {
-        newtarget.obj_id = msg -> to;
-        matches -> push_back(newtarget);
-
-    } else if(!_stricmp(target, "[source]")) {
+    // Simple message source selection.
+    if(!_stricmp(target, "[source]")) {
         newtarget.obj_id = msg -> from;
         matches -> push_back(newtarget);
 
@@ -268,20 +306,8 @@ std::vector<TargetObj>* DesignParamTarget::get_target_objects(const char* target
             archetype_search(matches, realname, *archname != '*', true, msg -> to, radius, lessthan);
         }
 
-    // QVar calculation (leading $ or all digits)
-    } else if(target_qvarcalc.init(target)) {
-        newtarget.obj_id = static_cast<int>(target_qvarcalc.value());
-
-        if(newtarget.obj_id)
-            matches -> push_back(newtarget);
-
     // Give up, treat as named destination object
     } else {
-        SInterface<IObjectSystem> ObjectSys(g_pScriptManager);
-
-        newtarget.obj_id = ObjectSys -> GetObjectNamed(target);
-        if(newtarget.obj_id)
-            matches -> push_back(newtarget);
     }
 
     return matches;
@@ -367,6 +393,9 @@ const char* DesignParamTarget::parse_link_count(const char* linkdef, uint* fetch
     // linkdef should be a pointer to a '[' - check to be sure
     if(*linkdef == '[') {
         ++linkdef;
+
+        // Is the link count a qvar?
+        // Should we just pull everything between [ and ] and work on it?
 
         char* endptr;
         int value = strtol(linkdef, &endptr, 10);
