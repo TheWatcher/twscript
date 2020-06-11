@@ -18,6 +18,7 @@
 #include <lg/scrmanagers.h>
 #include <lg/scrservices.h>
 #include <string>
+#include <ScriptLib.h>
 #include "QVarWrapper.h"
 
 /* ------------------------------------------------------------------------

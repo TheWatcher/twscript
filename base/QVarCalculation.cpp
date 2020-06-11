@@ -206,7 +206,7 @@ bool QVarCalculation::init(const std::string& calculation, const float default_v
 }
 
 
-void QVarCalculation::unsubscribe()
+void QVarCalculation::unsubscribe() const
 {
     SService<IQuestSrv> quest_srv(g_pScriptManager);
 
@@ -250,6 +250,13 @@ float QVarCalculation::value()
 
 bool QVarCalculation::parse_calculation(const std::string& calculation, const float default_value)
 {
+    // If there is no calculation, set the default and bug out
+    if(calculation.length() == 0) {
+        lhs_val = default_value;
+        calc_op = CALCOP_NONE;
+        return true;
+    }
+
     char* buffer = new char[calculation.length() + 1];
     if(!buffer) return false;
 

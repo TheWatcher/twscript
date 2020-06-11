@@ -71,9 +71,6 @@
  * arguable is whether int should be considered as a sub-tye of float
  * (as any qvar-calc may internally produce a float result).
  *
- * Note to self: the get_scriptparam_valuefalloff() and get_scriptparam_countmode
- * functions *ARE NOT* suitable for turning into first-order design parameter
- * classes: they are really formed from multiple separate design parameters.
  */
 /*
  * This program is free software: you can redistribute it and/or modify
@@ -95,6 +92,8 @@
 
 #include <string>
 #include <cmath>
+#include <random>
+#include "QVarCalculation.h"
 
 /** A base class for design note parameters. This collects the common
  *  code for all design note parameter types, and maintains the
@@ -128,7 +127,7 @@ public:
      *         if it was not. If called before calling init(), this will always
      *         return false.
      */
-    const bool is_set(void) const
+    bool is_set(void) const
         { return set; }
 
 
@@ -145,7 +144,7 @@ protected:
      *
      * @return The host object ID
      */
-    const int hostid() const
+    int hostid() const
         { return host; }
 
 
@@ -265,7 +264,7 @@ public:
 
     operator float() { return value(); }
 
-private:
+protected:
     QVarCalculation data; //!< The current value of the parameter.
 };
 
@@ -385,14 +384,58 @@ public:
 };
 
 
+class DesignParamCountMode: public DesignParamString
+{
+public:
+    enum CountMode {
+        CM_NOTHING = 0, //!< Count nothing
+        CM_TURNON,      //!< Count only TurnOns
+        CM_TURNOFF,     //!< Count only TurnOffs
+        CM_BOTH         //!< Count both TurnOn and TurnOff
+    };
+
+    /** Create a new DesignParamCountMode. This hands off the actual work to
+     *  the DesignParamInt constructor
+     *
+     * @param hostid The ID of the host object.
+     * @param script The name of the script the parameter is attached to.
+     * @param name   The name of the parameter.
+     */
+    DesignParamCountMode(const int hostid, const std::string& script, const std::string& name) :
+        DesignParamString(hostid, script, name), mode(CM_BOTH)
+        { /* fnord */ }
+
+
+    /** Initialise the DesignParamCountMode based on the values specified.
+     *
+     * @param design_note   A reference to a string containing the design note to parse
+     * @param default_value The default value to set for the mode. If not specified,
+     *                      CM_BOTH is used.
+     * @return true on successful init (which may include when no parameter was set
+     *         in the design note!), false if init failed.
+     */
+    bool init(const std::string& design_note, CountMode default_value = CM_BOTH);
+
+
+    /** Obtain the value of this design parameter.
+     *
+     * @return An CountMode containing the design note parameter value.
+     */
+    CountMode value()
+        { return mode; }
+
+private:
+    CountMode mode;
+};
+
 
 /** POD class used by the link search code to keep track of link information.
  */
 struct LinkScanWorker {
     int link_id;         //!< The ID of a link from the source object to another
     int dest_id;         //!< The ID of the object being linked to
-    uint weight;         //!< The link weight (only used when doing weighted link selection)
-    uint cumulative;     //!< The cumulative weight of this link, and earlier links in the list.
+    unsigned int weight;         //!< The link weight (only used when doing weighted link selection)
+    unsigned int cumulative;     //!< The cumulative weight of this link, and earlier links in the list.
 
     /** Less-than operator to allow sorting by link IDs.
      */
@@ -434,9 +477,15 @@ public:
     /** Possible targetting modes
      */
     enum TargetMode {
-        TARGET_INT,    //!< The target parameter describes a simple constant int object ID
-        TARGET_QVAR,   //!< The target is a QVar or QVarCalculation
-        TARGET_COMPLEX //!< The target is a link/archetype/radius scan
+        TARGET_INVALID,        //!< No valid target mode set
+        TARGET_INT,            //!< The target parameter describes a simple constant int object ID
+        TARGET_QVAR,           //!< The target is a QVar or QVarCalculation
+        TARGET_SOURCE,         //!< The target is the source of a message
+        TARGET_LINK,           //!< The target is described by a link
+        TARGET_ATYPE_DIRECT,   //!< Target is all direct concrete descendants of an archetype
+        TARGET_ATYPE_INDIRECT, //!< Target is all direct and indirect concrete descendants of an archetype
+        TARGET_RADIUS_LT,      //!< Target is all concrete descendants of an archetype within a given range
+        TARGET_RADIUS_GT       //!< Target is all concrete descendants of an archetype outside a given range
     };
 
     /**
@@ -446,7 +495,12 @@ public:
      * @param name   The name of the parameter.
      */
     DesignParamTarget(const int hostid, const std::string& script, const std::string& name) :
-        DesignParam(hostid, script, name), targetstr("")
+        DesignParam(hostid, script, name),
+        mode(TARGET_INVALID),
+        objid_cache(0),
+        qvar_calc(hostid),
+        targetstr(""),
+        randomiser(0)
         { /* fnord */ }
 
 
@@ -465,9 +519,257 @@ public:
      *
      * @return An int containing the object ID
      */
-    int value();
+    int value(sScrMsg* msg);
 
-    operator int() { return value(); }
+
+    std::vector<TargetObj>* values(sScrMsg* msg);
+
+
+protected:
+
+    /** Determine whether the specified parameter contains a target
+     *  string that can not have its results cached. This inspects
+     *  the provided parameter and returns true if it contains a
+     *  target string  that may match different objects each time
+     *  value() is called.
+     *
+     * @param param A reference to a string containing the parameter to check.
+     * @return true if the parameter string contains an uncacheable
+     *         target string, false otherwise.
+     */
+    bool is_complex_target(const std::string& param);
+
+
+    /** Given a target description string, generate a list of object ids the string
+     *  corresponds to. If targ is '[me]', the current object is returned, if targ
+     *  is '[source]' the source object is returned, if targ contains an object
+     *  id or name, the id of that object is returned. If targ starts with * then
+     *  the remainder of the string is used as an archetype name and all direct
+     *  concrete descendants of that archetype are returned. If targ starts with
+     *  @ then all concrete descendants (direct and indirect) are returned. If
+     *  targ contains a < or > then a radius search is performed. If the target
+     *  starts with '&' it is considered to be a link search, in which case the
+     *  remainder of the target string should be a linksearch definition.
+     *
+     * @param msg  A pointer to a script message containing the to and from objects.
+     *             This is required when targ is "[me]", "[source]",
+     * @return A vector of object ids the target string matches. The caller must
+     *         free this when done with it.
+     */
+
+
+    /** Generate a list of objects linked to the host object based on the specified
+     *  link definition. This will use the specified link definition to determine
+     *  which links to search for, and adds the link destination objects to the
+     *  specified list.
+     *
+     *  By default, the linkdef is the name of the link flavour to search for.
+     *
+     *  If the linkdef is preceded with '?' then one or more of the possible links
+     *  is chosen at random, and the destination TargetObj aded to the list.
+     *
+     *  If the linkdef contains !, all links that match the linkdef are returned
+     *  (and any count in [] will be ignored). Note that this is ignored if
+     *  Weighted mode is enabled. If this is specified, and random mode has been
+     *  enabled, the links are returned in a random order.
+     *
+     *  If the linkdef is preceded with '%', only links to archetype objects will
+     *  be included in the results. Conversely, if the linkdef is preceded by '#'
+     *  only links to concrete objects will be included. If neither sigil is set,
+     *  the default is to include links to both archetypes and concrete objects.
+     *
+     *  If the linkdef specifies the flavour "Weighted", the search inspects all
+     *  the ScriptParams links from the host object, and uses the integer values
+     *  set in the link data to determine which random link to choose based on
+     *  the weightings. If a ScriptParams link does not contain an integer weight,
+     *  it defaults to 1.
+     *
+     *  Finally, the flavour may be prefixed with [N], where 'N' is the maximum
+     *  number of linked objects to fetch. If the fetch count is not specified,
+     *  and random mode is not enabled, all matching links are returned. If
+     *  random or 'Weighted' mode is enabled, and no fetch count is given, only
+     *  a single linked object is selected. If random or 'Weighted' mode is
+     *  enabled, and a fetch count has been given, then the list of returned
+     *  TargetObjs will contain the requested number of links, randomly selected
+     *  from the possible links, and *repeats may be present in the list*.
+     *
+     *  For example, this will fetch three random ControlDevice linked objects:
+     *
+     *      ?[3]ControlDevice
+     *
+     *  The order of sigils doesn't matter, so the same could be expressed using
+     *
+     *      [3]?ControlDevice
+     *
+     *  This will fetch all ControlDevice linked concrete objects in a random order:
+     *
+     *      #?!ControlDevice
+     *
+     * @param matches A pointer to the vector to store object IDs in.
+     * @param from    The ID of the object to search for links from.
+     * @param linkdef A pointer to a string describing the links to fetch.
+     */
+    void link_search(std::vector<TargetObj>* matches, const int from, const char* linkdef);
+
+
+    /* ------------------------------------------------------------------------
+     *  Link targetting
+     */
+
+    /** Enum used to control link selection in searches.
+     */
+    enum LinkMode {
+        LM_ARCHETYPE = 1, //!< Only include links to archetypes in results
+        LM_CONCRETE,      //!< Only include links to concrete objects
+        LM_BOTH           //!< Include links to both
+    };
+
+    /** Process any sigils included in the specified linkdef. This will scan the
+     *  specified linkdef for recognised sigils, and set the options for the link
+     *  search appropriately.
+     *
+     * @note Settings are only updated if an appropriate sigil appears in the
+     *       linkdef. The caller must ensure that the settings values are set to
+     *       Sane Default Values before calling this function.
+     *
+     * @param linkdef     A pointer to the string describing the links to fetch.
+     * @param is_random   A pointer to a bool that will be set to true if the linkdef
+     *                    contains the '?' sigil, or the flavour "Weighted".
+     * @param is_weighted A pointer to a bool that will be set to true if the linkdef
+     *                    contains the flavour "Weighted"
+     * @param fetch_count A pointer to an int that will be set to the number of
+     *                    objects to return from link_search.
+     * @param fetch_all   A pointer to a book that will be set to true if the linkdef
+     *                    contains the '!' sigil.
+     * @param mode        A pointer to a LinkMode to store the link selection mode in.
+     *                    If a mode is not set in the string, this is set to LM_BOTH.
+     * @return A pointer to the start of the link flavour specified in linkdef. Note
+     *         that if the linkdef specifies the flavour "Weighted", this will be a
+     *         link to a string containing "ScriptParams" which *should not* be freed.
+     */
+    const char* link_search_setup(const char* linkdef, bool* is_random, bool* is_weighted, uint* fetch_count, bool *fetch_all, LinkMode *mode);
+
+
+    /** Parse the number of linked objects to return from the specified link definition.
+     *  This assumes that the linkdef provided starts pointing to the '[' in the link
+     *  definition. If this is not the case, it returns the pointer as-is.
+     *
+     * @param linkdef     A pointer to the count marker in the linkdef.
+     * @param fetch_count A pointer to the int to update with the link count.
+     * @return A pointer to the ] after the link count, or the first usable character
+     *         after the parsed number if the ] is missing.
+     */
+    const char* parse_link_count(const char* linkdef, uint* fetch_count);
+
+
+    /** Generate a list of current links of the specified flavour from this object, recording
+     *  the link ID and destination, and possibly weighting information if needed and
+     *  weighting is enabled.
+     *
+     * @param flavour  The link flavour to include in the list.
+     * @param from     The ID of the object to fetch links from.
+     * @param weighted If true, weighting is enabled. `flavour` must be `ScriptParams` or `~ScriptParams`.
+     * @param mode     The link selection mode.
+     * @param links    A reference to a vector in which the list of links should be stored.
+     * @return The accumulated weights if weighting is enabled, the number of links if it is
+     *         not enabled, 0 indicates no matching links found.
+     */
+    uint link_scan(const char* flavour, const int from, const bool weighted, LinkMode mode, std::vector<LinkScanWorker>& links);
+
+
+    /** Select a link from the specified vector of links such that it has the target
+     *  cumulative weight, or is the closest greater weight.
+     *
+     * @param links  A reference to a list of LinkScanWorker structures containing weighted
+     *               link information. This must be ordered by ascending cumulative weight.
+     * @param target The target weight to fetch in the list.
+     * @param store  A refrence to a TargetObj structure to store the link and object id in.
+     * @return true if an item with the appropriate weight is located, false otherwise.
+     */
+    bool pick_weighted_link(std::vector<LinkScanWorker>& links, const uint target, TargetObj& store);
+
+
+    /** Compute the cumulative weightings for the links in the supplied vector.
+     *
+     * @param links A reference to a vector of links.
+     * @return The sum of all the weights specified in the links
+     */
+    uint build_link_weightsums(std::vector<LinkScanWorker>& links);
+
+
+    /** Choose an appropriate number of links at random from the specified links list.
+     *  This will randomise the list, and then choose the requested number of links
+     *  from it. Note that if fetch_count > 1, this can produce duplicate entries in
+     *  the matches list. The links are chosen *at random*, with no exclusion of
+     *  already selected links!
+     *
+     * @param matches       A pointer to the vector to store object IDs in.
+     * @param links         A reference to a vector of links.
+     * @param fetch_count   The number of links to fetch.
+     * @param fetch_all     Fetch all the links in a random order?
+     * @param total_weights The total of all the weights of the links in the links vector.
+     * @param is_weighted   If true, do a weighted random selection, otherwise all links
+     *                      can be selected equally.
+     */
+    void select_random_links(std::vector<TargetObj>* matches, std::vector<LinkScanWorker>& links, const uint fetch_count, const bool fetch_all, const uint total_weights, const bool is_weighted);
+
+
+    /** Copy the requested number of links from the link worker vector into the TargetObj
+     *  list. Note that, as the links vector is sorted by link id, the chosen links will
+     *  always be the same, given the same links list.
+     *
+     * @param matches       A pointer to the vector to store object IDs in.
+     * @param links         A reference to a vector of links.
+     * @param fetch_count   The number of links to fetch.
+     */
+    void select_links(std::vector<TargetObj>* matches, std::vector<LinkScanWorker>& links, const uint fetch_count);
+
+
+    /* ------------------------------------------------------------------------
+     *  Search methods
+     */
+
+    /** Determine whether the specified target string is a radius search, and if so
+     *  pull out its components. This will take a string like `5.00<Chest` and set
+     *  the radius to 5.0, set the lessthan variable to true, and set the archetype
+     *  string pointer to the start of the archetype name.
+     *
+     * @param target    The target string to check
+     * @param radius    A pointer to a float to store the radius value in.
+     * @param lessthan  A pointer to a bool. If the radius search is a < search
+     *                  this is set to true, otherwise it is set to false.
+     * @param archetype A pointer to a char pointer to set to the start of the
+     *                  archetype name.
+     * @return true if the target string is a radius search, false otherwise.
+     */
+    bool radius_search(const char* target, float* radius, bool* lessthan, const char** archetype);
+
+
+    /** Search for concrete objects that are descendants of the specified archetype,
+     *  either direct only (if do_full is false), or directly and indirectly. This
+     *  can also filter the results based on the distance the concrete objects are
+     *  from the specified object.
+     *
+     * @param matches   A pointer to the vector to store object ids in.
+     * @param archetype The name of the archetype to search for. *Must not* include
+     *                  and filtering (* or @) directives.
+     * @param do_full   If false, only concrete objects that are direct descendants of
+     *                  the archetype are matched. If true, all concrete objects that
+     *                  are descendants of the archetype, or any descendant of that
+     *                  archetype, are matched.
+     * @param do_radius If false, concrete objects are matched regardless of distance
+     *                  from the `from_obj`. If true, objects must be either inside
+     *                  the specified radius from the `from_obj`, or outside out depending
+     *                  on the `lessthan` flag.
+     * @param from_obj  When filtering objects based on their distance, this is the
+     *                  object that distance is measured from.
+     * @param radius    The radius of the sphere that matched objects must fall inside
+     *                  or outside.
+     * @param lessthan  If true, objects must fall within the sphere around from_obj,
+     *                  if false they must be outside it.
+     */
+    void archetype_search(std::vector<TargetObj>* matches, const char* archetype, bool do_full = false, bool do_radius = false, object from_obj = 0, float radius = 0.0f, bool lessthan = false);
+
 
 private:
     TargetMode      mode;        //!< Which mode is this target parameter working in?
@@ -476,6 +778,64 @@ private:
     int             objid_cache; //!< Used by TARGET_INT to store the target object id
     QVarCalculation qvar_calc;   //!< In TARGET_QVAR, this stores the qvar/qvar calc
     std::string     targetstr;   //!< In TARGET_COMPLEX, this is the target string
+
+    std::minstd_rand0 randomiser; //!< a random number generator for... random numbers.
 };
+
+
+/** A class that encapsulates multiple DesignParams to form a compound
+ *  type representing a capacitor description. Note that this does not
+ *  implement the capacitor behaviour - that is done by SavedCounter,
+ *  rather this collects together the [ScriptName][Param]Falloff/Limit
+ *  handling into one class.
+ */
+class DesignParamCapacitor
+{
+public:
+    /** Create a new DesignParamCapacitor. This creates the capacitor and
+     *  the additional design parameter variables needed for capacitor
+     *  operation.
+     *
+     * @param hostid The ID of the host object.
+     * @param script The name of the script the parameter is attached to.
+     * @param name   The name of the parameter.
+     */
+    DesignParamCapacitor(const int hostid, const std::string& script, const std::string& name) :
+        count(hostid, script, name),
+        falloff(hostid, script, name + "Falloff"),
+        limit(hostid, script, name + "Limit")
+        { /* fnord */ }
+
+
+    /** Initialise the DesignParamCapacitor based on the values specified.
+     *
+     * @param design_note   A reference to a string containing the design note to parse
+
+     * @return true on successful init (which may include when no parameter was set
+     *         in the design note!), false if init failed.
+     */
+    bool init(const std::string& design_note, int default_count = 1, int default_falloff = 0, bool default_limit = false);
+
+
+    /** Retrieve the value set for the capacitor count
+     */
+    int get_count() { return count.value(); }
+
+
+    /** Get the value set for the capacitor falloff, in milliseconds
+     */
+    int get_falloff() { return falloff.value(); }
+
+
+    /** Get the value set for the capacitor limiter
+     */
+    bool get_limit() { return limit.value(); }
+
+private:
+    DesignParamInt  count;   //!< The count for the capacitor, meaning varies on Trap/Trigger context!
+    DesignParamTime falloff; //!< The rate at which the count falls off.
+    DesignParamBool limit;   //!< Should the count be limited?
+};
+
 
 #endif // DESIGNPARAM_H

@@ -47,10 +47,10 @@ public:
      *
      * @param hostid The ID of the object this calculation is attached to.
      */
-    QVarCalculation(hostid) : host(hostid),
-                              lhs_qvar("") , rhs_qvar(""),
-                              lhs_val(0.0f), rhs_val(0.0f),
-                              calc_op(CALCOP_NONE)
+    QVarCalculation(int hostid) : host(hostid),
+                                  lhs_qvar("") , rhs_qvar(""),
+                                  lhs_val(0.0f), rhs_val(0.0f),
+                                  calc_op(CALCOP_NONE)
         { /* fnord */ }
 
 

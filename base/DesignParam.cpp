@@ -1,7 +1,19 @@
 
+#include <lg/interface.h>
+#include <lg/scrmsgs.h>
+#include <lg/scrmanagers.h>
+#include <lg/scrservices.h>
+#include <lg/objects.h>
+#include <lg/links.h>
+#include <lg/properties.h>
+#include <lg/propdefs.h>
+
 #include <cctype>
 #include <cstring>
 #include <cstdlib>
+#include <chrono>       // std::chrono::system_clock
+#include <algorithm>    // std::sort and std::shuffle
+
 #include "QVarWrapper.h"
 #include "DesignParam.h"
 #include "ScriptLib.h"
@@ -55,7 +67,12 @@ bool DesignParamFloat::init(const std::string& design_note, const float default_
 
     bool valid = get_param_string(design_note, param);
     if(valid) {
+        // NOTE: In DesignParamFloat and all subclasses, `data` is a QVarCalculation!
         valid = data.init(param, default_value, add_listeners);
+
+    // Parameter retrieval failed - use the default
+    } else {
+        valid = data.init("", default_value);
     }
 
     return valid;
@@ -131,6 +148,10 @@ bool DesignParamTime::init(const std::string& design_note, int default_value, co
             // Otherwise, this might be a qvar calc
             return DesignParamInt::init(param, store, add_listeners);
         }
+
+    // If fetch fails, fall back on the default
+    } else {
+        return DesignParamInt::init("", default_value);
     }
 
     return false;
@@ -189,6 +210,10 @@ bool DesignParamBool::init(const std::string& design_note, bool default_value, c
             // Otherwise, this might be a qvar calc
             return DesignParamInt::init(param, store ? 1 : 0, add_listeners);
         }
+
+    // If fetch fails, fall back on the default
+    } else {
+        return DesignParamInt::init("", static_cast<int>(default_value));
     }
 
     return false;
@@ -196,36 +221,54 @@ bool DesignParamBool::init(const std::string& design_note, bool default_value, c
 
 
 /* ------------------------------------------------------------------------
- *  DesignParamTarget
+ *  DesignParamCountMode
  */
 
 
-namespace {
-    /** Determine whether the specified parameter contains a target
-     *  string that can not have its results cached. This inspects
-     *  the provided parameter and returns true if it contains a
-     *  target string  that may match different objects each time
-     *  value() is called.
-     *
-     * @param param A reference to a string containing the parameter to check.
-     * @return true if the parameter string contains an uncacheable
-     *         target string, false otherwise.
-     */
-    bool is_complex_target(const std::string& param)
-    {
-        char sigil = param[0];
+bool DesignParamCountMode::init(const std::string &design_note, CountMode default_value)
+{
+    std::string param;
 
-        // Complex targets include all forms of target string that may need
-        // to be fully processed with each call to value() - they are generally
-        // easy to identify as they either contain [source] or start with a
-        // recognised sigils
-        return (param == "[source]" ||          // message sender
-                sigil == '&' ||                 // link search
-                sigil == '*' || sigil == '@' || // archetype search
-                sigil == '<' || sigil == '>');  // Radius search
+    // Fetch the raw string from the design note
+    bool valid = get_param_string(design_note, param);
+    if(valid) {
+        const char* mstr = param.c_str();
+        char* end  = NULL;
+
+        // First up, art thou an int?
+        int parsed = strtol(mstr, &end, 10);
+        if(mstr != end) {
+            // Well, something parsed, only update the result if it is in range!
+            if(parsed >= CM_NOTHING && parsed <= CM_BOTH) {
+               mode = static_cast<CountMode>(parsed);
+            }
+
+        // Doesn't appear to be numeric, so search for known modes
+        } else if(!::_stricmp(mstr, "None")) {
+            mode = CM_NOTHING;
+        } else if(!::_stricmp(mstr, "On")) {
+            mode = CM_TURNON;
+        } else if(!::_stricmp(mstr, "Off")) {
+            mode = CM_TURNOFF;
+        } else if(!::_stricmp(mstr, "Both")) {
+            mode = CM_BOTH;
+
+        // Nothing valid, fall back on the default
+        } else {
+            mode = default_value;
+        }
+    } else {
+        mode = default_value;
     }
+
+    return valid;
 }
 
+
+
+/* ------------------------------------------------------------------------
+ *  DesignParamTarget
+ */
 
 bool DesignParamTarget::init(const std::string& design_note, const bool add_listeners)
 {
@@ -233,81 +276,136 @@ bool DesignParamTarget::init(const std::string& design_note, const bool add_list
 
     // Fetch the raw string from the design note
     bool valid = get_param_string(design_note, param);
-    if(valid) {
-        // [me] is always going to be the host object id
-        if(param == "[me]") {
-            objid_cache = host;
-            mode = TARGET_INT;
+    if(!valid) {
+        return false;
+    }
 
-        // Target may be a QVar calculation (leading $ or all digits)
-        } else if(qvar_calc.init(param)) {
-            mode = TARGET_QVAR;
+    // [me] is always going to be the host object ID
+    if(param == "[me]") {
+        objid_cache = hostid();
+        mode = TARGET_INT;
 
-        // Check for known target incantations
-        } else if(is_complex_target(param)) {
-            targetstr = param;
-            mode = TARGET_COMPLEX;
+    // [source] is special and uses the message source as the ID
+    } else if(param == "[source]") {
+        mode = TARGET_SOURCE;
 
-        // Treat anything else as a bare object name
-        } else {
-            SInterface<IObjectSystem> ObjectSys(g_pScriptManager);
+    // Check for known target incantations
+    } else if(is_complex_target(param)) {
+        targetstr = param;
 
-            objid_cache = ObjectSys -> GetObjectNamed(target);
-            mode = TARGET_INT;
-        }
+    // Target may be a QVar calculation (leading $ or all digits)
+    } else if(qvar_calc.init(param)) {
+        mode = TARGET_QVAR;
+
+    // Treat anything else as a bare object name
+    } else {
+        SInterface<IObjectSystem> ObjectSys(g_pScriptManager);
+
+        objid_cache = ObjectSys -> GetObjectNamed(param.c_str());
+        mode = TARGET_INT;
+    }
+
+    // Set up randomisation
+    uint seed = std::chrono::system_clock::now().time_since_epoch().count();
+    randomiser.seed(seed);
+
+    return true;
+}
+
+
+bool DesignParamTarget::is_complex_target(const std::string& param)
+{
+    char sigil = param[0];
+
+    // link search
+    if(sigil == '&') {
+        mode = TARGET_LINK;
+        return true;
+
+    // archetype search
+    } else if(sigil == '*') {
+        mode = TARGET_ATYPE_DIRECT;
+        return true;
+
+    } else if(sigil == '@') {
+        mode = TARGET_ATYPE_INDIRECT;
+        return true;
+
+    // Radius search
+    } else if(sigil == '<') {
+        mode = TARGET_RADIUS_LT;
+        return true;
+
+    } else if(sigil == '>') {
+        mode = TARGET_RADIUS_GT;
+        return true;
+
     }
 
     return false;
 }
 
 
-
-
-
-
-
 /* ------------------------------------------------------------------------
  *  Targetting
  */
 
-std::vector<TargetObj>* DesignParamTarget::get_target_objects(const char* target, sScrMsg* msg)
+std::vector<TargetObj>* DesignParamTarget::values(sScrMsg* msg)
 {
     std::vector<TargetObj>* matches = new std::vector<TargetObj>;
-
-    // Make sure target is actually set before doing anything
-    if(!target || *target == '\0') return matches;
 
     float radius;
     bool  lessthan;
     const char* archname;
     TargetObj newtarget = { 0, 0 };
 
-    // Simple message source selection.
-    if(!_stricmp(target, "[source]")) {
-        newtarget.obj_id = msg -> from;
-        matches -> push_back(newtarget);
+    switch(mode) {
+        case TARGET_INT:
+            newtarget.obj_id = objid_cache;
+            matches -> push_back(newtarget);
 
-    // objects linked to the host object through a named link
-    } else if(*target == '&') {
-        link_search(matches, host, &target[1]);
+            break;
 
-    // Archetype search, direct concrete and indirect concrete
-    } else if(*target == '*' || *target == '@') {
-        archetype_search(matches, &target[1], *target == '@');
+        case TARGET_QVAR:
+            newtarget.obj_id = static_cast<int>(qvar_calc.value());
+            matches -> push_back(newtarget);
 
-    // Radius archetype search
-    } else if(*target == '<' || *target == '>') {
-        if(radius_search(target, &radius, &lessthan, &archname)) {
-            const char* realname = archname;
-            // Jump filter controls if needed...
-            if(*archname == '*' || *archname == '@') ++realname;
+            break;
 
-            // Default behaviour for radius search is to get all decendants unless * is specified.
-            archetype_search(matches, realname, *archname != '*', true, msg -> to, radius, lessthan);
-        }
+        case TARGET_SOURCE:
+            newtarget.obj_id = msg -> from;
+            matches -> push_back(newtarget);
 
-    // Give up, treat as named destination object
-    } else {
+            break;
+
+        case TARGET_LINK:
+            link_search(matches, hostid(), targetstr.c_str());
+
+            break;
+
+        case TARGET_ATYPE_DIRECT:
+        case TARGET_ATYPE_INDIRECT:
+            archname = targetstr.c_str();
+            archetype_search(matches, &archname[1], mode == TARGET_ATYPE_INDIRECT);
+
+            break;
+
+        case TARGET_RADIUS_LT:
+        case TARGET_RADIUS_GT:
+
+            if(radius_search(targetstr.c_str(), &radius, &lessthan, &archname)) {
+                const char* realname = archname;
+                // Jump filter controls if needed...
+                if(*archname == '*' || *archname == '@') ++realname;
+
+                // Default behaviour for radius search is to get all decendants unless * is specified.
+                archetype_search(matches, realname, *archname != '*', true, msg -> to, radius, lessthan);
+            }
+
+            break;
+
+        default: // Nothing here yet.
+            break;
     }
 
     return matches;
@@ -641,4 +739,20 @@ void DesignParamTarget::archetype_search(std::vector<TargetObj>* matches, const 
             }
         }
     }
+}
+
+
+/* ------------------------------------------------------------------------
+ *  DesignParamCapacitor
+ */
+
+
+bool DesignParamCapacitor::init(const std::string& design_note, int default_count, int default_falloff, bool default_limit)
+{
+    bool success = count.init(design_note, default_count);
+
+    falloff.init(design_note, default_falloff);
+    limit.init(design_note, default_limit);
+
+    return success;
 }
