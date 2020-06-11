@@ -45,8 +45,10 @@ public:
      * @return A new TWBaseTrap object.
      */
     TWBaseTrap(const char* name, int object) : TWBaseScript(name, object),
-                                               turnon_msg("TurnOn"), turnoff_msg("TurnOff"),
-                                               count(name, object), count_mode(CM_BOTH),
+                                               turnon_msg (object, name, "TurnOn"),
+                                               turnoff_msg(object, name, "TurnOff"),
+                                               count(name, object),
+                                               count_mode(object, name, CM_BOTH),
                                                on_capacitor(name, object), off_capacitor(name, object)
         { /* fnord */ }
 
@@ -116,12 +118,12 @@ private:
      */
 
     // Message names
-    std::string turnon_msg;        //!< The name of the message that should tigger the 'TurnOn' action
-    std::string turnoff_msg;       //!< The name of the message that should tigger the 'TurnOff' action
+    DesignParamString turnon_msg;    //!< The name of the message that should tigger the 'TurnOn' action
+    DesignParamString turnoff_msg;   //!< The name of the message that should tigger the 'TurnOff' action
 
     // Count handling
-    SavedCounter count;         //!< Control how many times the script will work
-    CountMode    count_mode;    //!< What counts as 'working'?
+    SavedCounter count;              //!< Control how many times the script will work
+    DesignParamCountMode count_mode; //!< What counts as 'working'?
 
     // Capacitors
     SavedCounter on_capacitor;  //!< Control how frequently TurnOn actions work

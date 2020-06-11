@@ -66,21 +66,13 @@ TWBaseScript::MsgStatus TWBaseTrap::on_message(sScrMsg* msg, cMultiParm& reply)
 void TWBaseTrap::init(int time)
 {
     TWBaseScript::init(time);
-
     char *msg;
     char *design_note = GetObjectParams(ObjId());
 
     if(design_note) {
         // Work out what the turnon and turnoff messages should be
-        if((msg = get_scriptparam_string(design_note, "On", "TurnOn")) != NULL) {
-            turnon_msg = msg;
-            g_pMalloc -> Free(msg);
-        }
-
-        if((msg = get_scriptparam_string(design_note, "Off", "TurnOff")) != NULL) {
-            turnoff_msg = msg;
-            g_pMalloc -> Free(msg);
-        }
+        turnon_msg.init(design_note, "TurnOn");
+        turnoff_msg.init(design_note, "TurnOff");
 
         if(debug_enabled())
             debug_printf(DL_DEBUG, "Trap initialised with on = '%s', off = '%s'", turnon_msg.c_str(), turnoff_msg.c_str());
