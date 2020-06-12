@@ -7,6 +7,7 @@
 #include <lg/links.h>
 #include <lg/properties.h>
 #include <lg/propdefs.h>
+#include <lg/types.h>
 
 #include <cctype>
 #include <cstring>
@@ -746,7 +747,6 @@ void DesignParamTarget::archetype_search(std::vector<TargetObj>* matches, const 
  *  DesignParamCapacitor
  */
 
-
 bool DesignParamCapacitor::init(const std::string& design_note, int default_count, int default_falloff, bool default_limit)
 {
     bool success = count.init(design_note, default_count);
@@ -755,4 +755,65 @@ bool DesignParamCapacitor::init(const std::string& design_note, int default_coun
     limit.init(design_note, default_limit);
 
     return success;
+}
+
+
+/* ------------------------------------------------------------------------
+ *  DesignParamFloatVec
+ */
+
+namespace {
+
+    void split_vec_string(const std::string &param, std::string &x, std::string &y, std::string &z)
+    {
+        std::size_t from = 0;
+        std::size_t cpos = param.find(",");
+
+        if(cpos != std::string::npos) {
+            x = param.substr(from, cpos);
+
+            from = cpos + 1;
+            cpos = param.find(",");
+
+            if(cpos != std::string::npos) {
+                y = param.substr(from, cpos - from);
+                z = param.substr(cpos + 1);
+            }
+        }
+    }
+
+}
+
+
+bool DesignParamFloatVec::init(const std::string& design_note, const float def_x , const float def_y, const float def_z, const bool add_listeners)
+{
+    std::string param;
+
+    bool valid = get_param_string(design_note, param);
+    if(valid) {
+        std::string x, y, z;
+
+        split_vec_string(param, x, y, z);
+        x_calc.init(x, def_x, add_listeners);
+        y_calc.init(y, def_y, add_listeners);
+        z_calc.init(z, def_z, add_listeners);
+
+    // Nothing read from the design note - initialse with defaults
+    } else {
+        x_calc.init("", def_x, false);
+        y_calc.init("", def_y, false);
+        z_calc.init("", def_z, false);
+    }
+
+    return valid;
+}
+
+
+const cScrVec& DesignParamFloatVec::value()
+{
+    vect.x = x_calc.value();
+    vect.y = y_calc.value();
+    vect.z = z_calc.value();
+
+    return vect;
 }

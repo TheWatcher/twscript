@@ -359,83 +359,6 @@ protected:
 
 
     /* ------------------------------------------------------------------------
-     *  Design note support
-     */
-
-    /** Parse a string containing either a float value, or a qvar name, and
-     *  return the float value contained in the string or qvar. See the docs
-     *  for get_param_float for more information.
-     *
-     * @param param       A string to parse.
-     * @param def_val     The default value to use if the string does not contain
-     *                    a parseable value, or it references a non-existent QVar
-     *                    (note that qvar_str will contain the QVar name, even if
-     *                    the QVar does not exist)
-     * @param qvar_str    A reference to a string to store the quest var name, or
-     *                    quest var and simple calculation string.
-     * @return The value specified in the string, or the float version of a value
-     *         read from the qvar named in the string.
-     */
-    float parse_float(const char* param, float def_val, std::string& qvar_str);
-
-
-
-    /** Read a float parameter from a design note string. If the value specified
-     *  for the parameter in the design note is a simple number, this behaves
-     *  identically to GetParamFloat(). However, this allows the user to specify
-     *  the name of a QVar to read the value from by placing $ before the QVar
-     *  name, eg: `ExampleParam='$a_quest_var'`. If a qvar is specified in this
-     *  way, the user may also include the simple calculations supported by
-     *  get_qvar_value(). If a QVar is specified - with or without additional
-     *  calculations - the parameter string, with the leading $ removed, is stored
-     *  in the provided qvar_str for later use.
-     *
-     * @note Unlike the GetParamFloat() function, this will automatically prepend
-     *       the script name to the specified parameter name. So, for example, if
-     *       this is called from within `FooScript` with `name` set to `Bar`, the
-     *       parameter this will actually try to parse a float value for will be
-     *       `FooScriptBar`.
-     *
-     * @param design_note The design note string to parse the parameter from.
-     * @param param       The name of the parameter to parse. This will be prepended
-     *                    with the current script name.
-     * @param def_val     The default value to use if the parameter does not exist,
-     *                    or it references a non-existent QVar (note that qvar_str
-     *                    will contain the parameter string even if the QVar does
-     *                    not exist)
-     * @param qvar_str    A reference to a string to store the quest var name, or
-     *                    quest var and simple calculation string.
-     * @return The value specified in the parameter, or the float version of a value
-     *         read from the qvar named in the parameter.
-     */
-    float get_scriptparam_float(const char* design_note, const char* param, float def_val, std::string& qvar_str);
-
-
-    /** Read a float vector (triple of three floats) from a design note string. This
-     *  behaves in the same way as get_param_float(), except that instead of a single
-     *  float value or QVar string, this expects three comma-separated float or QVar
-     *  strings, one for each component of a vector (x, y, and z, in that order).
-     *  If components are missing, this will use the specified default values
-     *  instead.
-     *
-     * @param design_note The design note string to parse the parameter from.
-     * @param param       The name of the parameter to parse.  This will be prepended
-     *                    with the current script name.
-     * @param vect        A reference to a vector to store the values in.
-     * @param defx        The default value to use if no value has been set for the x component.
-     * @param defy        The default value to use if no value has been set for the y component.
-     * @param defz        The default value to use if no value has been set for the z component.
-     * @return true if the named parameter <b>is present in the design note</b>. false
-     *         if it is not. Note that this returns true even if the user has simply
-     *         provided the parameter with no actual values, and defaults have been
-     *         used for all the vector components. This should not be treated as indicating
-     *         whether any values were parsed, rather it should be used to determine
-     *         whether the parameter has been found.
-     */
-    bool get_scriptparam_floatvec(const char* design_note, const char* param, cScrVec &vect, float defx = 0.0f, float defy = 0.0f, float defz = 0.0f);
-
-
-    /* ------------------------------------------------------------------------
      *  Link inspection
      */
 
@@ -478,18 +401,6 @@ private:
      *  breaks without it, so here it is. Mysterious functions. Yey.
      */
     void fixup_player_links(void);
-
-
-    /** Split a string at a comma. This locates the first comma in the specified string,
-     *  replaces the comma with a null character, and returns a pointer to the character
-     *  immediately following the replaced comma.
-     *
-     * @param src A pointer to a string to split at the first comma.
-     * @return A pointer to the character immediately after a comma split, or NULL if
-     *         the src string does not contain any commas.
-     */
-    char* comma_split(char* src);
-
 
     /* ------------------------------------------------------------------------
      *  Variables

@@ -772,12 +772,12 @@ protected:
 
 
 private:
-    TargetMode      mode;        //!< Which mode is this target parameter working in?
+    TargetMode      mode;         //!< Which mode is this target parameter working in?
 
     // FIXME: Can we just union this?
-    int             objid_cache; //!< Used by TARGET_INT to store the target object id
-    QVarCalculation qvar_calc;   //!< In TARGET_QVAR, this stores the qvar/qvar calc
-    std::string     targetstr;   //!< In TARGET_COMPLEX, this is the target string
+    int             objid_cache;  //!< Used by TARGET_INT to store the target object id
+    QVarCalculation qvar_calc;    //!< In TARGET_QVAR, this stores the qvar/qvar calc
+    std::string     targetstr;    //!< In TARGET_COMPLEX, this is the target string
 
     std::minstd_rand0 randomiser; //!< a random number generator for... random numbers.
 };
@@ -807,7 +807,11 @@ public:
         { /* fnord */ }
 
 
-    /** Initialise the DesignParamCapacitor based on the values specified.
+    /** Initialise the DesignParamCapacitor based on the values specified. Note
+     *  that this explicitly *DOES NOT* allow listeners to be attached to any
+     *  possible qvar calculations in the design note parameter for the capacitor,
+     *  as we'd need to allow for readjustment after init and that's a cavern of
+     *  woe and spiders.
      *
      * @param design_note   A reference to a string containing the design note to parse
 
@@ -835,6 +839,38 @@ private:
     DesignParamInt  count;   //!< The count for the capacitor, meaning varies on Trap/Trigger context!
     DesignParamTime falloff; //!< The rate at which the count falls off.
     DesignParamBool limit;   //!< Should the count be limited?
+};
+
+
+
+class DesignParamFloatVec : public DesignParam
+{
+public:
+    DesignParamFloatVec(const int hostid, const std::string& script, const std::string& name) :
+        DesignParam(hostid, script, name),
+        x_calc(hostid), y_calc(hostid), z_calc(hostid),
+        vect()
+        { /* fnord */ }
+
+
+    /** Initialise the DesignParamFloatVec based on the values specified.
+     *
+     * @param design_note   A reference to a string containing the design note to parse
+
+     * @return true on successful init (which may include when no parameter was set
+     *         in the design note!), false if init failed.
+     */
+    bool init(const std::string& design_note, const float def_x = 0.0f, const float def_y = 0.0f, const float def_z = 0.0f, const bool add_listeners = false );
+
+
+    const cScrVec& value();
+
+private:
+    QVarCalculation x_calc;
+    QVarCalculation y_calc;
+    QVarCalculation z_calc;
+
+    cScrVec vect;
 };
 
 

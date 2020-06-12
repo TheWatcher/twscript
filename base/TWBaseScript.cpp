@@ -215,69 +215,6 @@ void TWBaseScript::get_object_namestr(std::string& name)
 
 
 /* ------------------------------------------------------------------------
- *  Design note support
- */
-
-float TWBaseScript::parse_float(const char* param, float def_val, std::string& qvar_str)
-{
-    float result = def_val;
-
-    // Gracefully handle the situation where the parameter is NULL or empty
-    if(param || *param == '\0') {
-        // Skip any leading whitespace
-        while(isspace(*param)) {
-            ++param;
-        }
-
-        // Starting with $ indicates that the string contains a qvar, fetch it
-        if(*param == '$') {
-            // Store the qvar string for later
-            qvar_str = &param[1];
-            result = get_qvar_value(qvar_str, def_val);
-
-        // Otherwise assume it's a float string
-        } else {
-            char* endstr;
-            result = strtof(param, &endstr);
-
-            // Restore the default if parsing failed
-            if(endstr == param) result = def_val;
-        }
-    }
-
-    return result;
-}
-
-
-bool TWBaseScript::get_scriptparam_floatvec(const char* design_note, const char* param, cScrVec& vect, float defx, float defy, float defz)
-{
-    bool parsed = false;
-    char* value = get_scriptparam_string(design_note, param, NULL);
-
-    if(value) {
-        char* ystr = comma_split(value);              // Getting y is safe...
-        char* zstr = ystr ? comma_split(ystr) : NULL; // z needs to be handled more carefully
-
-        std::string tmp; // This is actually throw-away, needed for parse_float
-
-        vect.x = parse_float(value, defx, tmp);
-        vect.y = parse_float( ystr, defy, tmp); // Note these are safe even if ystr and zstr are NULL
-        vect.z = parse_float( zstr, defz, tmp); // as parse_float checks for non-NULL
-
-        parsed = true;
-
-        g_pMalloc -> Free(value);
-    } else {
-        vect.x = defx;
-        vect.y = defy;
-        vect.z = defz;
-    }
-
-    return parsed;
-}
-
-
-/* ------------------------------------------------------------------------
  *  Link inspection
  */
 
@@ -430,18 +367,4 @@ void TWBaseScript::fixup_player_links(void)
     } else {
         g_pScriptManager -> SetTimedMessage2(ObjId(), "DelayInit", 1, kSTM_OneShot, "FixupPlayerLinks");
     }
-}
-
-
-char* TWBaseScript::comma_split(char* src)
-{
-    while(*src) {
-        if(*src == ',') {
-            *src = '\0';
-            return (src + 1);
-        }
-        ++src;
-    }
-
-    return NULL;
 }
