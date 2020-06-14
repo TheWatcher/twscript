@@ -32,7 +32,7 @@
 # Update these with the name of your script file, and the output .osm
 MYSCRIPT  = TWScript
 MYOSM     = twscript.osm
-SCRIPTVER = 2.0.8
+SCRIPTVER = 3.0.0
 
 # Change this to `1` for Thief 1, 3 for SS2.
 GAME      = 2
@@ -87,13 +87,15 @@ PACKARGS  = a -t7z -m0=lzma -mx=9 -mfb=64 -md=32m -ms=on
 
 # Core scripts objects
 PUB_OBJS  = $(PUBDIR)/ScriptModule.o $(PUBDIR)/Script.o $(PUBDIR)/Allocator.o $(PUBDIR)/exports.o
-BASE_OBJS = $(BASEDIR)/TWBaseScript.o $(BASEDIR)/TWBaseTrap.o $(BASEDIR)/TWBaseTrigger.o $(BASEDIR)/SavedCounter.o
+BASE_OBJS = $(BASEDIR)/TWBaseScript.o $(BASEDIR)/TWBaseTrap.o $(BASEDIR)/TWBaseTrigger.o $(BASEDIR)/SavedCounter.o $(BASEDIR)/DesignParam.o $(BASEDIR)/QVarCalculation.o $(BASEDIR)/QVarWrapper.o
 MISC_OBJS = $(BINDIR)/ScriptDef.o $(PUBDIR)/utils.o
 
 # Custom script objects
-SCR_OBJS  = $(SCRPTDIR)/TWTrapAIBreath.o $(SCRPTDIR)/TWTrapPhysStateCtrl.o $(SCRPTDIR)/TWTrapSetSpeed.o $(SCRPTDIR)/TWTrapAIEcology.o \
-	        $(SCRPTDIR)/TWCloudDrift.o $(SCRPTDIR)/TWTestOnscreen.o \
-            $(SCRPTDIR)/TWTriggerAIAware.o $(SCRPTDIR)/TWTriggerVisible.o $(SCRPTDIR)/TWTriggerAIEcologyDespawn.o $(SCRPTDIR)/TWTriggerAIEcologyFireShadow.o
+#SCR_OBJS  = $(SCRPTDIR)/TWTrapAIBreath.o $(SCRPTDIR)/TWTrapPhysStateCtrl.o $(SCRPTDIR)/TWTrapSetSpeed.o $(SCRPTDIR)/TWTrapAIEcology.o \
+#	        $(SCRPTDIR)/TWCloudDrift.o $(SCRPTDIR)/TWTestOnscreen.o \
+#            $(SCRPTDIR)/TWTriggerAIAware.o $(SCRPTDIR)/TWTriggerVisible.o $(SCRPTDIR)/TWTriggerAIEcologyDespawn.o $(SCRPTDIR)/TWTriggerAIEcologyFireShadow.o
+SCR_OBJS  = $(SCRPTDIR)/TWTrapAIBreath.o  $(SCRPTDIR)/TWTrapSetSpeed.o $(SCRPTDIR)/TWTriggerVisible.o
+
 RES_OBJS  = $(BINDIR)/$(MYSCRIPT)_res.o
 
 # Docs
@@ -164,21 +166,25 @@ $(BASEDIR)/TWBaseScript.o: $(BASEDIR)/TWBaseScript.cpp $(BASEDIR)/TWBaseScript.h
 $(BASEDIR)/TWBaseTrap.o: $(BASEDIR)/TWBaseTrap.cpp $(BASEDIR)/TWBaseTrap.h $(BASEDIR)/TWBaseScript.h $(BASEDIR)/SavedCounter.h $(PUBDIR)/Script.h
 $(BASEDIR)/TWBaseTrigger.o: $(BASEDIR)/TWBaseTrigger.cpp $(BASEDIR)/TWBaseTrigger.h $(BASEDIR)/TWBaseScript.h $(BASEDIR)/SavedCounter.h $(PUBDIR)/Script.h
 $(BASEDIR)/SavedCounter.o: $(BASEDIR)/SavedCounter.cpp $(BASEDIR)/SavedCounter.h
+$(BASEDIR)/DesignParam.o: $(BASEDIR)/DesignParam.cpp $(BASEDIR)/DesignParam.h
+$(BASEDIR)/QVarCalculation.o: $(BASEDIR)/QVarCalculation.cpp $(BASEDIR)/QVarCalculation.h
+$(BASEDIR)/QVarWrapper.o: $(BASEDIR)/QVarWrapper.cpp $(BASEDIR)/QVarWrapper.h
 
 $(SCRPTDIR)/TWTrapAIBreath.o: $(SCRPTDIR)/TWTrapAIBreath.cpp $(SCRPTDIR)/TWTrapAIBreath.h $(BASEDIR)/TWBaseTrap.h $(BASEDIR)/TWBaseScript.h $(PUBDIR)/Script.h
-$(SCRPTDIR)/TWTrapPhysStateCtrl.o: $(SCRPTDIR)/TWTrapPhysStateCtrl.cpp $(SCRPTDIR)/TWTrapPhysStateCtrl.h $(BASEDIR)/TWBaseTrap.h $(BASEDIR)/TWBaseScript.h $(PUBDIR)/Script.h
+#$(SCRPTDIR)/TWTrapPhysStateCtrl.o: $(SCRPTDIR)/TWTrapPhysStateCtrl.cpp $(SCRPTDIR)/TWTrapPhysStateCtrl.h $(BASEDIR)/TWBaseTrap.h $(BASEDIR)/TWBaseScript.h $(PUBDIR)/Script.h
 $(SCRPTDIR)/TWTrapSetSpeed.o: $(SCRPTDIR)/TWTrapSetSpeed.cpp $(SCRPTDIR)/TWTrapSetSpeed.h $(BASEDIR)/TWBaseTrap.h $(BASEDIR)/TWBaseScript.h $(PUBDIR)/Script.h
-$(SCRPTDIR)/TWTrapAIEcology.o: $(SCRPTDIR)/TWTrapAIEcology.cpp $(SCRPTDIR)/TWTrapAIEcology.h $(BASEDIR)/TWBaseTrap.h $(BASEDIR)/TWBaseScript.h $(PUBDIR)/Script.h
+#$(SCRPTDIR)/TWTrapAIEcology.o: $(SCRPTDIR)/TWTrapAIEcology.cpp $(SCRPTDIR)/TWTrapAIEcology.h $(BASEDIR)/TWBaseTrap.h $(BASEDIR)/TWBaseScript.h $(PUBDIR)/Script.h
 
-$(SCRPTDIR)/TWCloudDrift.o: $(SCRPTDIR)/TWCloudDrift.cpp $(SCRPTDIR)/TWCloudDrift.h $(BASEDIR)/TWBaseScript.h $(PUBDIR)/Script.h
-$(SCRPTDIR)/TWTestOnscreen.o: $(SCRPTDIR)/TWTestOnscreen.cpp $(SCRPTDIR)/TWTestOnscreen.h $(BASEDIR)/TWBaseScript.h $(PUBDIR)/Script.h
+#$(SCRPTDIR)/TWCloudDrift.o: $(SCRPTDIR)/TWCloudDrift.cpp $(SCRPTDIR)/TWCloudDrift.h $(BASEDIR)/TWBaseScript.h $(PUBDIR)/Script.h
+#$(SCRPTDIR)/TWTestOnscreen.o: $(SCRPTDIR)/TWTestOnscreen.cpp $(SCRPTDIR)/TWTestOnscreen.h $(BASEDIR)/TWBaseScript.h $(PUBDIR)/Script.h
 
-$(SCRPTDIR)/TWTriggerAIAware.o: $(SCRPTDIR)/TWTriggerAIAware.cpp $(SCRPTDIR)/TWTriggerAIAware.h $(BASEDIR)/TWBaseTrigger.h $(PUBDIR)/Script.h
+#$(SCRPTDIR)/TWTriggerAIAware.o: $(SCRPTDIR)/TWTriggerAIAware.cpp $(SCRPTDIR)/TWTriggerAIAware.h $(BASEDIR)/TWBaseTrigger.h $(PUBDIR)/Script.h
 $(SCRPTDIR)/TWTriggerVisible.o: $(SCRPTDIR)/TWTriggerVisible.cpp $(SCRPTDIR)/TWTriggerVisible.h $(BASEDIR)/TWBaseTrigger.h $(PUBDIR)/Script.h
-$(SCRPTDIR)/TWTriggerAIEcologyDespawn.o: $(SCRPTDIR)/TWTriggerAIEcologyDespawn.cpp $(SCRPTDIR)/TWTriggerAIEcologyDespawn.h $(BASEDIR)/TWBaseTrigger.h $(PUBDIR)/Script.h
-$(SCRPTDIR)/TWTriggerAIEcologyFireShadow.o: $(SCRPTDIR)/TWTriggerAIEcologyFireShadow.cpp $(SCRPTDIR)/TWTriggerAIEcologyFireShadow.h $(BASEDIR)/TWBaseTrigger.h $(PUBDIR)/Script.h
+#$(SCRPTDIR)/TWTriggerAIEcologyDespawn.o: $(SCRPTDIR)/TWTriggerAIEcologyDespawn.cpp $(SCRPTDIR)/TWTriggerAIEcologyDespawn.h $(BASEDIR)/TWBaseTrigger.h $(PUBDIR)/Script.h
+#$(SCRPTDIR)/TWTriggerAIEcologyFireShadow.o: $(SCRPTDIR)/TWTriggerAIEcologyFireShadow.cpp $(SCRPTDIR)/TWTriggerAIEcologyFireShadow.h $(BASEDIR)/TWBaseTrigger.h $(PUBDIR)/Script.h
 
-$(BINDIR)/ScriptDef.o: ScriptDef.cpp $(SCRPTDIR)/TWTrapSetSpeed.h $(SCRPTDIR)/TWTrapPhysStateCtrl.h $(BASEDIR)/TWBaseTrap.h $(BASEDIR)/TWBaseScript.h $(PUBDIR)/ScriptModule.h $(PUBDIR)/genscripts.h
+#$(BINDIR)/ScriptDef.o: ScriptDef.cpp $(SCRPTDIR)/TWTrapSetSpeed.h $(SCRPTDIR)/TWTrapPhysStateCtrl.h $(BASEDIR)/TWBaseTrap.h $(BASEDIR)/TWBaseScript.h $(PUBDIR)/ScriptModule.h $(PUBDIR)/genscripts.h
+$(BINDIR)/ScriptDef.o: ScriptDef.cpp $(SCRPTDIR)/TWTrapSetSpeed.h $(BASEDIR)/TWBaseTrap.h $(BASEDIR)/TWBaseScript.h $(PUBDIR)/ScriptModule.h $(PUBDIR)/genscripts.h
 $(BINDIR)/$(MYSCRIPT)_res.o: $(MYSCRIPT).rc $(PUBDIR)/version.rc
 
 $(BINDIR):

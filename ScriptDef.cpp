@@ -62,34 +62,34 @@
 #include "TWBaseTrigger.h"
 
 #include "TWTrapAIBreath.h"
-#include "TWTrapPhysStateCtrl.h"
+//#include "TWTrapPhysStateCtrl.h"
 #include "TWTrapSetSpeed.h"
-#include "TWTrapAIEcology.h"
+//#include "TWTrapAIEcology.h"
 
-#include "TWCloudDrift.h"
-#include "TWTestOnscreen.h"
+//#include "TWCloudDrift.h"
+//#include "TWTestOnscreen.h"
 
-#include "TWTriggerAIAware.h"
+//#include "TWTriggerAIAware.h"
 #include "TWTriggerVisible.h"
-#include "TWTriggerAIEcologyDespawn.h"
-#include "TWTriggerAIEcologyFireShadow.h"
+//#include "TWTriggerAIEcologyDespawn.h"
+//#include "TWTriggerAIEcologyFireShadow.h"
 
 #undef TWBASESCRIPT_H
 #undef TWBASETRAP_H
 #undef TWBASETRIGGER_H
 
 #undef TWTRAPAIBREATH_H
-#undef TWTRAPPHYSSTATECTRL_H
+//#undef TWTRAPPHYSSTATECTRL_H
 #undef TWTRAPSETSPEED_H
-#undef TWTRAPAIECOLOGY_H
+//#undef TWTRAPAIECOLOGY_H
 
-#undef TWCLOUDDRIFT_H
-#undef TWTESTONSCREEN_H
+//#undef TWCLOUDDRIFT_H
+//#undef TWTESTONSCREEN_H
 
-#undef TWTRIGGERAIAWARE_H
+//#undef TWTRIGGERAIAWARE_H
 #undef TWTRIGGERVISIBLE_H
-#undef TWTRIGGERAIECOLOGYDESPAWN_H
-#undef TWTRIGGERAIECOLOGYFIRESHADOW_H
+//#undef TWTRIGGERAIECOLOGYDESPAWN_H
+//#undef TWTRIGGERAIECOLOGYFIRESHADOW_H
 
 #if defined(SCR_GENSCRIPTFACTORY)
 
