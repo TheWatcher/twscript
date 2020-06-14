@@ -47,9 +47,13 @@ public:
     TWBaseTrap(const char* name, int object) : TWBaseScript(name, object),
                                                turnon_msg (object, name, "TurnOn"),
                                                turnoff_msg(object, name, "TurnOff"),
+                                               limit_dp(object, name, "Count"),
                                                count(name, object),
-                                               count_mode(object, name, CM_BOTH),
-                                               on_capacitor(name, object), off_capacitor(name, object)
+                                               count_mode(object, name, "CountOnly"),
+                                               on_cap_dp(object, name, "OnCapacitor"),
+                                               off_cap_dp(object, name, "OffCapacitor"),
+                                               on_capacitor(name, object),
+                                               off_capacitor(name, object)
         { /* fnord */ }
 
 protected:
@@ -113,6 +117,8 @@ protected:
 
 private:
 
+    void process_designnote(const std::string& design_note, const int time);
+
     /* ------------------------------------------------------------------------
      *  Variables
      */
@@ -122,12 +128,15 @@ private:
     DesignParamString turnoff_msg;   //!< The name of the message that should tigger the 'TurnOff' action
 
     // Count handling
+    DesignParamCapacitor limit_dp;
     SavedCounter count;              //!< Control how many times the script will work
     DesignParamCountMode count_mode; //!< What counts as 'working'?
 
     // Capacitors
-    SavedCounter on_capacitor;  //!< Control how frequently TurnOn actions work
-    SavedCounter off_capacitor; //!< Control how frequently TurnOff actions work
+    DesignParamCapacitor on_cap_dp;
+    DesignParamCapacitor off_cap_dp;
+    SavedCounter on_capacitor;   //!< Control how frequently TurnOn actions work
+    SavedCounter off_capacitor;  //!< Control how frequently TurnOff actions work
 };
 
 #else // SCR_GENSCRIPTS

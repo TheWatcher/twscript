@@ -271,15 +271,17 @@ bool DesignParamCountMode::init(const std::string &design_note, CountMode defaul
  *  DesignParamTarget
  */
 
-bool DesignParamTarget::init(const std::string& design_note, const bool add_listeners)
+bool DesignParamTarget::init(const std::string& design_note, const std::string& default_value, const bool add_listeners)
 {
     std::string param;
 
     // Fetch the raw string from the design note
     bool valid = get_param_string(design_note, param);
     if(!valid) {
-        return false;
+        param = default_value;
     }
+
+    targetstr = param;
 
     // [me] is always going to be the host object ID
     if(param == "[me]") {
@@ -292,7 +294,6 @@ bool DesignParamTarget::init(const std::string& design_note, const bool add_list
 
     // Check for known target incantations
     } else if(is_complex_target(param)) {
-        targetstr = param;
 
     // Target may be a QVar calculation (leading $ or all digits)
     } else if(qvar_calc.init(param)) {
@@ -773,7 +774,7 @@ namespace {
             x = param.substr(from, cpos);
 
             from = cpos + 1;
-            cpos = param.find(",");
+            cpos = param.find(",", from);
 
             if(cpos != std::string::npos) {
                 y = param.substr(from, cpos - from);

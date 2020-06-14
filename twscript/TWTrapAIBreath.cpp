@@ -14,9 +14,6 @@ void TWTrapAIBreath::init(int time)
     // AIs generally start off alive, or they wouldn't have this script on them!
     still_alive.Init(1);
 
-    // Default the base rate
-    rates[0] = 3000;
-
     // Fetch the contents of the object's design note
     char *design_note = GetObjectParams(ObjId());
 
@@ -24,8 +21,9 @@ void TWTrapAIBreath::init(int time)
         debug_printf(DL_WARNING, "No Editor -> Design Note. Falling back on defaults.");
 
         // Work out rates based on the base using a simple division
+        rates[0].init("", 3000);
         for(int level = 1; level < 4; ++level) {
-            rates[level] = rates[0] / level;
+            rates[level].init("", rates[0].value() / level);
         }
 
     } else {
@@ -33,59 +31,37 @@ void TWTrapAIBreath::init(int time)
 
         // Should the AI start off in the cold?
         if(!in_cold.Valid()) {
-            in_cold = static_cast<int>(get_scriptparam_bool(design_note, "InCold", false));
+            start_cold.init(design_note, false);
+            in_cold = start_cold.value();
         }
 
         // Should the breath cloud stop immediately on entering the warm?
-        stop_immediately = get_scriptparam_bool(design_note, "Immediate", true);
+        stop_immediately.init(design_note, true);
 
         // Should the breath cloud stop when knocked out?
-        stop_on_ko = get_scriptparam_bool(design_note, "StopOnKO", false);
+        stop_on_ko.init(design_note, false);
 
         // How long, in milliseconds, should the exhale last
-        exhale_time = get_scriptparam_time(design_note, "ExhaleTime", 250, dummy);
+        exhale_time.init(design_note, 250);
 
         // Allow the base rate to be overridden, and recalculated the defaults
-        rates[0] = get_scriptparam_time(design_note, "Rate0", rates[0], dummy);
+        rates[0].init(design_note, 3000);
         for(int level = 1; level < 4; ++level) {
-            rates[level] = rates[0] / level;
+            rates[level].init(design_note, rates[0].value() / level);
         }
-
-        // Allow override of the default rates
-        rates[1] = get_scriptparam_time(design_note, "Rate1", rates[1], dummy);
-        rates[2] = get_scriptparam_time(design_note, "Rate2", rates[2], dummy);
-        rates[3] = get_scriptparam_time(design_note, "Rate3", rates[3], dummy);
 
         // Sort out the archetype for the particle
-        char *sfx_name = get_scriptparam_string(design_note, "SFX", "AIBreath");
-        if(sfx_name) {
-            particle_arch_name = sfx_name;
-            g_pMalloc -> Free(sfx_name);
-        }
-
-        char *link_name = get_scriptparam_string(design_note, "LinkType", "~ParticleAttachement");
-        if(link_name) {
-            particle_link_name = link_name;
-            g_pMalloc -> Free(link_name);
-        }
+        particle_arch_name.init(design_note, "AIBreath");
+        particle_link_name.init(design_note, "~ParticleAttachement");
 
         // Sort out the archetype for the proxy
-        char *proxy_name = get_scriptparam_string(design_note, "Proxy", "BreathProxy");
-        if(proxy_name) {
-            proxy_arch_name = proxy_name;
-            g_pMalloc -> Free(proxy_name);
-        }
+        proxy_arch_name.init(design_note, "BreathProxy");
+        proxy_link_name.init(design_note, "~DetailAttachement");
 
-        char *proxy_link = get_scriptparam_string(design_note, "ProxyLink", "~DetailAttachement");
-        if(proxy_link) {
-            proxy_link_name = proxy_link;
-            g_pMalloc -> Free(proxy_link);
-        }
 
-        char *cold = get_scriptparam_string(design_note, "ColdRooms", NULL);
-        if(cold) {
-            parse_coldrooms(cold);
-            g_pMalloc -> Free(cold);
+        rooms.init(design_note);
+        if(rooms.value().length() > 0) {
+            parse_coldrooms(rooms.value());
         }
 
         g_pMalloc -> Free(design_note);
@@ -94,8 +70,8 @@ void TWTrapAIBreath::init(int time)
     if(debug_enabled()) {
         debug_printf(DL_DEBUG, "Initialised on object. Settings:");
         debug_printf(DL_DEBUG, "In cold: %s, stop breath immediately: %s", in_cold ? "yes" : "no", stop_immediately ? "yes" : "no");
-        debug_printf(DL_DEBUG, "Exhale time: %dms", exhale_time);
-        debug_printf(DL_DEBUG, "Breathing rates (in ms) None: %d, Low: %d, Medium: %d, High: %d", rates[0], rates[1], rates[2], rates[3]);
+        debug_printf(DL_DEBUG, "Exhale time: %dms", exhale_time.value());
+        debug_printf(DL_DEBUG, "Breathing rates (in ms) None: %d, Low: %d, Medium: %d, High: %d", rates[0].value(), rates[1].value(), rates[2].value(), rates[3].value());
         debug_printf(DL_DEBUG, "SFX name: %s", particle_arch_name.c_str());
     }
 
@@ -147,7 +123,6 @@ TWBaseScript::MsgStatus TWTrapAIBreath::on_message(sScrMsg* msg, cMultiParm& rep
         return on_ignorepotion(msg, reply);
 
     }
-
 
     return result;
 }
@@ -371,11 +346,11 @@ void TWTrapAIBreath::set_rate(int new_level)
         last_level = new_level;
 
         if(debug_enabled()) {
-            debug_printf(DL_DEBUG, "New rate is %d", rates[new_level]);
+            debug_printf(DL_DEBUG, "New rate is %d", rates[new_level].value());
         }
 
-        PropertySrv -> Set(ObjId(), "CfgTweqBlink", "Rate", rates[new_level]);
-        PropertySrv -> Set(ObjId(), "StTweqBlink", "Cur Time", rates[new_level] - 1);
+        PropertySrv -> Set(ObjId(), "CfgTweqBlink", "Rate", rates[new_level].value());
+        PropertySrv -> Set(ObjId(), "StTweqBlink", "Cur Time", rates[new_level].value() - 1);
     }
 }
 
@@ -434,70 +409,36 @@ int TWTrapAIBreath::get_breath_particles()
 
 int TWTrapAIBreath::get_breath_proxy(object fallback)
 {
-    return get_linked_object(ObjId(), proxy_arch_name, proxy_link_name, fallback);
+    return get_linked_object(ObjId(), proxy_arch_name.value(), proxy_link_name.value(), fallback);
 }
 
 
 int TWTrapAIBreath::get_breath_particlegroup(object from)
 {
-    return get_linked_object(from, particle_arch_name, particle_link_name);
+    return get_linked_object(from, particle_arch_name.value(), particle_link_name.value());
 }
 
 
-void TWTrapAIBreath::parse_coldrooms(char *coldstr)
+void TWTrapAIBreath::parse_coldrooms(const std::string& coldstr)
 {
-    char *room;
-    char *rest = NULL;
+    std::size_t from = 0;
+    std::size_t to = coldstr.find(",");
 
-    for(room = tok_r(coldstr, ",", &rest); room; room = tok_r(NULL, ",", &rest)) {
-        int room_id = StrToObject(room);
+    do {
+        std::string room = coldstr.substr(from, to - from);
+
+        int room_id = StrToObject(room.c_str());
         if(room_id) {
             cold_rooms.insert(ColdRoomPair(room_id, true));
 
             if(debug_enabled())
-                debug_printf(DL_DEBUG, "Marking room %s (%d) as cold", room, room_id);
+                debug_printf(DL_DEBUG, "Marking room %s (%d) as cold", room.c_str(), room_id);
         } else if(debug_enabled()) {
-            debug_printf(DL_WARNING, "Unable to map '%s' to a room id, ignoring", room);
+            debug_printf(DL_WARNING, "Unable to map '%s' to a room id, ignoring", room.c_str());
         }
-    }
 
-}
+        from = to + 1;
+        to = coldstr.find(",", from);
+    } while(to != std::string::npos);
 
-
-/*
- * public domain tok_r() by Charlie Gordon
- *
- *   from comp.lang.c  9/14/2007
- *
- *      http://groups.google.com/group/comp.lang.c/msg/2ab1ecbb86646684
- *
- *     (Declaration that it's public domain):
- *      http://groups.google.com/group/comp.lang.c/msg/7c7b39328fefab9c
- */
-
-char* TWTrapAIBreath::tok_r(char *str, const char *delim, char **nextp)
-{
-    char *ret;
-
-    if(str == NULL) {
-        str = *nextp;
-    }
-
-    str += strspn(str, delim);
-
-    if (*str == '\0') {
-        return NULL;
-    }
-
-    ret = str;
-
-    str += strcspn(str, delim);
-
-    if (*str) {
-        *str++ = '\0';
-    }
-
-    *nextp = str;
-
-    return ret;
 }

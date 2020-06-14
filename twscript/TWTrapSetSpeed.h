@@ -106,7 +106,13 @@
 class TWTrapSetSpeed : public TWBaseTrap
 {
 public:
-    TWTrapSetSpeed(const char* name, int object) : TWBaseTrap(name, object), speed(0.0f), immediate(false), qvar_name(), qvar_sub(), set_target()
+    TWTrapSetSpeed(const char* name, int object) : TWBaseTrap(name, object),
+                                                   speed(object, name, "Speed"),
+                                                   intensity(object, name, "Intensity"),
+                                                   subscribe(object, name, "WatchQVar"),
+                                                   immediate(object, name, "Immediate"),
+                                                   set_target(object, name, "Dest"),
+                                                   set_speed(0.0f)
         { /* fnord */ }
 
 protected:
@@ -194,12 +200,14 @@ private:
      *  Variables
      */
 
-    float       speed;      //!< User-defined speed to set on targets and linked vators.
-    bool        intensity;  //!< If true, the speed is derived from the intensity of a stim message.
-    bool        immediate;  //!< If true, vator speed changes are instant.
-    std::string qvar_name;  //!< The name of the QVar to read speed from, may include basic maths.
-    std::string qvar_sub;   //!< The name of the QVar to subscribe to.
-    std::string set_target; //!< The target string set by the user.
+    DesignParamFloat  speed;      //!< User-defined speed to set on targets and linked vators.
+    DesignParamBool   intensity;  //!< If true, the speed is derived from the intensity of a stim message.
+    DesignParamBool   subscribe;  //!< Subscribe to qvar changes?
+    DesignParamBool   immediate;  //!< If true, vator speed changes are instant.
+    DesignParamTarget set_target; //!< The target string set by the user.
+
+    float set_speed; //!< Speed cache
+
 };
 
 #else // SCR_GENSCRIPTS

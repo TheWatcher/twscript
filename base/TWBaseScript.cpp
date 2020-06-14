@@ -295,17 +295,19 @@ int TWBaseScript::get_linked_object(const int from, const std::string& obj_name,
 
 void TWBaseScript::init(int time)
 {
-    std::string design_note = GetObjectParams(ObjId());
+    char* design_note = GetObjectParams(ObjId());
 
     if(design_note) {
         debug.init(design_note);
 
-        if(debug_enabled()) {
-            debug_printf(DL_DEBUG, "Attached %s version %s", Name(), SCRIPT_VERSTRING);
-            debug_printf(DL_DEBUG, "Script debugging enabled");
-        }
-
         g_pMalloc -> Free(design_note);
+    } else {
+        debug.init("");
+    }
+
+    if(debug_enabled()) {
+        debug_printf(DL_DEBUG, "Attached %s version %s", Name(), SCRIPT_VERSTRING);
+        debug_printf(DL_DEBUG, "Script debugging enabled");
     }
 }
 

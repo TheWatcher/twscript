@@ -26,6 +26,7 @@
 
 #if !SCR_GENSCRIPTS
 
+#include <random>
 #include <string>
 #include "TWBaseScript.h"
 #include "SavedCounter.h"
@@ -45,12 +46,21 @@ public:
      * @return A new TWBaseTrigger object.
      */
     TWBaseTrigger(const char* name, int object) : TWBaseScript(name, object),
-                                                  messages { "TurnOff", "TurnOn" }, isstim { false, false }, stimob { 0, 0 }, intensity { 0.0f, 0.0f },
-                                                  dest_str("&ControlDevice"),
-                                                  remove_links(false),
-                                                  fail_chance(0),
-                                                  fail_qvar(),
-                                                  count(name, object), count_mode(CM_BOTH),
+                                                  turnon_msg (object, name, "TOn"),
+                                                  turnoff_msg(object, name, "TOff"),
+
+                                                  isstim { false, false }, stimob { 0, 0 }, intensity { 0.0f, 0.0f },
+
+                                                  dest(object, name, "TDest"),
+                                                  remove_links(object, name, "KillLinks"),
+
+                                                  fail_chance(object, name, "FailChance"),
+
+                                                  count_dp(object, name, "TCount"),
+                                                  count(name, object),
+                                                  count_mode(object, name, "TCountOnly"),
+
+                                                  generator(0),
                                                   uni_dist(0, 100)
         { /* fnord */ }
 
@@ -122,11 +132,14 @@ private:
      *  Miscellaneous
      */
 
+    void process_designnote(const std::string& design_note, const int time);
+
+
     /** Determine whether the specified message is actually a stimulus request, and
      *  if so attempt to set up the settings based on the message.
      *
      */
-    bool check_stimulus_message(char *message, int *obj, float *intensity);
+    bool check_stimulus_message(const char* message, int* obj, float* intensity);
 
 
     /* ------------------------------------------------------------------------
@@ -134,27 +147,30 @@ private:
      */
 
     // Message names
-    std::string messages[2];  //!< The name of the message that should be sent as a 'turnon' or 'turnoff'
+    DesignParamString turnon_msg;    //!< The name of the message that should be sent as 'TurnOn'
+    DesignParamString turnoff_msg;   //!< The name of the message that should be sent as 'TurnOff'
 
     // Stimulus for on/off
-    bool  isstim[2];         //!< Is the turnon message a stimulus rather than a message?
-    int   stimob[2];         //!< The stimulus object to use on turnon.
+    bool  isstim[2];         //!< Is the turnon/off message a stimulus rather than a message?
+    int   stimob[2];         //!< The stimulus object to use on turnon/off.
     float intensity[2];      //!< The stimulus intensity to use.
 
     // Destination setting
-    std::string dest_str;    //!< Where should messages be sent?
+    DesignParamTarget dest;    //!< Where should messages be sent?
 
-    bool remove_links;       //!< Remove links after sending messages?
+    DesignParamBool remove_links;       //!< Remove links after sending messages?
 
     // Full of fail?
-    int fail_chance;         //!< percentage chance of the trigger failing.
-    std::string fail_qvar;   //!< name of the qvar the fail percentage is in.
+    DesignParamInt fail_chance; //!< percentage chance of the trigger failing.
 
     // Count handling
-    SavedCounter count;      //!< Control how many times the script will work
-    CountMode    count_mode; //!< What counts as 'working'?
+    DesignParamCapacitor count_dp;
+    SavedCounter         count;      //!< Control how many times the script will work
+
+    DesignParamCountMode count_mode; //!< What counts as 'working'?
 
     // Randomness
+    std::mt19937 generator;
     std::uniform_int_distribution<int> uni_dist;   //!< a uniform distribution for fail checking.
 };
 

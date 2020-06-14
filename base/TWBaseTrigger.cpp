@@ -1,5 +1,7 @@
 
 #include <lg/objects.h>
+#include <chrono>       // std::chrono::system_clock
+
 #include "TWBaseTrigger.h"
 #include "ScriptLib.h"
 
@@ -33,58 +35,32 @@ void TWBaseTrigger::init(int time)
 {
     TWBaseScript::init(time);
 
-    int value = 0, falloff = 0;
-    bool limit = false;
-    char *msg;
     char *design_note = GetObjectParams(ObjId());
 
     if(design_note) {
-        // Work out what the turnon and turnoff messages should be
-        if((msg = get_scriptparam_string(design_note, "TOff", "TurnOff")) != NULL) {
-            messages[0] = msg;
-            isstim[0] = check_stimulus_message(msg, &stimob[0], &intensity[0]);
-
-            g_pMalloc -> Free(msg);
-        }
-
-        if((msg = get_scriptparam_string(design_note, "TOn", "TurnOn")) != NULL) {
-            messages[1] = msg;
-            isstim[1] = check_stimulus_message(msg, &stimob[1], &intensity[1]);
-
-            g_pMalloc -> Free(msg);
-        }
-
-        // And where the messages should go
-        if((msg = get_scriptparam_string(design_note, "TDest", "&ControlDevice")) != NULL) {
-            dest_str = msg;
-            g_pMalloc -> Free(msg);
-        }
-
-        remove_links = get_scriptparam_bool(design_note, "KillLinks");
-
-        // Allow triggers to fail
-        fail_chance = get_scriptparam_int(design_note, "FailChance", 0, fail_qvar);
-
-        // Now for use limiting.
-        get_scriptparam_valuefalloff(design_note, "Count", &value, &falloff, &limit);
-        count.init(time, 0, value, falloff, false, limit);
-
-        // Handle modes
-        count_mode = get_scriptparam_countmode(design_note, "CountOnly");
-
+        process_designnote(design_note, time);
         g_pMalloc -> Free(design_note);
+
+    } else {
+        process_designnote("", time);
     }
 
+    uint seed = std::chrono::system_clock::now().time_since_epoch().count();
+    generator.seed(seed);
+
     if(debug_enabled()) {
-        debug_printf(DL_DEBUG, "Trigger initialised with on = '%s', off = '%s', dest = '%s'.\nChosen links will%s be deleted.", messages[1].c_str(), messages[0].c_str(), dest_str.c_str(), (remove_links ? "" : " not"));
+        debug_printf(DL_DEBUG, "Trigger initialised with on = '%s', off = '%s', dest = '%s'.\nChosen links will%s be deleted.", turnon_msg.c_str(), turnoff_msg.c_str(), dest.c_str(), (remove_links ? "" : " not"));
         debug_printf(DL_DEBUG, "On is%s a stimulus", (isstim[1] ? "" : " not"));
         if(isstim[1]) debug_printf(DL_DEBUG, "    Stim object: %d, Intensity: %.3f", stimob[1], intensity[1]);
 
         debug_printf(DL_DEBUG, "Off is%s a stimulus", (isstim[0] ? "" : " not"));
         if(isstim[0]) debug_printf(DL_DEBUG, "    Stim object: %d, Intensity: %.3f", stimob[0], intensity[0]);
 
-        debug_printf(DL_DEBUG, "Chance of failure is %d%%%s", fail_chance, (fail_chance ? "" : " (will always trigger)"));
-        debug_printf(DL_DEBUG, "Count is %d%s with a falloff of %d milliseconds, count mode is %d, limit is %s", value, (value ? "" : " (no use limit)"), falloff, static_cast<int>(count_mode), (limit ? "on" : "off"));
+        debug_printf(DL_DEBUG, "Chance of failure is %d%%%s", static_cast<int>(fail_chance), (static_cast<int>(fail_chance) ? "" : " (will always trigger)"));
+        debug_printf(DL_DEBUG, "Count is %d%s with a falloff of %d milliseconds, count mode is %d, limit is %s",
+                     count_dp.get_count(), (count_dp.get_count() ? "" : " (no use limit)"),
+                     count_dp.get_falloff(),
+                     static_cast<int>(count_mode), (count_dp.get_limit() ? "on" : "off"));
     }
 }
 
@@ -93,10 +69,36 @@ void TWBaseTrigger::init(int time)
  *  Miscellaneous - private functions
  */
 
-
-bool TWBaseTrigger::check_stimulus_message(char *message, int *obj, float *intensity)
+void TWBaseTrigger::process_designnote(const std::string& design_note, const int time)
 {
-    char *end;
+    // Work out what the turnon and turnoff messages should be
+    turnon_msg.init(design_note, "TurnOn");
+    isstim[0] = check_stimulus_message(turnon_msg.c_str(), &stimob[0], &intensity[0]);
+
+    turnoff_msg.init(design_note, "TurnOff");
+    isstim[1] = check_stimulus_message(turnoff_msg.c_str(), &stimob[1], &intensity[1]);
+
+    // And where the messages should go
+    dest.init(design_note, "&ControlDevice");
+
+    // Remove links after sending?
+    remove_links.init(design_note);
+
+    // Allow triggers to fail
+    fail_chance.init(design_note);
+
+    // Now for use limiting.
+    count_dp.init(design_note);
+    count.init(time, 0, count_dp.get_count(), count_dp.get_falloff(), false, count_dp.get_limit());
+
+    // Handle modes
+    count_mode.init(design_note);
+}
+
+
+bool TWBaseTrigger::check_stimulus_message(const char* message, int* obj, float* intensity)
+{
+    char *end = NULL;
 
     // If the first character is not a '[', the message is not a stimulus
     if(*message != '[') return false;
@@ -142,16 +144,24 @@ bool TWBaseTrigger::send_trigger_message(bool send_on, sScrMsg* msg)
 
     // Do failure checking; should be done before count checking as failed
     // firings should not be counted
-    if(fail_chance && (uni_dist(randomiser) > fail_chance)) return false;
+    if(static_cast<int>(fail_chance) > 0 &&
+       (uni_dist(generator) > static_cast<int>(fail_chance))) {
 
-    CountMode mode = (send_on ? CM_TURNON : CM_TURNOFF);
+        if(debug_enabled())
+            debug_printf(DL_DEBUG, "%s trigger aborted: random failure", (send_on ? "On" : "Off"));
+
+        return false;
+    }
+
+    DesignParamCountMode::CountMode mode = (send_on ? DesignParamCountMode::CountMode::CM_TURNON : DesignParamCountMode::CountMode::CM_TURNOFF);
+
     if(count.increment(msg -> time, (count_mode & mode) ? 1 : 0)) {
         if(debug_enabled()) {
             int max, counted = count.get_counts(NULL, &max);
             debug_printf(DL_WARNING, "Count passed (%d of %d), doing trigger", counted, max);
         }
 
-        targets = get_target_objects(dest_str.c_str(), msg);
+        targets = dest.values(msg);
 
         if(!targets -> empty()) {
             std::vector<TargetObj>::iterator it;
@@ -175,14 +185,25 @@ bool TWBaseTrigger::send_trigger_message(bool send_on, sScrMsg* msg)
 
                 // otherwise, send the message to the target
                 } else {
+
+                    // Work out which message to send
+                    DesignParamString* message;
+                    if(send_on) {
+                        message = &turnon_msg;
+                    } else {
+                        message = &turnoff_msg;
+                    }
+
+                    // Report it if needed
                     if(debug_enabled()) {
                         std::string objname;
                         get_object_namestr(objname, it -> obj_id);
 
-                        debug_printf(DL_DEBUG, "Sending %s to %s", messages[send].c_str(), objname.c_str());
+                        debug_printf(DL_DEBUG, "Sending %s to %s", message -> c_str(), objname.c_str());
                     }
 
-                    post_message(it -> obj_id, messages[send].c_str());
+                    // And send it
+                    post_message(it -> obj_id, message -> c_str());
 
                     // TODO: Handle link delete
                 }

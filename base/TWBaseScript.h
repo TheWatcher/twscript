@@ -268,8 +268,8 @@ protected:
      *
      * @return true if the editor has enabled debugging, false otherwise.
      */
-    inline bool debug_enabled(void) const
-        { return debug; }
+    inline bool debug_enabled(void)
+        { return debug.value(); }
 
 
     /** Print out a debugging message to the monolog. This prints out a formatted

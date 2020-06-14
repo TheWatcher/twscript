@@ -287,7 +287,28 @@ typedef ColdRoomMap::value_type ColdRoomPair; //!< Convenience type for ColdRoom
 class TWTrapAIBreath : public TWBaseTrap
 {
 public:
-    TWTrapAIBreath(const char* name, int object) : TWBaseTrap(name, object), stop_immediately(false), stop_on_ko(false), exhale_time(250), rates{0, 0, 0, 0}, last_level(-1), particle_arch_name(), particle_link_name(), cold_rooms(),
+    TWTrapAIBreath(const char* name, int object) : TWBaseTrap(name, object),
+                                                   start_cold(object, name, "InCold"),
+                                                   stop_immediately(object, name, "Immediate"),
+                                                   stop_on_ko(object, name, "StopOnKO"),
+                                                   exhale_time(object, name, "ExhaleTime"),
+
+                                                   rates{ { object, name, "BreathRate0" },
+                                                          { object, name, "BreathRate1" },
+                                                          { object, name, "BreathRate2" },
+                                                          { object, name, "BreathRate3" }
+                                                   },
+
+                                                   particle_arch_name(object, name, "SFX"),
+                                                   particle_link_name(object, name, "LinkType"),
+                                                   proxy_arch_name(object, name, "Proxy"),
+                                                   proxy_link_name(object, name, "ProxyLink"),
+
+                                                   rooms(object, name, "ColdRooms"),
+                                                   cold_rooms(),
+
+                                                   last_level(-1),
+
                                                    SCRIPT_VAROBJ(TWTrapAIBreath, in_cold, object),
                                                    SCRIPT_VAROBJ(TWTrapAIBreath, still_alive, object),
                                                    SCRIPT_VAROBJ(TWTrapAIBreath, breath_timer, object)
@@ -474,22 +495,22 @@ private:
      *
      * @param coldstr A string containing the list of cold room names/ids.
      */
-    void parse_coldrooms(char* coldstr);
-
-
-    char *tok_r(char *str, const char *delim, char **nextp);
+    void parse_coldrooms(const std::string& coldstr);
 
     // DesignNote configured options
-    bool                     stop_immediately;   //!< Stop the particle group immediately on leaving the cold?
-    bool                     stop_on_ko;         //!< Deactivate the particle group on knockout
-    int                      exhale_time;        //!< How long to leave the particle group active for at a time
-    int                      rates[4];           //!< Breathing rates, in millisecods, for each awareness level.
-    int                      last_level;         //!< Which level is currently set?
-    std::string              particle_arch_name; //!< The name of the particle group archetype to use
-    std::string              particle_link_name; //!< The link flavour used to link the particles to the AI (or proxy)
-    std::string              proxy_arch_name;    //!< The name of the particle proxy archetype to use
-    std::string              proxy_link_name;    //!< The link flavour used to link the proxy to the AI
+    DesignParamBool start_cold;         //!< Start the AI off in a cold are?
+    DesignParamBool stop_immediately;   //!< Stop the particle group immediately on leaving the cold?
+    DesignParamBool stop_on_ko;         //!< Deactivate the particle group on knockout
+    DesignParamTime  exhale_time;        //!< How long to leave the particle group active for at a time
+    DesignParamTime  rates[4];           //!< Breathing rates, in millisecods, for each awareness level.
+    DesignParamString              particle_arch_name; //!< The name of the particle group archetype to use
+    DesignParamString              particle_link_name; //!< The link flavour used to link the particles to the AI (or proxy)
+    DesignParamString              proxy_arch_name;    //!< The name of the particle proxy archetype to use
+    DesignParamString              proxy_link_name;    //!< The link flavour used to link the proxy to the AI
+    DesignParamString rooms;
     ColdRoomMap              cold_rooms;         //!< Which rooms are marked as cold?
+
+    int                      last_level;         //!< Which level is currently set?
 
     // Persistent variables
     script_int               in_cold;            //!< Is the AI in a cold area?

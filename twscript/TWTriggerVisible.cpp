@@ -17,20 +17,23 @@ void TWTriggerVisible::init(int time)
     if(!design_note) {
         debug_printf(DL_WARNING, "No Editor -> Design Note. Falling back on defaults.");
 
+        lowlight_threshold.init("", 35);
+        highlight_threshold.init("", 55);
+        refresh.init("", 500);
+
     } else {
         std::string dummy;
 
-        lowlight_threshold  = get_scriptparam_int(design_note, "Low" , 35, dummy);
-        highlight_threshold = get_scriptparam_int(design_note, "High", 55, dummy);
-
-        refresh = get_scriptparam_int(design_note, "Rate", 500, dummy);
+        lowlight_threshold.init(design_note, 35);
+        highlight_threshold.init(design_note, 55);
+        refresh.init(design_note, 500);
 
         g_pMalloc -> Free(design_note);
     }
 
     if(debug_enabled()) {
-        debug_printf(DL_DEBUG, "Initialised with low theshold: %d, high threshold: %d", lowlight_threshold, highlight_threshold);
-        debug_printf(DL_DEBUG, "Update rate set to %dms", refresh);
+        debug_printf(DL_DEBUG, "Initialised with low theshold: %d, high threshold: %d", lowlight_threshold.value(), highlight_threshold.value());
+        debug_printf(DL_DEBUG, "Update rate set to %dms", refresh.value());
     }
 
     if(update_timer) {
@@ -80,14 +83,14 @@ void TWTriggerVisible::check_visible(sScrMsg* msg)
             debug_printf(DL_DEBUG, "Light: %d", int(light));
 
         // Check whether the object has changed from light to dark or vice versa
-        if(int(light) < lowlight_threshold && int(is_litup)) {
+        if(int(light) < lowlight_threshold.value() && int(is_litup)) {
             if(debug_enabled())
                 debug_printf(DL_DEBUG, "Object is now invisible, sending off");
 
             is_litup = 0;
             send_off_message(msg);
 
-        } else if(int(light) > highlight_threshold && !int(is_litup)) {
+        } else if(int(light) > highlight_threshold.value() && !int(is_litup)) {
             if(debug_enabled())
                 debug_printf(DL_DEBUG, "Object is now visible, sending on");
 

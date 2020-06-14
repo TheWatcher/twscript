@@ -216,6 +216,9 @@ public:
     const std::string& value() const
         { return data; }
 
+    const char* c_str() const
+        { return data.c_str(); }
+
 private:
     std::string data; //!< The current value of the parameter.
 };
@@ -251,6 +254,10 @@ public:
      *         in the design note!), false if init failed.
      */
     bool init(const std::string& design_note, float default_value = 0.0f, const bool add_listeners = false);
+
+
+    void unsubscribe()
+        { data.unsubscribe(); }
 
 
     /** Obtain the value of this design parameter. This will return the current
@@ -339,6 +346,10 @@ public:
      *         in the design note!), false if init failed.
      */
     bool init(const std::string& design_note, int default_value = 0, const bool add_listeners = false);
+
+
+    operator unsigned long() { return static_cast<unsigned long>(value()); }
+
 };
 
 
@@ -421,8 +432,12 @@ public:
      *
      * @return An CountMode containing the design note parameter value.
      */
-    CountMode value()
+    CountMode value() const
         { return mode; }
+
+
+    operator int() const
+        { return static_cast<int>(mode); }
 
 private:
     CountMode mode;
@@ -512,7 +527,7 @@ public:
      * @return true on successful init (which may include when no parameter was set
      *         in the design note!), false if init failed.
      */
-    bool init(const std::string& design_note, const bool add_listeners = false);
+    bool init(const std::string& design_note, const std::string& default_value, const bool add_listeners = false);
 
 
     /** Obtain a single object ID from the target string.
@@ -524,6 +539,9 @@ public:
 
     std::vector<TargetObj>* values(sScrMsg* msg);
 
+
+    const char *c_str()
+        { return targetstr.c_str(); }
 
 protected:
 
@@ -818,7 +836,7 @@ public:
      * @return true on successful init (which may include when no parameter was set
      *         in the design note!), false if init failed.
      */
-    bool init(const std::string& design_note, int default_count = 1, int default_falloff = 0, bool default_limit = false);
+    bool init(const std::string& design_note, int default_count = 0, int default_falloff = 0, bool default_limit = false);
 
 
     /** Retrieve the value set for the capacitor count

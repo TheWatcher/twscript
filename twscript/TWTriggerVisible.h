@@ -39,7 +39,10 @@
 class TWTriggerVisible : public TWBaseTrigger
 {
 public:
-    TWTriggerVisible(const char* name, int object) : TWBaseTrigger(name, object), refresh(500), lowlight_threshold(35), highlight_threshold(55),
+    TWTriggerVisible(const char* name, int object) : TWBaseTrigger(name, object),
+                                                     refresh(object, name, "Rate"),
+                                                     lowlight_threshold (object, name, "Low"),
+                                                     highlight_threshold(object, name, "High"),
                                                      SCRIPT_VAROBJ(TWTriggerVisible, is_litup    , object),
                                                      SCRIPT_VAROBJ(TWTriggerVisible, update_timer, object)
         { /* fnord */ }
@@ -92,9 +95,9 @@ private:
      */
     void check_visible(sScrMsg* msg);
 
-    int refresh;             //!< How frequently should the state be updated?
-    int lowlight_threshold;  //!< The boundary below which the player is considered in darkness
-    int highlight_threshold; //!< The boundary above which the player is considered in light
+    DesignParamTime refresh;             //!< How frequently should the state be updated?
+    DesignParamInt  lowlight_threshold;  //!< The boundary below which the player is considered in darkness
+    DesignParamInt  highlight_threshold; //!< The boundary above which the player is considered in light
 
     script_int               is_litup;     //!< Is the player currently illuminated?
     script_handle<tScrTimer> update_timer; //!< A timer used to update the trigger
