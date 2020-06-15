@@ -44,7 +44,8 @@ void TWTrapAIBreath::init(int time)
         // How long, in milliseconds, should the exhale last
         exhale_time.init(design_note, 250);
 
-        // Allow the base rate to be overridden, and recalculated the defaults
+        // Allow the breathing rates to be set, with defaults based off
+        // the base rate if not set.
         rates[0].init(design_note, 3000);
         for(int level = 1; level < 4; ++level) {
             rates[level].init(design_note, rates[0].value() / level);
