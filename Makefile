@@ -94,7 +94,8 @@ MISC_OBJS = $(BINDIR)/ScriptDef.o $(PUBDIR)/utils.o
 #SCR_OBJS  = $(SCRPTDIR)/TWTrapAIBreath.o $(SCRPTDIR)/TWTrapPhysStateCtrl.o $(SCRPTDIR)/TWTrapSetSpeed.o $(SCRPTDIR)/TWTrapAIEcology.o \
 #	        $(SCRPTDIR)/TWCloudDrift.o $(SCRPTDIR)/TWTestOnscreen.o \
 #            $(SCRPTDIR)/TWTriggerAIAware.o $(SCRPTDIR)/TWTriggerVisible.o $(SCRPTDIR)/TWTriggerAIEcologyDespawn.o $(SCRPTDIR)/TWTriggerAIEcologyFireShadow.o
-SCR_OBJS  = $(SCRPTDIR)/TWTrapAIBreath.o  $(SCRPTDIR)/TWTrapSetSpeed.o $(SCRPTDIR)/TWTriggerVisible.o
+SCR_OBJS  = $(SCRPTDIR)/TWTrapAIBreath.o  $(SCRPTDIR)/TWTrapSetSpeed.o $(SCRPTDIR)/TWTriggerVisible.o \
+			$(SCRPTDIR)/TWTrapPhysStateCtrl.o
 
 RES_OBJS  = $(BINDIR)/$(MYSCRIPT)_res.o
 
@@ -171,7 +172,7 @@ $(BASEDIR)/QVarCalculation.o: $(BASEDIR)/QVarCalculation.cpp $(BASEDIR)/QVarCalc
 $(BASEDIR)/QVarWrapper.o: $(BASEDIR)/QVarWrapper.cpp $(BASEDIR)/QVarWrapper.h
 
 $(SCRPTDIR)/TWTrapAIBreath.o: $(SCRPTDIR)/TWTrapAIBreath.cpp $(SCRPTDIR)/TWTrapAIBreath.h $(BASEDIR)/TWBaseTrap.h $(BASEDIR)/TWBaseScript.h $(PUBDIR)/Script.h
-#$(SCRPTDIR)/TWTrapPhysStateCtrl.o: $(SCRPTDIR)/TWTrapPhysStateCtrl.cpp $(SCRPTDIR)/TWTrapPhysStateCtrl.h $(BASEDIR)/TWBaseTrap.h $(BASEDIR)/TWBaseScript.h $(PUBDIR)/Script.h
+$(SCRPTDIR)/TWTrapPhysStateCtrl.o: $(SCRPTDIR)/TWTrapPhysStateCtrl.cpp $(SCRPTDIR)/TWTrapPhysStateCtrl.h $(BASEDIR)/TWBaseTrap.h $(BASEDIR)/TWBaseScript.h $(PUBDIR)/Script.h
 $(SCRPTDIR)/TWTrapSetSpeed.o: $(SCRPTDIR)/TWTrapSetSpeed.cpp $(SCRPTDIR)/TWTrapSetSpeed.h $(BASEDIR)/TWBaseTrap.h $(BASEDIR)/TWBaseScript.h $(PUBDIR)/Script.h
 #$(SCRPTDIR)/TWTrapAIEcology.o: $(SCRPTDIR)/TWTrapAIEcology.cpp $(SCRPTDIR)/TWTrapAIEcology.h $(BASEDIR)/TWBaseTrap.h $(BASEDIR)/TWBaseScript.h $(PUBDIR)/Script.h
 

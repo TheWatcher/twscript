@@ -62,7 +62,7 @@
 #include "TWBaseTrigger.h"
 
 #include "TWTrapAIBreath.h"
-//#include "TWTrapPhysStateCtrl.h"
+#include "TWTrapPhysStateCtrl.h"
 #include "TWTrapSetSpeed.h"
 //#include "TWTrapAIEcology.h"
 
@@ -79,7 +79,7 @@
 #undef TWBASETRIGGER_H
 
 #undef TWTRAPAIBREATH_H
-//#undef TWTRAPPHYSSTATECTRL_H
+#undef TWTRAPPHYSSTATECTRL_H
 #undef TWTRAPSETSPEED_H
 //#undef TWTRAPAIECOLOGY_H
 

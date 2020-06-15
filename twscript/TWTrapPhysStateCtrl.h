@@ -101,10 +101,29 @@
 class TWTrapPhysStateCtrl : public TWBaseTrap
 {
 public:
-    TWTrapPhysStateCtrl(const char* name, int object) : TWBaseTrap(name, object)
+    TWTrapPhysStateCtrl(const char* name, int object) : TWBaseTrap(name, object),
+                                                        location(object, name, "Location"),
+                                                        facing  (object, name, "Facing"),
+                                                        velocity(object, name, "Velocity"),
+                                                        rotvel  (object, name, "RotVel")
         { /* fnord */ }
 
 protected:
+    /* ------------------------------------------------------------------------
+     *  Initialisation related
+     */
+
+    /** Initialise the TWTrapPhysStateCtrl instance. This parses the various
+     *  parameters from the design note, and sets up the script so that
+     *  it can be used correctly.
+     */
+    void init(int time);
+
+
+    /* ------------------------------------------------------------------------
+     *  Message handling
+     */
+
     /** TurnOn message handler, called whenever the script receives a TurnOn message.
      *
      * @param msg   A pointer to the message received by the object.
@@ -131,6 +150,11 @@ private:
      * @return Always returns 1.
      */
     static int set_state(ILinkSrv*, ILinkQuery* link_query, IScript* script, void* data);
+
+    DesignParamFloatVec location;
+    DesignParamFloatVec facing;
+    DesignParamFloatVec velocity;
+    DesignParamFloatVec rotvel;
 };
 
 

@@ -7,6 +7,44 @@
  *  TWTrapPhysStateCtrl Impmementation - protected members
  */
 
+void TWTrapPhysStateCtrl::init(int time)
+{
+    TWBaseTrap::init(time);
+
+    // Fetch the contents of the object's design note
+    char *design_note = GetObjectParams(ObjId());
+
+    if(!design_note) {
+        debug_printf(DL_WARNING, "No Editor -> Design Note. Nothing will happen!");
+    } else {
+
+        location.init(design_note);
+        facing.init(design_note);
+        velocity.init(design_note);
+        rotvel.init(design_note);
+
+        g_pMalloc -> Free(design_note);
+    }
+
+    if(debug_enabled()) {
+        debug_printf(DL_DEBUG, "Initialised on object. Settings:");
+
+        cScrVec values = location.value();
+        debug_printf(DL_DEBUG, "Location: %s values = %.3f, %.3f, %.3f", location.is_set() ? "set" : "not set",
+                     values.x, values.y, values.z);
+        values = facing.value();
+        debug_printf(DL_DEBUG, "Facing: %s values = %.3f, %.3f, %.3f", facing.is_set() ? "set" : "not set",
+                     values.x, values.y, values.z);
+        values = velocity.value();
+        debug_printf(DL_DEBUG, "Velocity: %s values = %.3f, %.3f, %.3f", velocity.is_set() ? "set" : "not set",
+                     values.x, values.y, values.z);
+        values = rotvel.value();
+        debug_printf(DL_DEBUG, "Rotvel: %s values = %.3f, %.3f, %.3f", rotvel.is_set() ? "set" : "not set",
+                     values.x, values.y, values.z);
+    }
+}
+
+
 TWBaseScript::MsgStatus TWTrapPhysStateCtrl::on_onmsg(sScrMsg* msg, cMultiParm& reply)
 {
     MsgStatus result = TWBaseTrap::on_onmsg(msg, reply);
@@ -46,26 +84,20 @@ void TWTrapPhysStateCtrl::update()
 {
     struct TWStateData data;
 
-    // Fetch the contents of the object's design note
-    char *design_note = GetObjectParams(ObjId());
-
-    if(!design_note)
-        debug_printf(DL_WARNING, "No Editor -> Design Note. Falling back on defaults.");
-
-    data.set_location = get_scriptparam_floatvec(design_note, "Location", data.location);
-    data.set_facing   = get_scriptparam_floatvec(design_note, "Facing"  , data.facing  );
-    data.set_velocity = get_scriptparam_floatvec(design_note, "Velocity", data.velocity);
-    data.set_rotvel   = get_scriptparam_floatvec(design_note, "RotVel"  , data.rotvel  );
+    data.set_location = location.is_set();
+    data.location     = location.value();
+    data.set_facing   = facing.is_set();
+    data.facing       = facing.value();
+    data.set_velocity = velocity.is_set();
+    data.velocity     = velocity.value();
+    data.set_rotvel   = rotvel.is_set();
+    data.rotvel       = rotvel.value();
 
     if(data.set_location || data.set_facing || data.set_velocity || data.set_rotvel) {
         IterateLinks("ControlDevice", ObjId(), 0, set_state, this, static_cast<void*>(&data));
     } else if(debug_enabled()) {
         debug_printf(DL_WARNING, "Design note will not update linked objects, skipping.");
     }
-
-    // If a design note was obtained, free it now
-    if(design_note)
-        g_pMalloc -> Free(design_note);
 }
 
 

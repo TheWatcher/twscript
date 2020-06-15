@@ -806,6 +806,8 @@ bool DesignParamFloatVec::init(const std::string& design_note, const float def_x
         z_calc.init("", def_z, false);
     }
 
+    is_set(valid);
+
     return valid;
 }
 

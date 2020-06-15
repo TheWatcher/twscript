@@ -26,7 +26,7 @@
 #define SCRIPT_NAME        "twscript"
 #define SCRIPT_LONGNAME    "TWScript Thief2 OSM"
 #define AUTHOR_NAME        "Chris Page"
-#define COPYRIGHT_YEAR     "2013"
+#define COPYRIGHT_YEAR     "2020"
 
 #define PACKAGE_NAME       "TWScript"
 #define PACKAGE_VERSTRING  SCRIPT_VERSTRING
