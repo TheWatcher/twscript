@@ -449,6 +449,10 @@ const char* DesignParamTarget::link_search_setup(const char* linkdef, bool* is_r
 {
     while(*linkdef) {
         switch(*linkdef) {
+            // The & sigil intrpduces a link definition, and should be skipped
+            case '&': // Nothing here
+                break;
+
             // The ? sigil indicates that the link mode should be random
             case '?': *is_random = true;
                 break;
