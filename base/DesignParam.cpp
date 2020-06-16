@@ -76,6 +76,8 @@ bool DesignParamFloat::init(const std::string& design_note, const float default_
         valid = data.init("", default_value);
     }
 
+    is_set(valid);
+
     return valid;
 }
 
@@ -136,6 +138,8 @@ bool DesignParamTime::init(const std::string& design_note, int default_value, co
 
     // Fetch the raw string from the design note
     bool valid = get_param_string(design_note, param);
+    is_set(valid);
+
     if(valid) {
         int store = default_value;
 
@@ -154,6 +158,7 @@ bool DesignParamTime::init(const std::string& design_note, int default_value, co
     } else {
         return DesignParamInt::init("", default_value);
     }
+
 
     return false;
 }
@@ -198,6 +203,8 @@ bool DesignParamBool::init(const std::string& design_note, bool default_value, c
 
     // Fetch the raw string from the design note
     bool valid = get_param_string(design_note, param);
+    is_set(valid);
+
     if(valid) {
         bool store = default_value;
 
@@ -262,6 +269,8 @@ bool DesignParamCountMode::init(const std::string &design_note, CountMode defaul
         mode = default_value;
     }
 
+    is_set(valid);
+
     return valid;
 }
 
@@ -310,6 +319,8 @@ bool DesignParamTarget::init(const std::string& design_note, const std::string& 
     // Set up randomisation
     uint seed = std::chrono::system_clock::now().time_since_epoch().count();
     randomiser.seed(seed);
+
+    is_set(valid);
 
     return true;
 }
@@ -427,6 +438,7 @@ void DesignParamTarget::link_search(std::vector<TargetObj>* matches, const int f
 
     // Parse the link definition, and fetch the list of possible matching links
     const char* flavour = link_search_setup(linkdef, &is_random, &is_weighted, &fetch_count, &fetch_all, &mode);
+
     uint count = link_scan(flavour, from, is_weighted, mode, links);
 
     if(count) {
