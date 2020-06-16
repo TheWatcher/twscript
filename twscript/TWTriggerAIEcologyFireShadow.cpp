@@ -20,21 +20,19 @@ void TWTriggerAIEcologyFireShadow::init(int time)
         debug_printf(DL_WARNING, "No Editor -> Design Note. Falling back on defaults.");
 
     } else {
-        std::string tmp;
-
-        // How often should the ecology update?
-        refresh  = get_scriptparam_int(design_note, "Rate", 1000, tmp);
+        // How often should the fireshadow update?
+        refresh.init(design_note, 1000);
 
         // parse the timewarp settings
-        speed_factor = get_scriptparam_float(design_note, "Speedup"    , 0.8125, tmp);
-        min_timewarp = get_scriptparam_float(design_note, "MinTimewarp", 0.03, tmp);
+        speed_factor.init(design_note, 0.8125);
+        min_timewarp.init(design_note, 0.03);
 
         g_pMalloc -> Free(design_note);
     }
 
     if(debug_enabled()) {
         debug_printf(DL_DEBUG, "Initialised on object. Settings:");
-        debug_printf(DL_DEBUG, "Speedup rate %d", refresh);
+        debug_printf(DL_DEBUG, "Speedup rate %d", refresh.value());
     }
 }
 
@@ -51,8 +49,10 @@ TWBaseScript::MsgStatus TWTriggerAIEcologyFireShadow::on_message(sScrMsg* msg, c
 
     if(!::_stricmp(msg -> message, "Timer")) {
         return on_timer(static_cast<sScrTimerMsg*>(msg), reply);
+
     } else if(!::_stricmp(msg -> message, "Slain")) {
         return on_slain(static_cast<sSlayMsg*>(msg), reply);
+
     }
 
     return result;
@@ -68,7 +68,7 @@ TWBaseScript::MsgStatus TWTriggerAIEcologyFireShadow::on_timer(sScrTimerMsg* msg
             if(debug_enabled())
                 debug_printf(DL_DEBUG, "Re-setting timed despawn");
 
-            update_timer = set_timed_message("FireShadow", refresh, kSTM_OneShot);
+            update_timer = set_timed_message("FireShadow", refresh.value(), kSTM_OneShot);
         }
     }
 
@@ -84,7 +84,7 @@ TWBaseScript::MsgStatus TWTriggerAIEcologyFireShadow::on_slain(sSlayMsg* msg, cM
     if(update_timer) {
         cancel_timed_message(update_timer);
     }
-    update_timer = set_timed_message("FireShadow", refresh, kSTM_OneShot);
+    update_timer = set_timed_message("FireShadow", refresh.value(), kSTM_OneShot);
 
     fireshadow_flee();
 
@@ -171,7 +171,7 @@ void TWTriggerAIEcologyFireShadow::fireshadow_flee(void)
             fire_corseparts();
 
             prop_srv -> Add(ObjId(), "TimeWarp");
-            prop_srv -> SetSimple(ObjId(), "TimeWarp", speed_factor);
+            prop_srv -> SetSimple(ObjId(), "TimeWarp", speed_factor.value());
         }
     }
 }
@@ -185,8 +185,8 @@ void TWTriggerAIEcologyFireShadow::speedup(void)
     cMultiParm timewarp;
     prop_srv -> Get(timewarp, ObjId(), "TimeWarp", NULL);
 
-    timewarp = float(timewarp) * speed_factor;
-    if(float(timewarp) < min_timewarp) timewarp = min_timewarp;
+    timewarp = float(timewarp) * speed_factor.value();
+    if(float(timewarp) < min_timewarp.value()) timewarp = min_timewarp.value();
 
     prop_srv -> SetSimple(ObjId(), "TimeWarp", timewarp);
 }

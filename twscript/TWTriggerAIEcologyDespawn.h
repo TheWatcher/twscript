@@ -38,7 +38,8 @@
 class TWTriggerAIEcologyDespawn : public TWBaseTrigger
 {
 public:
-    TWTriggerAIEcologyDespawn(const char* name, int object) : TWBaseTrigger(name, object), refresh(20000),
+    TWTriggerAIEcologyDespawn(const char* name, int object) : TWBaseTrigger(name, object),
+                                                              refresh(object, name, "Rate"),
                                                               SCRIPT_VAROBJ(TWTriggerAIEcologyDespawn, update_timer, object)
         { /* fnord */ }
 
@@ -102,7 +103,7 @@ private:
      */
     bool attempt_despawn(sScrMsg *msg);
 
-    int  refresh;                          //!< How frequently should the despawn happen after death?
+    DesignParamInt refresh;                //!< How frequently should the despawn happen after death?
     script_handle<tScrTimer> update_timer; //!< A timer used to despawn the AI
 };
 

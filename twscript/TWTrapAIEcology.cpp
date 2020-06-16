@@ -13,8 +13,6 @@ void TWTrapAIEcology::init(int time)
 {
     TWBaseTrap::init(time);
 
-    bool starton = false;
-
     // Make sure the population count is set up correctly
     population.Init(0);
     spawned.Init(0);
@@ -22,46 +20,46 @@ void TWTrapAIEcology::init(int time)
     // Fetch the contents of the object's design note
     char *design_note = GetObjectParams(ObjId());
 
-    if(!design_note) {
-        debug_printf(DL_WARNING, "No Editor -> Design Note. Falling back on defaults.");
+    if(design_note) {
+        // How often should the ecology update?
+        refresh.init(design_note, 30000);
 
-        // Assume initial start is off
-        enabled.Init(0);
-
-    } else {
         // How many AIs can be spawned?
-        pop_limit = get_scriptparam_int(design_note, "Population", 1, pop_qvar);
+        pop_limit.init(design_note, 1);
 
         // does the ecology have an upper limit?
-        lives = get_scriptparam_int(design_note, "Lives", 0, lives_qvar);
-
-        // How often should the ecology update?
-        refresh = get_scriptparam_time(design_note, "Rate", 30000, refresh_qvar);
+        lives.init(design_note, 0);
 
         // Start on? Note that this will only have any effect the first time the script
         // does the init. After this point, the previous enabled state takes over.
-        starton = get_scriptparam_bool(design_note, "StartOn", false);
-        enabled.Init(starton ? 1 : 0);
+        starton.init(design_note, false);
+        enabled.Init(starton.value() ? 1 : 0);
 
-        char *archetype_def = get_scriptparam_string(design_note, "AILink", "&%Weighted");
-        if(archetype_def) {
-            archetype_link = archetype_def;
-            g_pMalloc -> Free(archetype_def);
-        }
+        // Allow spawns to happen on screen? Probably not desirable, really
+        allow_visible_spawn.init(design_note, false);
 
-        char *spawnpoint_def = get_scriptparam_string(design_note, "SpawnLink", "&#Weighted");
-        if(spawnpoint_def) {
-            spawnpoint_link = spawnpoint_def;
-            g_pMalloc -> Free(spawnpoint_def);
-        }
+        // Set up the target links. Note that the defaults are
+        // &%Weighted - ScriptParam links to archetypes, weighted random mode
+        // &#Weighted - ScriptParam links to concrete instances, weighted random mode
+        archetype_link.init(design_note, "&%Weighted");
+        spawnpoint_link.init(design_note, "&#Weighted");
 
-        char *spawned_def = get_scriptparam_string(design_note, "SpawnCountQVar", NULL);
-        if(spawned_def) {
-            spawned_qvar = spawned_def;
-            g_pMalloc -> Free(spawned_def);
-        }
+        // Set up the name of the qvar to store the population in
+        spawned_qvar.init(design_note);
 
-       g_pMalloc -> Free(design_note);
+        g_pMalloc -> Free(design_note);
+    } else {
+        debug_printf(DL_WARNING, "No Editor -> Design Note. Falling back on defaults.");
+
+        // Assume initial start is off, set all to defaults
+        enabled.Init(0);
+        refresh.init("", 30000);
+        pop_limit.init("", 1);
+        lives.init("", 0);
+        starton.init("", false);
+        allow_visible_spawn.init("", false);
+        archetype_link.init("", "&%Weighted");
+        spawnpoint_link.init("", "&#Weighted");
     }
 
     // If the ecology is active, start it going
@@ -71,20 +69,14 @@ void TWTrapAIEcology::init(int time)
 
     if(debug_enabled()) {
         debug_printf(DL_DEBUG, "Initialised on object. Settings:");
-        debug_printf(DL_DEBUG, "Population %d at rate %d", pop_limit, refresh);
-        if(!refresh_qvar.empty())
-            debug_printf(DL_DEBUG, "Rate will be read from qvar '%s'", refresh_qvar.c_str());
+        debug_printf(DL_DEBUG, "Population %d at rate %d", pop_limit.value(), refresh.value());
+        if(lives.is_set())
+            debug_printf(DL_DEBUG, "Total spawns allowed: %d", lives.value());
 
-        if(lives)
-            debug_printf(DL_DEBUG, "Total spawns allowed: %d", lives);
-
-        if(!pop_qvar.empty())
-            debug_printf(DL_DEBUG, "Population will be read from qvar '%s'", pop_qvar.c_str());
-
-        if(!spawned_qvar.empty())
+        if(spawned_qvar.is_set())
             debug_printf(DL_DEBUG, "Total spawn count will appear in qvar '%s'", spawned_qvar.c_str());
 
-        debug_printf(DL_DEBUG, "Start enabled is %s", starton ? "true" : "false");
+        debug_printf(DL_DEBUG, "Start enabled is %s", starton.value() ? "true" : "false");
         debug_printf(DL_DEBUG, "Archetype linkdef is '%s'", archetype_link.c_str());
         debug_printf(DL_DEBUG, "Spawn point linkdef is '%s'", spawnpoint_link.c_str());
     }
@@ -173,10 +165,8 @@ TWBaseScript::MsgStatus TWTrapAIEcology::on_despawn(sScrMsg* msg, cMultiParm& re
 {
     population = population - 1;
 
-    update_pop_limit();
-
     if(debug_enabled())
-        debug_printf(DL_DEBUG, "AI despawned, population is now %d spawned AIs (limit is %d)", int(population), pop_limit);
+        debug_printf(DL_DEBUG, "AI despawned, population is now %d spawned AIs (limit is %d)", int(population), pop_limit.value());
 
     return MS_CONTINUE;
 }
@@ -200,8 +190,7 @@ TWBaseScript::MsgStatus TWTrapAIEcology::on_resetspawned(sScrMsg* msg, cMultiPar
 void TWTrapAIEcology::start_timer(bool immediate)
 {
     stop_timer(); // most of the time this is redundant, but be sure.
-    update_refresh(); // Make sure the refresh rate is updated if it's read from a qvar
-    update_timer = set_timed_message("CheckPop", immediate ? 100 : refresh, kSTM_OneShot);
+    update_timer = set_timed_message("CheckPop", immediate ? 100 : refresh.value(), kSTM_OneShot);
 }
 
 
@@ -239,18 +228,16 @@ void TWTrapAIEcology::attempt_spawn(sScrMsg *msg)
 
 bool TWTrapAIEcology::spawn_needed(void)
 {
-    update_pop_limit();
-
     if(debug_enabled()) {
-        debug_printf(DL_DEBUG, "Got %d spawned AIs (limit is %d)", int(population), pop_limit);
+        debug_printf(DL_DEBUG, "Got %d spawned AIs (limit is %d)", int(population), pop_limit.value());
 
-        if(lives) {
-            debug_printf(DL_DEBUG, "Total spawns so far %d of %d", int(spawned), lives);
+        if(lives.is_set()) {
+            debug_printf(DL_DEBUG, "Total spawns so far %d of %d", int(spawned), lives.value());
         }
     }
 
     // Less spawned than there may be spawned? If so, spawn is needed.
-    return((population < pop_limit) && (!lives || (spawned < lives)));
+    return((population < pop_limit.value()) && (!lives.is_set() || (spawned < lives.value())));
 }
 
 
@@ -258,7 +245,7 @@ int TWTrapAIEcology::select_archetype(sScrMsg *msg)
 {
     // Select the AI archetype to spawn an instance of. Note that this may return more than one
     // potential match, depending on the search term, but only the first archetype will be used
-    std::vector<TargetObj> *archetype = get_target_objects(archetype_link.c_str(), msg);
+    std::vector<TargetObj> *archetype = archetype_link.values(msg);
     std::vector<TargetObj>::iterator it;
 
     int target = 0;
@@ -281,7 +268,7 @@ int TWTrapAIEcology::select_spawnpoint(sScrMsg *msg)
 {
     // Select the spawn point to use. This may return more than one potential match, in
     // which case only the first concrete object will be used.
-    std::vector<TargetObj> *concrete = get_target_objects(spawnpoint_link.c_str(), msg);
+    std::vector<TargetObj> *concrete = spawnpoint_link.values(msg);
     std::vector<TargetObj>::iterator it;
 
     int target = 0;
@@ -389,7 +376,7 @@ int TWTrapAIEcology::check_spawn_visibility(int target)
     SService<IObjectSrv> obj_srv(g_pScriptManager);
 
     // If spawns can happen in view, this function is a NOP basically.
-    if(allow_visible_spawn) return target;
+    if(allow_visible_spawn.value()) return target;
 
     // When debugging is on, explicitly check that the object does not have
     // Render Type: Not Rendered set
@@ -429,19 +416,6 @@ void TWTrapAIEcology::get_spawn_location(int spawnpoint, cScrVec& location, cScr
 
     // zero the pitch and bank, as having those non-zero can screw up AIs
     facing.y = facing.z = 0;
-
-    // Does the spawn point have an offset set?
-    char *design_note = GetObjectParams(spawnpoint);
-    if(design_note) {
-        cScrVec offset;
-        get_scriptparam_floatvec(design_note, "SpawnOffset", offset);
-
-        // offset will be filled with zeros if no offset has been set, so this is safe even if
-        // no offset has actually been specified by the user.
-        location += offset;
-
-        g_pMalloc -> Free(design_note);
-    }
 }
 
 
@@ -459,8 +433,8 @@ void TWTrapAIEcology::increase_spawncount(void)
     }
 
     // If the user has set a qvar to store the spawn count in, update it.
-    if(!spawned_qvar.empty()) {
-        set_qvar(spawned_qvar, spawn);
+    if(spawned_qvar.is_set()) {
+        set_qvar(spawned_qvar.value(), spawn);
     }
 }
 
@@ -478,24 +452,4 @@ void TWTrapAIEcology::fixup_links(int combined)
 
     // Duplicate any AIWatch links on the spawn point
     copy_spawn_aiwatch(spawnpoint, spawned);
-}
-
-
-void TWTrapAIEcology::update_pop_limit(void)
-{
-    if(!pop_qvar.empty()) {
-        pop_limit = get_qvar_value(pop_qvar, pop_limit);
-
-        if(debug_enabled()) debug_printf(DL_DEBUG, "Using population limit %d from %s.", pop_limit, pop_qvar.c_str());
-    }
-}
-
-
-void TWTrapAIEcology::update_refresh(void)
-{
-    if(!refresh_qvar.empty()) {
-        refresh = get_qvar_value(refresh_qvar, refresh);
-
-        if(debug_enabled()) debug_printf(DL_DEBUG, "Using update rate %d from %s.", refresh, refresh_qvar.c_str());
-    }
 }

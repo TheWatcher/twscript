@@ -90,9 +90,17 @@
 class TWTrapAIEcology : public TWBaseTrap
 {
 public:
-    TWTrapAIEcology(const char* name, int object) : TWBaseTrap(name, object), refresh(30000), refresh_qvar(), pop_limit(1), pop_qvar(), lives(0), lives_qvar(), spawned_qvar(), allow_visible_spawn(false),
-                                                    archetype_link("&%Weighted"),
-                                                    spawnpoint_link("&!#ScriptParams"),
+    TWTrapAIEcology(const char* name, int object) : TWBaseTrap(name, object),
+
+                                                    refresh            (object, name, "Rate"),
+                                                    pop_limit          (object, name, "Population"),
+                                                    lives              (object, name, "Lives"),
+                                                    starton            (object, name, "StartOn"),
+                                                    allow_visible_spawn(object, name, "VisibleSpawn"),
+                                                    spawned_qvar       (object, name, "SpawnCountQVar"),
+                                                    archetype_link     (object, name, "AILink"),
+                                                    spawnpoint_link    (object, name, "SpawnLink"),
+
                                                     SCRIPT_VAROBJ(TWTrapAIEcology, enabled, object),
                                                     SCRIPT_VAROBJ(TWTrapAIEcology, population, object),
                                                     SCRIPT_VAROBJ(TWTrapAIEcology, spawned, object),
@@ -309,18 +317,6 @@ private:
     void fixup_links(int combined);
 
 
-    /** Determine whether the population limit should be read from a qvar rather than the design note,
-     *  and if so update its value if needed.
-     */
-    void update_pop_limit(void);
-
-
-    /** Determine whether the update rate should be read from a qvar rather than the design note,
-     *  and if so update its value if needed.
-     */
-    void update_refresh(void);
-
-
     /** Calculate a combined ID using the provided spawnpoint and spaned AI IDs.
      *
      * @param spawnid      The ID of the spawned AI.
@@ -352,18 +348,16 @@ private:
     }
 
 
-    int  refresh;                          //!< How frequently should the ecology be updated?
-    std::string refresh_qvar;              //!< If the refresh rate is controlled by a qvar, the name goes here.
-    int  pop_limit;                        //!< How many AIs should this ecology allow?
-    std::string pop_qvar;                  //!< If the population is controlled by a qvar, the name goes here.
-    int  lives;                            //!< Should there be an upper limit to the number of AIs that are ever spawned?
-    std::string lives_qvar;                //!< If the number of lives is controlled by a qvar, the name goes here.
-    std::string spawned_qvar;              //!< The name of the qvar to store the total number of spawned AIs.
+    DesignParamTime refresh;               //!< How frequently should the ecology be updated?
+    DesignParamInt  pop_limit;             //!< How many AIs should this ecology allow?
+    DesignParamInt  lives;                 //!< Should there be an upper limit to the number of AIs that are ever spawned?
+    DesignParamBool starton;               //!< Start spawning after init?
+    DesignParamBool allow_visible_spawn;   //!< Should spawns be allowed to happen on-screen?
 
-    bool allow_visible_spawn;              //!< Should spawns be allowed to happen on-screen?
+    DesignParamString spawned_qvar;        //!< The name of the qvar to store the total number of spawned AIs.
 
-    std::string archetype_link;            //!< The string to use as a linkdef when searching for the archetype to spawn.
-    std::string spawnpoint_link;           //!< The string to use as a linkdef when searching for spawn points.
+    DesignParamTarget archetype_link;      //!< The string to use as a linkdef when searching for the archetype to spawn.
+    DesignParamTarget spawnpoint_link;     //!< The string to use as a linkdef when searching for spawn points.
 
     script_int               enabled;      //!< Is the ecology enabled?
     script_int               population;   //!< The number of currently spawned AIs

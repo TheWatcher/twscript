@@ -38,7 +38,10 @@
 class TWTriggerAIEcologyFireShadow : public TWBaseTrigger
 {
 public:
-    TWTriggerAIEcologyFireShadow(const char* name, int object) : TWBaseTrigger(name, object), refresh(1000), speed_factor(0.8125), min_timewarp(0.03),
+    TWTriggerAIEcologyFireShadow(const char* name, int object) : TWBaseTrigger(name, object),
+                                                                 refresh(object, name, "Rate"),
+                                                                 speed_factor(object, name, "Speedup"),
+                                                                 min_timewarp(object, name, "MinTimewarp"),
                                                                  SCRIPT_VAROBJ(TWTriggerAIEcologyFireShadow, update_timer, object)
         { /* fnord */ }
 
@@ -120,9 +123,9 @@ private:
      */
     void speedup(void);
 
-    int   refresh;                         //!< How frequently should the speedup and despawn happen after slay?
-    float speed_factor;                    //!< The speedup factor for the fireshadow
-    float min_timewarp;                    //!< The minimum timewarp factor.
+    DesignParamInt   refresh;        //!< How frequently should the speedup and despawn happen after slay?
+    DesignParamFloat speed_factor;   //!< The speedup factor for the fireshadow
+    DesignParamFloat min_timewarp;   //!< The minimum timewarp factor.
     script_handle<tScrTimer> update_timer; //!< A timer used to speedup and despawn the AI
 };
 

@@ -20,17 +20,15 @@ void TWTriggerAIEcologyDespawn::init(int time)
         debug_printf(DL_WARNING, "No Editor -> Design Note. Falling back on defaults.");
 
     } else {
-        std::string dummy;
-
         // How often should the ecology update?
-        refresh  = get_scriptparam_int(design_note, "Rate", 20000, dummy);
+        refresh.init(design_note, 20000);
 
         g_pMalloc -> Free(design_note);
     }
 
     if(debug_enabled()) {
         debug_printf(DL_DEBUG, "Initialised on object. Settings:");
-        debug_printf(DL_DEBUG, "Despawn rate %d", refresh);
+        debug_printf(DL_DEBUG, "Despawn rate %d", refresh.value());
     }
 }
 
@@ -62,7 +60,7 @@ TWBaseScript::MsgStatus TWTriggerAIEcologyDespawn::on_timer(sScrTimerMsg* msg, c
             if(debug_enabled())
                 debug_printf(DL_DEBUG, "Re-setting timed despawn");
 
-            update_timer = set_timed_message("Despawn", refresh, kSTM_OneShot);
+            update_timer = set_timed_message("Despawn", refresh.value(), kSTM_OneShot);
         }
     }
 
@@ -79,7 +77,7 @@ TWBaseScript::MsgStatus TWTriggerAIEcologyDespawn::on_slain(sSlayMsg* msg, cMult
     if(update_timer) {
         cancel_timed_message(update_timer);
     }
-    update_timer = set_timed_message("Despawn", refresh, kSTM_OneShot);
+    update_timer = set_timed_message("Despawn", refresh.value(), kSTM_OneShot);
 
     return MS_CONTINUE;
 }
