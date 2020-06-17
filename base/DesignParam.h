@@ -530,11 +530,14 @@ public:
     bool init(const std::string& design_note, const std::string& default_value, const bool add_listeners = false);
 
 
-    /** Obtain a single object ID from the target string.
+    /** Obtain a single object ID from the target string. Note that this
+     *  only returns a value for 'simple' target types - [me], [source], a
+     *  literal int ID or qvar calculation. Link/archetype/radius targets are
+     *  not supported are result in 0.
      *
      * @return An int containing the object ID
      */
-    int value(sScrMsg* msg);
+    int value(sScrMsg* msg = NULL);
 
 
     std::vector<TargetObj>* values(sScrMsg* msg);

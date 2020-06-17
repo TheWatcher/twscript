@@ -363,6 +363,35 @@ bool DesignParamTarget::is_complex_target(const std::string& param)
  *  Targetting
  */
 
+int DesignParamTarget::value(sScrMsg* msg)
+{
+    switch(mode) {
+        case TARGET_INT:
+            return objid_cache;
+
+            break;
+
+        case TARGET_QVAR:
+            return static_cast<int>(qvar_calc.value());
+
+            break;
+
+        case TARGET_SOURCE:
+            if(msg) {
+                return msg -> from;
+            }
+            break;
+
+        default:
+            return 0;
+
+            break;
+    }
+
+    return 0;
+}
+
+
 std::vector<TargetObj>* DesignParamTarget::values(sScrMsg* msg)
 {
     std::vector<TargetObj>* matches = new std::vector<TargetObj>;
