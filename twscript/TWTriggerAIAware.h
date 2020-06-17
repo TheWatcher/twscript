@@ -39,7 +39,10 @@
 class TWTriggerAIAware : public TWBaseTrigger
 {
 public:
-    TWTriggerAIAware(const char* name, int object) : TWBaseTrigger(name, object), refresh(500), trigger_level(kModerateAlert), trigger_object(0),
+    TWTriggerAIAware(const char* name, int object) : TWBaseTrigger(name, object),
+                                                     refresh       (object, name, "Rate"),
+                                                     trigger_level (object, name, "Alertness"),
+                                                     trigger_object(object, name, "Object"),
                                                      SCRIPT_VAROBJ(TWTriggerAIAware, update_timer, object),
                                                      SCRIPT_VAROBJ(TWTriggerAIAware, is_linked, object)
         { /* fnord */ }
@@ -121,9 +124,9 @@ private:
     void stop_timer(void);
     void check_awareness(sScrMsg* msg);
 
-    int refresh;                           //!< How frequently should the state be updated?
-    eAIScriptAlertLevel trigger_level;     //!< The level at which the trigger should fire an On message
-    object trigger_object;                 //!< The object (or archetype) that must be linked before the trigger happens
+    DesignParamInt    refresh;             //!< How frequently should the state be updated?
+    DesignParamInt    trigger_level;       //!< The level at which the trigger should fire an On message
+    DesignParamTarget trigger_object;      //!< The object (or archetype) that must be linked before the trigger happens
 
     script_handle<tScrTimer> update_timer; //!< A timer used to update the trigger
     script_int               is_linked;    //!< Is the target currently linked?

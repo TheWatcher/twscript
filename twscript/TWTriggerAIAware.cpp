@@ -21,33 +21,24 @@ void TWTriggerAIAware::init(int time)
     if(!design_note) {
         debug_printf(DL_WARNING, "No Editor -> Design Note. Falling back on defaults.");
 
+        refresh.init("", 500);
+        trigger_level.init("", 2);
+        trigger_object.init("", "Garrett");
+
     } else {
-        std::string dummy;
 
-        refresh = get_scriptparam_int(design_note, "Rate", 500, dummy);
-        trigger_level = (eAIScriptAlertLevel)get_scriptparam_int(design_note, "Alertness" , 2, dummy);
-
-        char *objname = get_scriptparam_string(design_note, "Object", "Garrett");
-        if(objname) {
-            SService<IObjectSrv>  obj_srv(g_pScriptManager);
-
-            obj_srv -> Named(trigger_object, objname);
-            if(!trigger_object) {
-                debug_printf(DL_WARNING, "Unable to locate object named '%s'. Using default Garrett", objname);
-                obj_srv -> Named(trigger_object, "Garrett");
-            }
-
-            g_pMalloc -> Free(objname);
-        }
+        refresh.init(design_note, 500);
+        trigger_level.init(design_note, 2);
+        trigger_object.init(design_note, "");
 
         g_pMalloc -> Free(design_note);
     }
 
     if(debug_enabled()) {
         std::string targ_name;
-        get_object_namestr(targ_name, trigger_object);
+        get_object_namestr(targ_name, trigger_object.value());
 
-        debug_printf(DL_DEBUG, "Initialised trigger level %d, match object '%s', check rate %d", trigger_level, targ_name.c_str(), refresh);
+        debug_printf(DL_DEBUG, "Initialised trigger level %d, match object '%s', check rate %d", trigger_level.value(), targ_name.c_str(), refresh.value());
     }
 }
 
@@ -63,12 +54,14 @@ TWBaseScript::MsgStatus TWTriggerAIAware::on_message(sScrMsg* msg, cMultiParm& r
 
     if(!::_stricmp(msg -> message, "Alertness")) {
         return on_alertness(static_cast<sAIAlertnessMsg*>(msg), reply);
+
     } else if(!::_stricmp(msg -> message, "Timer")) {
         return on_timer(static_cast<sScrTimerMsg*>(msg), reply);
 
     // Make sure death and knockout stops the check
     } else if(!::_stricmp(msg -> message, "Slain")) {
         return on_slain(static_cast<sSlayMsg*>(msg), reply);
+
     } else if(!::_stricmp(msg -> message, "IgnorePotion")) {
         return on_ignorepotion(msg, reply);
     }
@@ -83,14 +76,14 @@ TWBaseScript::MsgStatus TWTriggerAIAware::on_alertness(sAIAlertnessMsg* msg, cMu
         debug_printf(DL_DEBUG, "Alertness change. New: %d, Old: %d\n", msg -> level, msg -> oldLevel);
 
     // Is the alertness going over the trigger level?
-    if(msg -> level >= trigger_level && msg -> oldLevel < trigger_level) {
+    if(msg -> level >= trigger_level.value() && msg -> oldLevel < trigger_level.value()) {
         if(debug_enabled())
             debug_printf(DL_DEBUG, "Alertness raised above trigger, starting link checks");
 
         check_awareness(msg);
 
     // Is the alertness going down below the trigger level?
-    } else if(msg -> level < trigger_level && msg -> oldLevel >= trigger_level) {
+    } else if(msg -> level < trigger_level.value() && msg -> oldLevel >= trigger_level.value()) {
         if(debug_enabled())
             debug_printf(DL_DEBUG, "Alertness fell below trigger, stopping link checks");
 
@@ -168,13 +161,13 @@ void TWTriggerAIAware::check_awareness(sScrMsg* msg)
 
         // Ignore links to objects with too low level
         sAIAwareness* awareness = static_cast<sAIAwareness*>(links.Data());
-        if(awareness -> Level >= static_cast<eAIAwareLevel>(trigger_level)) {
+        if(awareness -> Level >= static_cast<eAIAwareLevel>(trigger_level.value())) {
 
-            if(int(trigger_object) > 0 && link.dest == trigger_object) {
+            if(trigger_object.value() > 0 && link.dest == trigger_object.value()) {
                 target_linked = true;
-            } else if(int(trigger_object) < 0) {
+            } else if(trigger_object.value() < 0) {
                 true_bool inherits;
-                obj_srv -> InheritsFrom(inherits, link.dest, trigger_object);
+                obj_srv -> InheritsFrom(inherits, link.dest, trigger_object.value());
 
                 target_linked = (bool)inherits;
             }
@@ -192,7 +185,7 @@ void TWTriggerAIAware::check_awareness(sScrMsg* msg)
         send_off_message(msg);
     }
 
-    update_timer = set_timed_message("CheckLinks", refresh, kSTM_OneShot);
+    update_timer = set_timed_message("CheckLinks", refresh.value(), kSTM_OneShot);
 }
 
 
