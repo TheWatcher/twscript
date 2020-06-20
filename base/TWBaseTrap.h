@@ -48,12 +48,14 @@ public:
                                                turnon_msg (object, name, "TurnOn"),
                                                turnoff_msg(object, name, "TurnOff"),
                                                limit_dp(object, name, "Count"),
-                                               count(name, object),
+                                               count(name, object, "count"),
                                                count_mode(object, name, "CountOnly"),
+                                               cap_dp(object, name, "Capacitor"),
                                                on_cap_dp(object, name, "OnCapacitor"),
                                                off_cap_dp(object, name, "OffCapacitor"),
-                                               on_capacitor(name, object),
-                                               off_capacitor(name, object)
+                                               capacitor(name, object, "capacitor"),
+                                               on_capacitor(name, object, "on_cap"),
+                                               off_capacitor(name, object, "off_cap")
         { /* fnord */ }
 
 protected:
@@ -133,8 +135,10 @@ private:
     DesignParamCountMode count_mode; //!< What counts as 'working'?
 
     // Capacitors
+    DesignParamCapacitor cap_dp;
     DesignParamCapacitor on_cap_dp;
     DesignParamCapacitor off_cap_dp;
+    SavedCounter capacitor;      //!< Control how frequently anything works
     SavedCounter on_capacitor;   //!< Control how frequently TurnOn actions work
     SavedCounter off_capacitor;  //!< Control how frequently TurnOff actions work
 };
