@@ -51,8 +51,10 @@ public:
         min(0), max(0),
         capacitor(false),
         falloff(0),
-        count(script_name, (name + "count").c_str(), obj_id),
-        last_time(script_name, (name + "time").c_str(), obj_id)
+        count_name(name + "name"),
+        time_name(name + "time"),
+        count(script_name, count_name.c_str(), obj_id),
+        last_time(script_name, time_name.c_str(), obj_id)
         { /* fnord */ }
 
 
@@ -159,15 +161,17 @@ private:
      */
     int apply_falloff(int time, int oldcount);
 
-    std::string name;
-    bool is_enabled;      //!< Has this counter been fully set up?
-    int  min;             //!< The minimum number of times increase_count() must be called before it returns true
-    int  max;             //!< The maximum number of times increase_count() can be called before it returns false
-    bool capacitor;       //!< If true, and min is set, the counter works in capacitor mode.
-    bool limit;           //!< If true, capacitor is off, and max is set, the counter works in limit mode.
-    int  falloff;         //!< The time in milliseconds it takes for the count to decrease by 1.
-    script_int count;     //!< The current count
-    script_int last_time; //!< The sim time at which the count was last updated
+    std::string name;       //!< The name of this counter
+    bool is_enabled;        //!< Has this counter been fully set up?
+    int  min;               //!< The minimum number of times increase_count() must be called before it returns true
+    int  max;               //!< The maximum number of times increase_count() can be called before it returns false
+    bool capacitor;         //!< If true, and min is set, the counter works in capacitor mode.
+    bool limit;             //!< If true, capacitor is off, and max is set, the counter works in limit mode.
+    int  falloff;           //!< The time in milliseconds it takes for the count to decrease by 1.
+    std::string count_name; //!< Count variable name, needed as script_var doesn't copy name
+    std::string time_name;  //!< Time variable name
+    script_int count;       //!< The current count
+    script_int last_time;   //!< The sim time at which the count was last updated
 };
 
 #endif // SAVED_COUNTER_H
