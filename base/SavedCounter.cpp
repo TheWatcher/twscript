@@ -36,12 +36,8 @@ bool SavedCounter::increment(int time, uint amount)
 {
     int oldcount = static_cast<int>(count);
 
-	g_pfnMPrintf("SavedCounter[%s].increment, oldcount=%d amount=%d\n", name.c_str(), oldcount, amount);
-
     // Let apply_falloff work out what the count should be before incrementing
     int newcount = apply_falloff(time, oldcount) + amount;
-
-    g_pfnMPrintf("SavedCounter[%s].increment, newcount=%d\n", name.c_str(), newcount);
 
     // If limit mode is enabled, force at most max + 1 for the new value.
     if(limit && max && (newcount > max)) newcount = max + 1;
@@ -55,14 +51,11 @@ bool SavedCounter::increment(int time, uint amount)
         if(capacitor && newcount >= min) {
             newcount = 0;
         }
-        g_pfnMPrintf("SavedCounter[%s].increment, setting count=newcount=%d last_time=%d\n", name.c_str(), newcount, time);
 
         // Update the stored variables as they shouldn't need fiddling with now
         count = newcount;
         last_time = time;
     }
-
-	g_pfnMPrintf("SavedCounter[%s].increment, finishing: count=%d, valid=%d\n", name.c_str(), static_cast<int>(count), validcount);
 
     return validcount;
 }
