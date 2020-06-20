@@ -21,6 +21,7 @@
 #ifndef SAVED_COUNTER_H
 #define SAVED_COUNTER_H
 
+#include <string>
 #include "scriptvars.h"
 
 /** A class providing persistent use count and limiting facilities. This
@@ -44,7 +45,14 @@ public:
      * @return A new SavedCounter object. init() must be called before it is
      *         used!
      */
-    SavedCounter(const char *script_name, int obj_id) : min(0), max(0), capacitor(false), falloff(0), count(script_name, "count", obj_id), last_time(script_name, "last_time", obj_id)
+    SavedCounter(const char *script_name, int obj_id, const std::string& name) :
+        name(name),
+        is_enabled(false),
+        min(0), max(0),
+        capacitor(false),
+        falloff(0),
+        count(script_name, (name + "count").c_str(), obj_id),
+        last_time(script_name, (name + "time").c_str(), obj_id)
         { /* fnord */ }
 
 
@@ -136,6 +144,9 @@ public:
             return count;
         }
 
+    bool enabled() const
+        { return is_enabled; }
+
 private:
     /** Apply the falloff to the current count (if it is set) and return the updated
      *  counter value. Note that this does not update the `count` member variable: it
@@ -148,6 +159,8 @@ private:
      */
     int apply_falloff(int time, int oldcount);
 
+    std::string name;
+    bool is_enabled;      //!< Has this counter been fully set up?
     int  min;             //!< The minimum number of times increase_count() must be called before it returns true
     int  max;             //!< The maximum number of times increase_count() can be called before it returns false
     bool capacitor;       //!< If true, and min is set, the counter works in capacitor mode.

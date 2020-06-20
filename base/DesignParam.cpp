@@ -70,13 +70,12 @@ bool DesignParamFloat::init(const std::string& design_note, const float default_
     if(valid) {
         // NOTE: In DesignParamFloat and all subclasses, `data` is a QVarCalculation!
         valid = data.init(param, default_value, add_listeners);
+        is_set(valid);
 
     // Parameter retrieval failed - use the default
     } else {
         valid = data.init("", default_value);
     }
-
-    is_set(valid);
 
     return valid;
 }

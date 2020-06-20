@@ -1,5 +1,7 @@
 
 #include "SavedCounter.h"
+#include "ScriptModule.h"
+#include "ScriptLib.h"
 
 void SavedCounter::init(int curr_time, int min_count, int max_count, int falloff_ms, bool cap_mode, bool limit_mode)
 {
@@ -12,7 +14,7 @@ void SavedCounter::init(int curr_time, int min_count, int max_count, int falloff
     if(max_count  < 0) max_count  = 0;
     if(falloff_ms < 0) falloff_ms = 0;
 
-    // If min and max are specified, max must be less than min or the counter will never work
+    // If min and max are specified, min must be less than max or the counter will never work
     if(min_count && max_count && max_count < min_count) {
         int swap = min_count;
         min_count = max_count;
@@ -25,15 +27,21 @@ void SavedCounter::init(int curr_time, int min_count, int max_count, int falloff
     capacitor = cap_mode && (min > 1); // capacitor mode is pointless without a min setting over 1.
     limit = limit_mode && max && !capacitor; // limit mode is pointless if capacitor mode is set, or there's no max.
     falloff = falloff_ms;
+
+    is_enabled = true;
 }
 
 
 bool SavedCounter::increment(int time, uint amount)
 {
-    int oldcount = count;
+    int oldcount = static_cast<int>(count);
+
+	g_pfnMPrintf("SavedCounter[%s].increment, oldcount=%d amount=%d\n", name.c_str(), oldcount, amount);
 
     // Let apply_falloff work out what the count should be before incrementing
     int newcount = apply_falloff(time, oldcount) + amount;
+
+    g_pfnMPrintf("SavedCounter[%s].increment, newcount=%d\n", name.c_str(), newcount);
 
     // If limit mode is enabled, force at most max + 1 for the new value.
     if(limit && max && (newcount > max)) newcount = max + 1;
@@ -47,11 +55,14 @@ bool SavedCounter::increment(int time, uint amount)
         if(capacitor && newcount >= min) {
             newcount = 0;
         }
+        g_pfnMPrintf("SavedCounter[%s].increment, setting count=newcount=%d last_time=%d\n", name.c_str(), newcount, time);
 
         // Update the stored variables as they shouldn't need fiddling with now
         count = newcount;
         last_time = time;
     }
+
+	g_pfnMPrintf("SavedCounter[%s].increment, finishing: count=%d, valid=%d\n", name.c_str(), static_cast<int>(count), validcount);
 
     return validcount;
 }

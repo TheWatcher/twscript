@@ -856,6 +856,14 @@ public:
      */
     bool get_limit() { return limit.value(); }
 
+
+    /** Determine wheter the design param is set. Uses the count, as
+     *  that's the major value here - without count, nothing works,
+     *  and with it falloff and limit are defaulted.
+     */
+    bool is_set() const
+        { return count.is_set(); }
+
 private:
     DesignParamInt  count;   //!< The count for the capacitor, meaning varies on Trap/Trigger context!
     DesignParamTime falloff; //!< The rate at which the count falls off.
