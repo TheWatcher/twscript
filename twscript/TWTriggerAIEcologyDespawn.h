@@ -1,5 +1,5 @@
 /** @file
- * This file contains the interface for the TWTriggerAIEcologyDespawn classe.
+ * This file contains the interface for the TWTriggerAIEcologyDespawn class.
  *
  * @author Chris Page &lt;chris@starforge.co.uk&gt;
  *

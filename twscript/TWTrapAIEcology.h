@@ -1,5 +1,5 @@
 /** @file
- * This file contains the interface for the TWTrapAIEcology classe.
+ * This file contains the interface for the TWTrapAIEcology class.
  *
  * @author Chris Page &lt;chris@starforge.co.uk&gt;
  *

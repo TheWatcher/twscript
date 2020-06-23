@@ -1,5 +1,5 @@
 /** @file
- * This file contains the interface for the TWTrapSetSpeed classe.
+ * This file contains the interface for the TWTrapSetSpeed class.
  *
  * @author Chris Page &lt;chris@starforge.co.uk&gt;
  *

@@ -1,5 +1,5 @@
 /** @file
- * This file contains the interface for the TWTriggerAIEcologyFireShadow classe.
+ * This file contains the interface for the TWTriggerAIEcologyFireShadow class.
  *
  * @author Chris Page &lt;chris@starforge.co.uk&gt;
  *
