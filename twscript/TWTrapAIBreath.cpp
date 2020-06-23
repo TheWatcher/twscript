@@ -42,7 +42,7 @@ void TWTrapAIBreath::init(int time)
         stop_on_ko.init(design_note, false);
 
         // How long, in milliseconds, should the exhale last
-        exhale_time.init(design_note, 250);
+        exhale_time.init(design_note, 500);
 
         // Allow the breathing rates to be set, with defaults based off
         // the base rate if not set.
@@ -58,7 +58,6 @@ void TWTrapAIBreath::init(int time)
         // Sort out the archetype for the proxy
         proxy_arch_name.init(design_note, "BreathProxy");
         proxy_link_name.init(design_note, "~DetailAttachement");
-
 
         rooms.init(design_note);
         if(rooms.value().length() > 0) {
