@@ -50,11 +50,23 @@ void TWBaseTrigger::init(int time)
 
     if(debug_enabled()) {
         debug_printf(DL_DEBUG, "Trigger initialised with on = '%s', off = '%s', dest = '%s'.\nChosen links will%s be deleted.", turnon_msg.c_str(), turnoff_msg.c_str(), dest.c_str(), (remove_links ? "" : " not"));
-        debug_printf(DL_DEBUG, "On is%s a stimulus", (isstim[1] ? "" : " not"));
-        if(isstim[1]) debug_printf(DL_DEBUG, "    Stim object: %d, Intensity: %.3f", stimob[1], intensity[1]);
+        debug_printf(DL_DEBUG, "On is%s a stimulus", (isstim[SEND_ON] ? "" : " not"));
+        if(isstim[SEND_ON]) {
+            if(intensity_max[SEND_ON] < 0.0f) {
+                debug_printf(DL_DEBUG, "    Stim object: %d, Intensity: %.3f", stimob[SEND_ON], intensity_min[SEND_ON]);
+            } else {
+                debug_printf(DL_DEBUG, "    Stim object: %d, Intensity range: %.3f to %.3f", stimob[SEND_ON], intensity_min[SEND_ON], intensity_max[SEND_ON]);
+            }
+        }
 
-        debug_printf(DL_DEBUG, "Off is%s a stimulus", (isstim[0] ? "" : " not"));
-        if(isstim[0]) debug_printf(DL_DEBUG, "    Stim object: %d, Intensity: %.3f", stimob[0], intensity[0]);
+        debug_printf(DL_DEBUG, "Off is%s a stimulus", (isstim[SEND_OFF] ? "" : " not"));
+        if(isstim[SEND_OFF])  {
+            if(intensity_max[SEND_OFF] < 0.0f) {
+                debug_printf(DL_DEBUG, "    Stim object: %d, Intensity: %.3f", stimob[SEND_OFF], intensity_min[SEND_OFF]);
+            } else {
+                debug_printf(DL_DEBUG, "    Stim object: %d, Intensity range: %.3f to %.3f", stimob[SEND_OFF], intensity_min[SEND_OFF], intensity_max[SEND_OFF]);
+            }
+        }
 
         debug_printf(DL_DEBUG, "Chance of failure is %d%%%s", static_cast<int>(fail_chance), (static_cast<int>(fail_chance) ? "" : " (will always trigger)"));
         debug_printf(DL_DEBUG, "Count is %d%s with a falloff of %d milliseconds, count mode is %d, limit is %s",
@@ -73,10 +85,14 @@ void TWBaseTrigger::process_designnote(const std::string& design_note, const int
 {
     // Work out what the turnon and turnoff messages should be
     turnon_msg.init(design_note, "TurnOn");
-    isstim[0] = check_stimulus_message(turnon_msg.c_str(), &stimob[0], &intensity[0]);
+    isstim[SEND_ON] = check_stimulus_message(turnon_msg.c_str(),
+                                             &stimob[SEND_ON],
+                                             &intensity_min[SEND_ON], &intensity_max[SEND_ON]);
 
     turnoff_msg.init(design_note, "TurnOff");
-    isstim[1] = check_stimulus_message(turnoff_msg.c_str(), &stimob[1], &intensity[1]);
+    isstim[SEND_OFF] = check_stimulus_message(turnoff_msg.c_str(),
+                                              &stimob[SEND_OFF],
+                                              &intensity_min[SEND_OFF], &intensity_max[SEND_OFF]);
 
     // And where the messages should go
     dest.init(design_note, "&ControlDevice");
@@ -96,21 +112,42 @@ void TWBaseTrigger::process_designnote(const std::string& design_note, const int
 }
 
 
-bool TWBaseTrigger::check_stimulus_message(const char* message, int* obj, float* intensity)
+bool TWBaseTrigger::check_stimulus_message(const char* message, int* obj, float* int_min, float* int_max)
 {
-    char *end = NULL;
+    char *end  = NULL;
+    char *from = NULL;
 
     // If the first character is not a '[', the message is not a stimulus
     if(*message != '[') return false;
 
     ++message;
-    *intensity = strtof(message, &end);
+    *int_min = strtof(message, &end);
 
     // If number parsing fails, the message is still not a stimulus.
     if(end == message) return false;
 
-    // Something has been parsed out, so traverse the string looking for the ] or end
-    while(*end && *end != ']') ++end;
+    // Something has been parsed out, so traverse the string looking for |, ] or end
+    while(*end && *end != ']' && *end != '|') ++end;
+
+    // Hit a '|'? If so, try parsing another number
+    if(*end == '|') {
+        from = end;
+        *int_max = strtof(from, &end);
+
+        // Parsing failed - restore the value that was in int_max
+        if(end == from) {
+            *int_max = 0.0f;
+        } else {
+            // Make sure min and max are the right way around
+            if(*int_min > *int_max) {
+                float tmp = *int_max;
+                *int_max = *int_min;
+                *int_min = tmp;
+            }
+
+            while(*end && *end != ']') ++end;
+        }
+    }
 
     // Hit the end of string? Not something we can use, then
     if(!*end) return false;
@@ -128,6 +165,19 @@ bool TWBaseTrigger::check_stimulus_message(const char* message, int* obj, float*
 
     // Okay, looks like an archetype has been found, so this is a stim message
     return true;
+}
+
+
+float TWBaseTrigger::make_intensity(float min, float max)
+{
+    // Negative max means no max was set - just pass the stim value as-is
+    if(max < 0) {
+        return min;
+    }
+
+    // Otherwise, generate a random value in the range
+    int amount = uni_dist(generator);
+    return (min + ((max - min) * (amount / 100.0f)));
 }
 
 
@@ -168,20 +218,22 @@ bool TWBaseTrigger::send_trigger_message(bool send_on, sScrMsg* msg)
             SService<IActReactSrv> ar_srv(g_pScriptManager);
 
             // Convert the bool to an index into the various arrays
-            int send = (send_on ? 1 : 0);
+            int send = (send_on ? SEND_ON : SEND_OFF);
 
             for(it = targets -> begin(); it != targets -> end(); it++) {
                 // If sending a stim instead of a message, do that...
                 if(isstim[send]) {
+                    float intensity = make_intensity(intensity_min[send], intensity_max[send]);
+
                     if(debug_enabled()) {
                         std::string objname, stimname;
                         get_object_namestr(objname, it -> obj_id);
                         get_object_namestr(stimname, stimob[send]);
 
-                        debug_printf(DL_DEBUG, "Stimulating %s with %s, intensity %.3f", objname.c_str(), stimname.c_str(), intensity[send]);
+                        debug_printf(DL_DEBUG, "Stimulating %s with %s, intensity %.3f", objname.c_str(), stimname.c_str(), intensity);
                     }
 
-                    ar_srv -> Stimulate(it -> obj_id, stimob[send], intensity[send], ObjId());
+                    ar_srv -> Stimulate(it -> obj_id, stimob[send], intensity, ObjId());
 
                 // otherwise, send the message to the target
                 } else {

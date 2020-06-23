@@ -49,7 +49,9 @@ public:
                                                   turnon_msg (object, name, "TOn"),
                                                   turnoff_msg(object, name, "TOff"),
 
-                                                  isstim { false, false }, stimob { 0, 0 }, intensity { 0.0f, 0.0f },
+                                                  isstim { false, false }, stimob { 0, 0 },
+                                                  intensity_min { 0.0f, 0.0f },
+                                                  intensity_max { -1.0f, -1.0f },
 
                                                   dest(object, name, "TDest"),
                                                   remove_links(object, name, "KillLinks"),
@@ -57,7 +59,7 @@ public:
                                                   fail_chance(object, name, "FailChance"),
 
                                                   count_dp(object, name, "TCount"),
-                                                  count(name, object),
+                                                  count(name, object, "count"),
                                                   count_mode(object, name, "TCountOnly"),
 
                                                   generator(0),
@@ -65,6 +67,11 @@ public:
         { /* fnord */ }
 
 protected:
+    enum MessageMode {
+        SEND_OFF,
+        SEND_ON
+    };
+
     /* ------------------------------------------------------------------------
      *  Initialisation related
      */
@@ -139,8 +146,12 @@ private:
      *  if so attempt to set up the settings based on the message.
      *
      */
-    bool check_stimulus_message(const char* message, int* obj, float* intensity);
+    bool check_stimulus_message(const char* message, int* obj, float* int_min, float* int_max);
 
+
+    /** Generate an intensity value between the two specified intensities.
+     */
+    float make_intensity(float min, float max);
 
     /* ------------------------------------------------------------------------
      *  Variables
@@ -153,12 +164,12 @@ private:
     // Stimulus for on/off
     bool  isstim[2];         //!< Is the turnon/off message a stimulus rather than a message?
     int   stimob[2];         //!< The stimulus object to use on turnon/off.
-    float intensity[2];      //!< The stimulus intensity to use.
+    float intensity_min[2];  //!< The lower range of the stimulus intensity to use.
+    float intensity_max[2];  //!< The upper range of the stumulus intensity to use.
 
     // Destination setting
-    DesignParamTarget dest;    //!< Where should messages be sent?
-
-    DesignParamBool remove_links;       //!< Remove links after sending messages?
+    DesignParamTarget dest;       //!< Where should messages be sent?
+    DesignParamBool remove_links; //!< Remove links after sending messages?
 
     // Full of fail?
     DesignParamInt fail_chance; //!< percentage chance of the trigger failing.
