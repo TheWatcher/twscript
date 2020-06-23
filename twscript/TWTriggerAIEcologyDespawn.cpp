@@ -18,10 +18,13 @@ void TWTriggerAIEcologyDespawn::init(int time)
 
     if(!design_note) {
         debug_printf(DL_WARNING, "No Editor -> Design Note. Falling back on defaults.");
+        refresh.init("", 120000);
+        visible_despawn.init("", false);
 
     } else {
         // How often should the ecology update?
-        refresh.init(design_note, 20000);
+        refresh.init(design_note, 120000);
+        visible_despawn.init(design_note, false);
 
         g_pMalloc -> Free(design_note);
     }
@@ -93,9 +96,9 @@ bool TWTriggerAIEcologyDespawn::attempt_despawn(sScrMsg *msg)
 
     // If the AI is visible, it can't be despawned
     obj_srv -> RenderedThisFrame(onscreen, ObjId());
-    if(!onscreen) {
+    if(visible_despawn.value() || !onscreen) {
         if(debug_enabled())
-            debug_printf(DL_DEBUG, "AI is offscreen, despawning");
+            debug_printf(DL_DEBUG, "AI is offscreen (or onscreen despawn allowed), despawning");
 
         // Try to locate the ecology that controls this AI
         int ecology = GetObjectParamInt(ObjId(), "EcologyID", 0);

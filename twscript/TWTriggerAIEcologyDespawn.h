@@ -33,6 +33,12 @@
 #include "TWBaseTrigger.h"
 
 /** @class TWTriggerAIEcologyDespawn
+ * TWTriggerAIEcologyDespawn is a script that despawns slain AIs, generally ones
+ * spawned by TWTrapAIEcology and it informs the AIEcology that the AI has been
+ * despawned.
+ *
+ * For full documentation on features/design note parameters, see the docs:
+ * https://thief.starforge.co.uk/wiki/Scripting:TWTriggerAIEcologyDespawn
  *
  */
 class TWTriggerAIEcologyDespawn : public TWBaseTrigger
@@ -40,6 +46,7 @@ class TWTriggerAIEcologyDespawn : public TWBaseTrigger
 public:
     TWTriggerAIEcologyDespawn(const char* name, int object) : TWBaseTrigger(name, object),
                                                               refresh(object, name, "Rate"),
+                                                              visible_despawn(object, name, "Visible"),
                                                               SCRIPT_VAROBJ(TWTriggerAIEcologyDespawn, update_timer, object)
         { /* fnord */ }
 
@@ -103,7 +110,8 @@ private:
      */
     bool attempt_despawn(sScrMsg *msg);
 
-    DesignParamInt refresh;                //!< How frequently should the despawn happen after death?
+    DesignParamInt  refresh;               //!< How frequently should the despawn happen after death?
+    DesignParamBool visible_despawn;       //!< Allow visible despawn?
     script_handle<tScrTimer> update_timer; //!< A timer used to despawn the AI
 };
 
