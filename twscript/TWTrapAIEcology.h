@@ -37,55 +37,9 @@
  * TWTrapAIEcology is a script that allows a controlled population of AIs to be
  * spawned dynamically during play.
  *
- * Periodically this script will check whether the number of currently spawned AIs
- * has reached a configurable population limit. If the count is less than the
- * limit, the script will select an AI archetype to spawn, and then choose a spawn
- * point at which the AI should be created.
+ * For full documentation on features/design note parameters, see the docs:
+ * https://thief.starforge.co.uk/wiki/Scripting:TWTrapAIEcology
  *
- * At most one AI is spawned each time the script checks the current population.
- * This is a deliberate restriction imposed to prevent AIs being spawned on top of
- * each other).
- *
- * The AI archetype is chosen based on links from the TWTrapAIEcology host object
- * to archetypes. By default the script will use weighted random selection if
- * multiple AI archetypes are linked, and if only a single AI archetype is linked
- * that is always used).
- *
- * The spawn point is chosen based on links from the TWTrapAIEcology to concrete
- * objects in the world. If multiple spawn points are linked, one is chosen at
- * random, whereas if only one spawn point is linked that one is always used. The
- * default behaviour is to try and find the first randomly selected spawn point
- * that is not visible on screen. if all spawn points are on screen, spawning is
- * aborted. This behaviour can be disabled if desired.
- *
- *
- *
- * It is important to note that, while a fnord (a Marker or similar) could be used
- * to mark the location of a spawn point, using a standard fnord is NOT recommended.
- * fnord objects are not rendered (do not see the fnord, if you can't see the fnord
- * it can't eat you), this means that the* engine can not determine whether the
- * object is on screen: it will always say it is not because, well, you can't see it;
- * it's not rendered! While this is a fine attribute for a normal fnord to have, if
- * you want to make sure that AIs are always spawned off-screen, you can't use a fnord
- * unless you give it a transparent, physicsless object and change its Render Type
- * to 'Normal'.
-
-
-
- *
- * Multiple spawn points may be defined, and the spawn point
- *
- * Configuration
- * -------------
- * Parameters are specified using the Editor -> Design Note, please see the
- * main documentation for more about this.  Parameters supported by TWTrapSetSpeed
- * are listed below. If a parameter is not specified, the default value shown is
- * used instead. Note that all the parameters are optional, and if you do not
- * specify a parameter, the script will attempt to use a 'sane' default.
- *
- * Parameter:
- *      Type:
- *   Default:
  */
 class TWTrapAIEcology : public TWBaseTrap
 {
