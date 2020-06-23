@@ -16,7 +16,7 @@ TWBaseScript::MsgStatus TWBaseTrigger::on_message(sScrMsg* msg, cMultiParm& repl
     MsgStatus result = TWBaseScript::on_message(msg, reply);
     if(result != MS_CONTINUE) return result;
 
-    if(!::_stricmp(msg -> message, "ResetCount")) {
+    if(!::_stricmp(msg -> message, "ResetTriggerCount")) {
         count.reset(msg -> time);
 
         if(debug_enabled())
