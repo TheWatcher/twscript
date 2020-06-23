@@ -100,6 +100,7 @@ SCR_OBJS  = $(SCRPTDIR)/TWTrapAIBreath.o \
 			$(SCRPTDIR)/TWTrapAIEcology.o \
 			$(SCRPTDIR)/TWTriggerAIEcologyDespawn.o \
 			$(SCRPTDIR)/TWTriggerAIEcologyFireShadow.o \
+			$(SCRPTDIR)/TWTriggerAIEcologySlain.o \
 			$(SCRPTDIR)/TWTriggerAIAware.o \
 			$(SCRPTDIR)/TWTriggerVisible.o
 
@@ -184,6 +185,7 @@ $(SCRPTDIR)/TWTrapSetSpeed.o: $(SCRPTDIR)/TWTrapSetSpeed.cpp $(SCRPTDIR)/TWTrapS
 $(SCRPTDIR)/TWTrapAIEcology.o: $(SCRPTDIR)/TWTrapAIEcology.cpp $(SCRPTDIR)/TWTrapAIEcology.h $(BASEDIR)/TWBaseTrap.h $(BASEDIR)/TWBaseScript.h $(PUBDIR)/Script.h
 $(SCRPTDIR)/TWTriggerAIEcologyDespawn.o: $(SCRPTDIR)/TWTriggerAIEcologyDespawn.cpp $(SCRPTDIR)/TWTriggerAIEcologyDespawn.h $(BASEDIR)/TWBaseTrigger.h $(PUBDIR)/Script.h
 $(SCRPTDIR)/TWTriggerAIEcologyFireShadow.o: $(SCRPTDIR)/TWTriggerAIEcologyFireShadow.cpp $(SCRPTDIR)/TWTriggerAIEcologyFireShadow.h $(BASEDIR)/TWBaseTrigger.h $(PUBDIR)/Script.h
+$(SCRPTDIR)/TWTriggerAIEcologySlain.o: $(SCRPTDIR)/TWTriggerAIEcologySlain.cpp $(SCRPTDIR)/TWTriggerAIEcologySlain.h $(BASEDIR)/TWBaseTrigger.h $(PUBDIR)/Script.h
 
 #$(SCRPTDIR)/TWCloudDrift.o: $(SCRPTDIR)/TWCloudDrift.cpp $(SCRPTDIR)/TWCloudDrift.h $(BASEDIR)/TWBaseScript.h $(PUBDIR)/Script.h
 #$(SCRPTDIR)/TWTestOnscreen.o: $(SCRPTDIR)/TWTestOnscreen.cpp $(SCRPTDIR)/TWTestOnscreen.h $(BASEDIR)/TWBaseScript.h $(PUBDIR)/Script.h

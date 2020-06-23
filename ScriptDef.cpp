@@ -64,15 +64,15 @@
 #include "TWTrapAIBreath.h"
 #include "TWTrapPhysStateCtrl.h"
 #include "TWTrapSetSpeed.h"
-#include "TWTrapAIEcology.h"
-#include "TWTriggerAIEcologyDespawn.h"
-#include "TWTriggerAIEcologyFireShadow.h"
-
-//#include "TWCloudDrift.h"
-//#include "TWTestOnscreen.h"
 
 #include "TWTriggerAIAware.h"
 #include "TWTriggerVisible.h"
+
+#include "TWTrapAIEcology.h"
+#include "TWTriggerAIEcologySlain.h"
+#include "TWTriggerAIEcologyDespawn.h"
+#include "TWTriggerAIEcologyFireShadow.h"
+
 
 #undef TWBASESCRIPT_H
 #undef TWBASETRAP_H
@@ -81,15 +81,15 @@
 #undef TWTRAPAIBREATH_H
 #undef TWTRAPPHYSSTATECTRL_H
 #undef TWTRAPSETSPEED_H
-#undef TWTRAPAIECOLOGY_H
-
-//#undef TWCLOUDDRIFT_H
-//#undef TWTESTONSCREEN_H
 
 #undef TWTRIGGERAIAWARE_H
 #undef TWTRIGGERVISIBLE_H
+
+#undef TWTRAPAIECOLOGY_H
 #undef TWTRIGGERAIECOLOGYDESPAWN_H
+#undef TWTRIGGERAIECOLOGYSLAIN_H
 #undef TWTRIGGERAIECOLOGYFIRESHADOW_H
+
 
 #if defined(SCR_GENSCRIPTFACTORY)
 
