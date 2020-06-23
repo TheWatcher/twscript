@@ -44,7 +44,8 @@ void TWTrapAIEcology::init(int time)
         archetype_link.init(design_note, "&%Weighted");
         spawnpoint_link.init(design_note, "&#Weighted");
 
-        // Set up the name of the qvar to store the population in
+        // Set up the name of the qvar to store the population and spawn count in
+        pop_qvar.init(design_note);
         spawned_qvar.init(design_note);
 
         g_pMalloc -> Free(design_note);
@@ -60,6 +61,14 @@ void TWTrapAIEcology::init(int time)
         allow_visible_spawn.init("", false);
         archetype_link.init("", "&%Weighted");
         spawnpoint_link.init("", "&#Weighted");
+    }
+
+    if(pop_qvar.is_set()) {
+        set_qvar(pop_qvar.value(), population);
+    }
+
+    if(spawned_qvar.is_set()) {
+        set_qvar(spawned_qvar.value(), spawned);
     }
 
     // If the ecology is active, start it going
@@ -165,6 +174,10 @@ TWBaseScript::MsgStatus TWTrapAIEcology::on_despawn(sScrMsg* msg, cMultiParm& re
 {
     population = population - 1;
 
+    if(pop_qvar.is_set()) {
+        set_qvar(pop_qvar.value(), population);
+    }
+
     if(debug_enabled())
         debug_printf(DL_DEBUG, "AI despawned, population is now %d spawned AIs (limit is %d)", int(population), pop_limit.value());
 
@@ -175,6 +188,10 @@ TWBaseScript::MsgStatus TWTrapAIEcology::on_despawn(sScrMsg* msg, cMultiParm& re
 TWBaseScript::MsgStatus TWTrapAIEcology::on_resetspawned(sScrMsg* msg, cMultiParm& reply)
 {
     spawned = 0;
+
+    if(spawned_qvar.is_set()) {
+        set_qvar(spawned_qvar.value(), 0);
+    }
 
     if(debug_enabled())
         debug_printf(DL_DEBUG, "Reset spawned counter to zero");
@@ -432,7 +449,10 @@ void TWTrapAIEcology::increase_spawncount(void)
         debug_printf(DL_DEBUG, "Updated spawn count. Currently spawned: %d, total so far: %d", pop, spawn);
     }
 
-    // If the user has set a qvar to store the spawn count in, update it.
+    // If the user has set a qvar to store the population or spawn count in, update it.
+    if(pop_qvar.is_set()) {
+        set_qvar(pop_qvar.value(), pop);
+    }
     if(spawned_qvar.is_set()) {
         set_qvar(spawned_qvar.value(), spawn);
     }

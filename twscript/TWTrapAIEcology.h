@@ -97,6 +97,7 @@ public:
                                                     lives              (object, name, "Lives"),
                                                     starton            (object, name, "StartOn"),
                                                     allow_visible_spawn(object, name, "VisibleSpawn"),
+                                                    pop_qvar           (object, name, "PopulationQVar"),
                                                     spawned_qvar       (object, name, "SpawnCountQVar"),
                                                     archetype_link     (object, name, "AILink"),
                                                     spawnpoint_link    (object, name, "SpawnLink"),
@@ -354,6 +355,7 @@ private:
     DesignParamBool starton;               //!< Start spawning after init?
     DesignParamBool allow_visible_spawn;   //!< Should spawns be allowed to happen on-screen?
 
+    DesignParamString pop_qvar;            //!< The name of the qvar to store the current population of spawned AIs.
     DesignParamString spawned_qvar;        //!< The name of the qvar to store the total number of spawned AIs.
 
     DesignParamTarget archetype_link;      //!< The string to use as a linkdef when searching for the archetype to spawn.
