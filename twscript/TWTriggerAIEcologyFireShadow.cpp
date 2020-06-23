@@ -19,6 +19,10 @@ void TWTriggerAIEcologyFireShadow::init(int time)
     if(!design_note) {
         debug_printf(DL_WARNING, "No Editor -> Design Note. Falling back on defaults.");
 
+        refresh.init("", 1000);
+        speed_factor.init("", 0.8125);
+        min_timewarp.init("", 0.03);
+
     } else {
         // How often should the fireshadow update?
         refresh.init(design_note, 1000);
